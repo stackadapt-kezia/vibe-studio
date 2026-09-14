@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StackAdapt Vibe studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #000000; --panel: #0b0b0d; --panel-2: #141418; --line: #232329;
+    --text: #eceef4; --muted: #85899a; --accent: #3d84ff; --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 400 14px/1.5 "Source Sans 3", system-ui, sans-serif;
+    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+  }
+  header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 18px; border-bottom: 1px solid var(--line); flex: 0 0 auto;
+  }
+  .sa-logo { height: 20px; width: auto; color: var(--text); }
+  .title {
+    font: 600 15px/1 "Space Grotesk", sans-serif; letter-spacing: -.01em;
+  }
+  .backlink {
+    margin-left: auto; color: var(--muted); text-decoration: none;
+    font: 500 10px/1.3 "Space Grotesk", sans-serif; text-transform: uppercase;
+    letter-spacing: .05em; border: 1px solid var(--line); border-radius: 999px;
+    padding: 6px 12px;
+  }
+  .backlink:hover { color: var(--text); }
+  .ver { color: var(--muted); font-size: 12px; }
+  .app { flex: 1; display: flex; min-height: 0; }
+  .panel {
+    width: 300px; flex: 0 0 300px; background: var(--panel);
+    border-right: 1px solid var(--line); overflow-y: auto; padding: 16px;
+  }
+  .stage {
+    flex: 1; min-width: 0; position: relative; background: #000;
+    display: flex; align-items: center; justify-content: center;
+  }
+  canvas { display: block; width: 100%; height: 100%; }
+  body.hide-ui .panel, body.hide-ui header { display: none; }
+  .showui { display: none; }
+  body.hide-ui .showui {
+    display: block; position: fixed; top: 14px; left: 14px; z-index: 50;
+    width: auto; margin: 0; opacity: .35; background: rgba(0,0,0,.6);
+  }
+  body.hide-ui .showui:hover { opacity: 1; }
+  fieldset {
+    border: 0; padding: 0; margin: 0 0 20px;
+    min-inline-size: 0; min-width: 0;   /* fieldsets default to min-content width */
+  }
+  legend {
+    font: 500 10px/1 "Space Grotesk", sans-serif; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--muted); padding: 0 0 10px;
+  }
+  .row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .row label { flex: 0 0 86px; font-size: 13px; color: var(--muted); }
+  .row input[type=range] { flex: 1; accent-color: var(--accent); min-width: 0; }
+  .row output {
+    flex: 0 0 38px; text-align: right; font-size: 12px; color: var(--muted);
+    font-variant-numeric: tabular-nums; cursor: text;
+  }
+  .row output:hover { color: var(--accent); }
+  .num {
+    flex: 0 0 54px; width: 54px; background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 4px; color: var(--text);
+    padding: 4px 6px; font: inherit; font-size: 12px; text-align: right;
+  }
+  .num:focus { outline: none; border-color: var(--accent); }
+  .seg { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .seg button, .pill {
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
+    padding: 9px 10px; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer;
+  }
+  .seg button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  #styleSeg button:nth-child(5) { grid-column: span 2; }
+  .seg button:not(.active):hover, .pill:hover { color: var(--text); background: #1b1b21; }
+  .pill { width: 100%; margin-top: 8px; color: var(--text); }
+  .pill.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  select, input[type=text] {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px;
+    color: var(--text); padding: 8px 10px; font: inherit; font-size: 13px; width: 100%;
+  }
+  .pal-wrap { display: flex; gap: 12px; align-items: stretch; }
+  .pal-pill { position: relative; width: 30px; flex: 0 0 30px; }
+  .pal-pill canvas {
+    width: 100%; height: 100%; border-radius: 999px;
+    border: 1px solid var(--line); display: block;
+  }
+  .pal-stop {
+    position: absolute; left: -10px; right: -10px; height: 22px; margin-top: -11px;
+    cursor: ns-resize; touch-action: none;
+  }
+  .pal-stop::after {
+    content: ""; position: absolute; left: 50%; top: 50%;
+    width: 16px; height: 16px; border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--c, #fff); border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.5), 0 1px 4px rgba(0,0,0,.45);
+  }
+  .pal-stop:hover::after, .pal-stop.drag::after {
+    width: 20px; height: 20px; border-color: var(--accent);
+  }
+  .pal-stop.fixed { cursor: default; }
+  .pal-stop.fixed:hover::after { width: 16px; height: 16px; border-color: #fff; }
+  .pal-rows { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .swatch { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .swatch input[type=color] {
+    width: 30px; height: 28px; padding: 0; border: 1px solid var(--line);
+    border-radius: 5px; background: none; cursor: pointer; flex: 0 0 30px;
+  }
+  .swatch input[type=text] { flex: 1; min-width: 0; }
+  .swatch button, .lib-x {
+    background: none; border: 0; color: var(--muted); cursor: pointer;
+    font-size: 15px; padding: 2px 6px; border-radius: 5px;
+  }
+  .swatch button:hover { color: var(--text); background: var(--panel-2); }
+  .sep { height: 1px; background: var(--line); margin: 18px 0 0; }
+  .meters { display: flex; gap: 6px; align-items: flex-end; height: 46px; margin: 30px 0 14px; }
+  .meter { flex: 1; background: var(--panel-2); border-radius: 4px; position: relative; height: 100%; }
+  .meter i {
+    position: absolute; left: 0; right: 0; bottom: 0; border-radius: 4px;
+    background: var(--accent); height: 0%; display: block;
+  }
+  .meter span {
+    position: absolute; top: -16px; left: 0; font-size: 10px; color: var(--muted);
+    letter-spacing: .1em; text-transform: uppercase;
+  }
+  .note { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+  .note.warn { color: #ffb37a; }
+  .hint {
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+    color: var(--muted); font-size: 12px; background: rgba(0,0,0,.55);
+    padding: 6px 12px; border-radius: 999px; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<header>
+  <svg class="sa-logo" role="img" aria-label="StackAdapt" id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 120"> <g> <path fill="currentColor" d="M249.05,84.8l-.22.19c-1.92,1.35-3.24,2.2-5.57,3.02-2.33.85-4.88,1.32-7.27,1.32-2.17,0-4.22-.28-6.2-.85-.66-.16-1.32-.38-1.95-.63-2.49-.98-4.72-2.46-6.58-4.38-.47-.47-.94-1.01-1.39-1.61-1.23-1.57-2.23-3.4-2.99-5.45-1.04-2.74-1.54-5.95-1.54-9.48s.57-6.67,1.73-9.44c.94-2.23,2.11-4.19,3.56-5.82.35-.41.72-.82,1.16-1.23,1.95-1.92,4.25-3.4,6.83-4.41.66-.28,1.35-.5,2.01-.72,1.98-.54,4.03-.82,6.11-.82,2.77,0,5.19.47,7.24,1.42,1.76.85,2.64,1.39,4.19,2.46l.22.19-3.81,8.12-.03.09-1.1-.91c-.98-.76-1.86-1.32-2.74-1.73-1.04-.5-2.2-.79-3.43-.79-.98,0-1.89.09-2.74.32-2.08.53-3.81,1.67-5.23,3.37-.6.72-1.1,1.51-1.51,2.3-1.04,2.11-1.57,4.6-1.57,7.62,0,2.61.41,4.94,1.23,6.89.5,1.17,1.1,2.14,1.79,2.96,1.26,1.57,2.74,2.61,4.47,3.18,1.01.35,2.11.5,3.27.5,1.61,0,3.09-.35,4.5-1.04.94-.47,1.86-1.01,2.8-1.67l1.1-.79,3.65,7.81Z"/> <path fill="currentColor" d="M468.68,57.38c-.76-2.68-1.86-4.97-3.31-6.89-1.48-1.92-3.24-3.4-5.32-4.44-2.08-1.01-4.47-1.54-7.15-1.54-2.39,0-4.72.57-6.93,1.67-2.08,1.04-4,2.3-5.73,3.68l-2.01-4.31h-7.53v59.34h10.64v-13.6l-.22-6.08c1.51,1.23,3.09,2.2,4.69,2.9,4.25,1.86,8.59,1.51,12.56-.35,2.2-1.04,4.19-2.55,5.86-4.5,1.67-1.95,3.05-4.38,4.06-7.24,1.01-2.83,1.51-6.11,1.51-9.73,0-3.27-.38-6.26-1.13-8.91ZM456.08,76.93c-1.83,2.33-4,3.46-6.67,3.46-1.2,0-2.52-.25-3.87-.76-1.35-.47-2.74-1.32-4.19-2.52v-19.2c3.05-2.96,6.01-4.47,8.81-4.47,3.09,0,5.23,1.1,6.58,3.31,1.39,2.27,2.08,5.51,2.08,9.63,0,4.66-.91,8.22-2.74,10.55Z"/> <g> <polygon fill="currentColor" points="293.13 88.31 293.13 88.3 293.13 88.3 293.13 88.31"/> <polygon fill="currentColor" points="276.65 62.4 291.06 46.42 291.81 45.53 279.97 45.53 264.77 62.41 264.77 31.62 254.3 31.62 254.3 88.31 264.77 88.31 264.77 75.57 270.31 69.43 281.46 88.31 293.13 88.31 293.13 88.3 293.13 88.3 293.13 88.28 276.65 62.4"/> <polygon fill="currentColor" points="293.13 88.3 293.14 88.3 293.13 88.28 293.13 88.3"/> </g> <path fill="currentColor" d="M323.89,31.88l-.09-.27h-12.19l-18.3,56.18-.16.51h10.91l4.36-15.13h18.23l4.36,15.13h11.25l-18.37-56.42ZM317.53,40.59c.73,2.82,1.48,5.66,2.23,8.53.82,3.12,1.7,6.2,2.61,9.15l1.82,6.35h-13.25l1.82-6.34c.91-2.94,1.77-6.01,2.57-9.12.73-2.84,1.46-5.7,2.19-8.57Z"/> <path fill="currentColor" d="M144.3,72.33c0,2.33-.47,4.53-1.42,6.58-.94,2.05-2.3,3.87-4.06,5.41-1.76,1.51-3.93,2.77-6.45,3.65-2.52.91-5.38,1.35-8.56,1.35-2.11,0-4.19-.22-6.2-.66-1.64-.38-3.27-.85-4.85-1.51-3.46-1.42-5.82-3.02-8.12-4.97l-.06-.06,4.28-9.22,1.04.91c1.95,1.79,4.16,3.27,6.58,4.34,1.79.82,3.53,1.35,5.32,1.57.72.09,1.45.16,2.2.16,3.08,0,5.41-.63,6.99-1.89,1.57-1.23,2.33-2.83,2.33-4.88,0-1.07-.19-1.98-.6-2.71-.38-.76-.94-1.42-1.67-1.98-.76-.57-1.67-1.1-2.68-1.61-.16-.06-.31-.16-.47-.22-.82-.41-1.76-.82-2.96-1.32l-7.71-3.34c-.91-.38-1.79-.82-2.64-1.29-.5-.25-.98-.57-1.45-.85-1.39-.88-2.64-1.95-3.71-3.15-1.1-1.2-2.01-2.64-2.68-4.31-.69-1.61-1.04-3.53-1.04-5.6,0-2.3.5-4.44,1.48-6.39.98-1.98,2.3-3.71,3.97-5.13,1.67-1.45,3.71-2.58,6.08-3.4,2.33-.82,4.91-1.23,7.71-1.23,1.2,0,2.36.09,3.53.25,2.08.31,4.06.88,6.01,1.7,2.83,1.2,4.91,2.55,7.11,4.5l.06.06-3.9,8.41-1.35-1.07c-1.67-1.32-3.4-2.39-5.13-3.15-1.89-.82-4-1.26-6.33-1.26-.25,0-.5,0-.76.03-2.24.09-4.06.66-5.41,1.67-1.51,1.07-2.23,2.55-2.23,4.47,0,1.01.22,1.86.66,2.58.47.69,1.07,1.35,1.86,1.92.03.03.09.06.13.09.79.57,1.67,1.04,2.68,1.48,1.07.47,2.2.94,3.31,1.39l7.33,3.05.28.13c1.64.69,3.18,1.51,4.56,2.42,1.45.98,2.64,2.05,3.65,3.24,1.01,1.23,1.83,2.64,2.42,4.28.57,1.57.88,3.46.88,5.54Z"/> <path fill="currentColor" d="M169.61,79.54l1.92,8.12-.35.09c-1.16.41-2.49.79-3.97,1.1-1.45.32-3.05.47-4.72.47-2.49,0-4.63-.38-6.36-1.13-.98-.44-1.86-.98-2.64-1.64-.6-.47-1.13-1.01-1.61-1.61-1.1-1.38-1.89-3.05-2.39-4.94-.5-1.89-.72-4-.72-6.3v-39.63h10.7v11.46h13.16l-4,8.59h-9.16v19.61c0,4.63,1.79,6.89,5.51,6.89.69,0,1.42-.06,2.17-.25.72-.16,1.42-.38,2.01-.63l.44-.22Z"/> <path fill="currentColor" d="M496.77,79.54l1.92,8.12-.35.09c-1.16.41-2.49.79-3.97,1.1-1.45.32-3.05.47-4.72.47-2.49,0-4.63-.38-6.36-1.13-.98-.44-1.86-.98-2.64-1.64-.6-.47-1.13-1.01-1.61-1.61-1.1-1.38-1.89-3.05-2.39-4.94-.5-1.89-.72-4-.72-6.3v-39.63h10.7v11.46h13.16l-4,8.59h-9.16v19.61c0,4.63,1.79,6.89,5.51,6.89.69,0,1.42-.06,2.17-.25.72-.16,1.42-.38,2.01-.63l.44-.22Z"/> <path fill="currentColor" d="M371.92,31.63v11.18l.28,5.82c-1.45-1.16-2.9-2.11-4.31-2.83-1.7-.85-3.81-1.29-6.23-1.29s-4.63.54-6.8,1.57c-2.2,1.07-4.16,2.55-5.82,4.47-1.67,1.92-3.05,4.28-4.06,7.05-1.01,2.77-1.51,5.92-1.51,9.35,0,7.02,1.61,12.56,4.75,16.46,3.18,3.93,7.52,5.92,12.91,5.92,2.33,0,4.6-.57,6.71-1.67,1.95-1.04,3.68-2.3,5.19-3.75l.66,4.38h8.88V31.63h-10.64ZM371.92,75.95c-2.61,2.96-5.45,4.44-8.41,4.44s-5.13-1.1-6.71-3.37c-1.57-2.27-2.36-5.7-2.36-10.14s.91-7.71,2.74-10.01c1.79-2.3,3.97-3.43,6.58-3.43,1.39,0,2.74.25,4.09.76,1.29.47,2.68,1.32,4.06,2.52v19.23Z"/> <path fill="currentColor" d="M206.03,49.32c-2.66-3.18-6.72-4.8-12.06-4.8-3.4,0-6.6.56-9.54,1.66-2.85,1.06-5.47,2.32-7.76,3.77l3.53,7.56.31-.19c1.85-1.12,3.77-2.09,5.71-2.88,1.91-.77,3.88-1.16,5.86-1.16,1.37,0,2.52.21,3.43.6.9.41,1.63.96,2.19,1.68.56.72.96,1.57,1.21,2.5.22.84.36,1.74.44,2.65-4.17.46-7.8,1.11-10.83,1.94-1.89.52-3.6,1.12-5.1,1.8-.99.44-1.89.91-2.7,1.4-2.07,1.29-3.62,2.85-4.59,4.65-.96,1.79-1.46,3.85-1.46,6.13,0,3.79,1.19,6.9,3.54,9.22,2.35,2.31,5.46,3.49,9.26,3.49,2.44,0,4.75-.52,6.85-1.52.1-.04.2-.1.3-.14,2.05-1.04,4.02-2.34,5.84-3.86l.67,4.51h8.87v-25.27c0-5.94-1.34-10.56-3.98-13.72ZM199.38,76.44c-1.51,1.4-2.95,2.49-4.28,3.24-1.33.76-2.83,1.14-4.45,1.14s-3.05-.4-4.11-1.2c-1.04-.78-1.55-2.02-1.55-3.78,0-.95.24-1.86.72-2.71.48-.85,1.29-1.62,2.42-2.29,1.16-.69,2.71-1.32,4.61-1.88,1.8-.53,4.04-.97,6.66-1.3v8.76Z"/> <path fill="currentColor" d="M419.48,49.32c-2.66-3.18-6.72-4.8-12.06-4.8-3.4,0-6.6.56-9.54,1.66-2.85,1.06-5.47,2.32-7.76,3.77l3.53,7.56.31-.19c1.85-1.12,3.77-2.09,5.71-2.88,1.91-.77,3.88-1.16,5.86-1.16,1.37,0,2.52.21,3.43.6.9.41,1.63.96,2.19,1.68.56.72.96,1.57,1.21,2.5.22.84.36,1.74.44,2.65-4.17.46-7.8,1.11-10.83,1.94-1.89.52-3.6,1.12-5.1,1.8-.99.44-1.89.91-2.7,1.4-2.07,1.29-3.62,2.85-4.59,4.65-.96,1.79-1.46,3.85-1.46,6.13,0,3.79,1.19,6.9,3.54,9.22,2.35,2.31,5.46,3.49,9.26,3.49,2.44,0,4.75-.52,6.85-1.52.1-.04.2-.1.3-.14,2.05-1.04,4.02-2.34,5.84-3.86l.67,4.51h8.87v-25.27c0-5.94-1.34-10.56-3.98-13.72ZM412.83,76.44c-1.51,1.4-2.95,2.49-4.28,3.24-1.33.76-2.83,1.14-4.45,1.14s-3.05-.4-4.11-1.2c-1.04-.78-1.55-2.02-1.55-3.78,0-.95.24-1.86.72-2.71.48-.85,1.29-1.62,2.42-2.29,1.16-.69,2.71-1.32,4.61-1.88,1.8-.53,4.04-.97,6.66-1.3v8.76Z"/> </g> <path fill="#0061ff" d="M77.7,53.31l-18.34-21.87,9.52-20.41h-34.81c-13.16.01-25.13,7.64-30.69,19.57h0c-5.56,11.93-3.71,26,4.74,36.08l18.34,21.87-9.52,20.41h34.81c13.16-.01,25.13-7.64,30.69-19.57h0c5.56-11.93,3.71-26-4.74-36.08ZM72.15,84.6c-1.08,2.32-3.4,3.8-5.96,3.79h-33.38s7.28-15.61,7.28-15.61l-25.5-30.37c-1.64-1.96-2-4.69-.92-7,1.08-2.32,3.4-3.8,5.96-3.8h33.38s-7.28,15.61-7.28,15.61l25.5,30.37c1.64,1.96,2,4.69.92,7Z"/> </svg>
+  <span class="title">Vibe studio</span>
+  <a class="backlink" id="patternLink" href="#" target="_blank" rel="noopener"
+     title="Open Pattern studio — the looping export tool">← Pattern studio</a>
+  <span class="ver" id="ver"></span>
+</header>
+<div class="app">
+  <aside class="panel">
+    <fieldset>
+      <legend>Sound in</legend>
+      <div class="seg" id="srcSeg">
+        <button data-src="mic">Microphone</button>
+        <button data-src="file">Audio file</button>
+      </div>
+      <input type="file" id="audioFile" accept="audio/*" hidden>
+      <div class="sep"></div>
+      <div class="meters">
+        <div class="meter"><span>Bass</span><i id="mBass"></i></div>
+        <div class="meter"><span>Mid</span><i id="mMid"></i></div>
+        <div class="meter"><span>High</span><i id="mHigh"></i></div>
+      </div>
+      <div id="audioRows"></div>
+      <p class="note" id="srcNote">Idle — pick a sound source to react to audio.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Pattern</legend>
+      <div class="seg" id="styleSeg">
+        <button data-style="0">Blobs</button>
+        <button data-style="1">Plasma</button>
+        <button data-style="2">Waves</button>
+        <button data-style="3">Fractal</button>
+        <button data-style="4">Oscilloscope</button>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Palette</legend>
+      <select id="preset" aria-label="Palette preset">
+        <option value="custom">Custom</option>
+        <optgroup label="StackAdapt core">
+          <option value="sa-light" selected>StackAdapt Light</option>
+          <option value="sa-dark">StackAdapt Dark</option>
+        </optgroup>
+        <optgroup label="Event kits — not core brand">
+          <option value="cv27-miami">Conversion 2027: Miami</option>
+        </optgroup>
+      </select>
+      <div id="swatches" style="margin-top:10px"></div>
+      <button class="pill" id="addColor">Add color</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Look</legend>
+      <div id="lookRows"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Reactivity</legend>
+      <div id="modRows"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Output</legend>
+      <button class="pill" id="fsBtn">Fullscreen (projector)</button>
+      <button class="pill" id="hideBtn">Hide panel — H</button>
+      <button class="pill" id="recBtn">Record performance</button>
+      <p class="note" id="outNote">Drag this window to the projector display, then go fullscreen.</p>
+    </fieldset>
+  </aside>
+  <button class="pill showui" id="showBtn">Show panel</button>
+  <main class="stage" id="stage">
+    <canvas id="gl"></canvas>
+    <div class="hint" id="hint">F — fullscreen · H — hide panel · Esc — exit</div>
+  </main>
+</div>
+<script>
+const APP_VERSION = "0.2.0";  // oscilloscope, palette pill, editable values, mic diagnostics
+const $ = id => document.getElementById(id);
+$("ver").textContent = "v" + APP_VERSION;
+
+/* ================= state ================= */
+const PRESETS = {
+  "sa-light": ["#0061FF", "#7FDFFD", "#FFFFFF", "#EE5714"],
+  "sa-dark": ["#0061FF", "#7FDFFD", "#000000", "#EE5714"],
+  "cv27-miami": ["#FD6D73", "#06BDE0", "#0061FF", "#EE5FE6", "#006C67", "#FBBE49", "#FF9BF9"],
+};
+const state = {
+  style: 0,
+  colors: [...PRESETS["sa-light"]],
+  weights: [],
+  scale: 1, speed: 1, warp: 0.4, blobs: 5,
+  trails: 0.45, fbZoom: 0.004, fbSpin: 0.002,
+  grain: 0.08, bands: 0,
+  modSize: 0.9, modMotion: 0.7, modGrain: 0.5, modFlash: 0.6,
+  gain: 1.6, smooth: 0.7,
+};
+
+const LOOK = [
+  ["scale", "Scale", 0.4, 2, 0.01, v => v.toFixed(2)],
+  ["speed", "Speed", 0, 3, 0.01, v => v.toFixed(2)],
+  ["warp", "Warp", 0, 1, 0.01, v => v.toFixed(2)],
+  ["blobs", "Blobs", 2, 8, 1, v => String(v)],
+  ["trails", "Trails", 0, 0.97, 0.01, v => v.toFixed(2)],
+  ["fbZoom", "Push", -0.02, 0.02, 0.001, v => v.toFixed(3)],
+  ["fbSpin", "Spin", -0.02, 0.02, 0.001, v => v.toFixed(3)],
+  ["grain", "Grain", 0, 1, 0.01, v => v.toFixed(2)],
+  ["bands", "Bands", 0, 8, 1, v => (v < 2 ? "Off" : String(v))],
+];
+const MODS = [
+  ["modSize", "Bass → Size", 0, 2, 0.05, v => v.toFixed(2)],
+  ["modMotion", "Mids → Motion", 0, 2, 0.05, v => v.toFixed(2)],
+  ["modGrain", "Highs → Grain", 0, 2, 0.05, v => v.toFixed(2)],
+  ["modFlash", "Beat → Flash", 0, 1, 0.05, v => v.toFixed(2)],
+];
+const AUDIO_ROWS = [
+  ["gain", "Gain", 0.2, 4, 0.05, v => v.toFixed(2)],
+  ["smooth", "Smoothing", 0, 0.95, 0.05, v => v.toFixed(2)],
+];
+
+function buildRows(host, spec) {
+  spec.forEach(([key, label, min, max, step]) => {
+    const row = document.createElement("div");
+    row.className = "row";
+    const lb = document.createElement("label");
+    lb.textContent = label;
+    lb.htmlFor = "s_" + key;
+    const el = document.createElement("input");
+    el.type = "range"; el.id = "s_" + key;
+    el.min = min; el.max = max; el.step = step; el.value = state[key];
+    const num = document.createElement("input");
+    num.type = "number"; num.className = "num";
+    num.min = min; num.max = max; num.step = step; num.value = state[key];
+    num.setAttribute("aria-label", label + " value");
+    el.addEventListener("input", () => { state[key] = +el.value; num.value = el.value; });
+    num.addEventListener("input", () => {
+      const v = +num.value;
+      if (Number.isNaN(v)) return;
+      state[key] = Math.max(min, Math.min(max, v));
+      el.value = String(state[key]);
+    });
+    num.addEventListener("blur", () => { num.value = String(state[key]); });
+    row.append(lb, el, num);
+    host.append(row);
+  });
+}
+buildRows($("lookRows"), LOOK);
+buildRows($("modRows"), MODS);
+buildRows($("audioRows"), AUDIO_ROWS);
+
+/* ================= palette ================= */
+const palData = new Uint8Array(256 * 4);
+function hexToRgb(h) {
+  h = h.replace("#", "");
+  if (h.length === 3) h = [...h].map(c => c + c).join("");
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+function stopFractions() {
+  const w = state.weights.map(x => Math.max(0.05, +x || 1));
+  const sum = w.reduce((a, b) => a + b, 0);
+  const fr = [];
+  let acc = 0;
+  for (let i = 0; i < w.length - 1; i++) { acc += w[i]; fr.push(acc / sum); }
+  return fr;
+}
+function buildPalette() {
+  const cols = state.colors.map(hexToRgb);
+  const n = cols.length;
+  if (state.weights.length !== n) state.weights = cols.map(() => 100);
+  const w = state.weights.map(x => Math.max(0.05, +x || 1));
+  const sum = w.reduce((a, b) => a + b, 0);
+  const stops = [0];
+  for (let i = 0; i < n; i++) stops.push(stops[i] + w[i] / sum);
+  stops[n] = 1;
+  let seg = 0;
+  for (let i = 0; i < 256; i++) {
+    const t = i / 255;
+    while (seg < n - 1 && t >= stops[seg + 1]) seg++;
+    const span = stops[seg + 1] - stops[seg];
+    const f = span > 0 ? (t - stops[seg]) / span : 0;
+    const a = cols[seg], b = cols[(seg + 1) % n];
+    palData[i * 4] = a[0] + (b[0] - a[0]) * f;
+    palData[i * 4 + 1] = a[1] + (b[1] - a[1]) * f;
+    palData[i * 4 + 2] = a[2] + (b[2] - a[2]) * f;
+    palData[i * 4 + 3] = 255;
+  }
+  palDirty = true;
+  updatePill();
+}
+let palPillCanvas = null, palPillBox = null;
+function updatePill() {
+  if (!palPillCanvas) return;
+  const x = palPillCanvas.getContext("2d");
+  const W = palPillCanvas.width, H = palPillCanvas.height;
+  for (let y = 0; y < H; y++) {
+    const i = Math.min(255, Math.floor(y / H * 256)) * 4;
+    x.fillStyle = "rgb(" + palData[i] + "," + palData[i + 1] + "," + palData[i + 2] + ")";
+    x.fillRect(0, y, W, 1);
+  }
+}
+function buildStops() {
+  if (!palPillBox) return;
+  palPillBox.querySelectorAll(".pal-stop").forEach(el => el.remove());
+  const n = state.colors.length;
+  if (n < 2) return;
+  const frs = stopFractions();
+  for (let i = 0; i < n; i++) {
+    const f = i === 0 ? 0 : frs[i - 1];
+    const h = document.createElement("div");
+    h.className = "pal-stop" + (i === 0 ? " fixed" : "");
+    h.style.top = (f * 100) + "%";
+    h.style.setProperty("--c", state.colors[i]);
+    if (i === 0) {
+      h.title = "First color anchors the top of the ramp";
+      palPillBox.append(h);
+      continue;
+    }
+    const j = i - 1;
+    h.title = "Drag to balance color " + i + " and color " + (i + 1);
+    h.addEventListener("pointerdown", e => {
+      e.preventDefault();
+      h.setPointerCapture(e.pointerId);
+      h.classList.add("drag");
+      const rect = palPillBox.getBoundingClientRect();
+      const w = state.weights.map(x => Math.max(0.05, +x || 1));
+      const sum = w.reduce((a, b) => a + b, 0);
+      const cur = stopFractions();
+      const base = j === 0 ? 0 : cur[j - 1];
+      const next = j === cur.length - 1 ? 1 : cur[j + 1];
+      const lo = base + 0.02, hi = next - 0.02;
+      const move = ev => {
+        let f2 = (ev.clientY - rect.top) / rect.height;
+        f2 = Math.max(lo, Math.min(hi, f2));
+        state.weights[j] = (f2 - base) * sum;
+        state.weights[j + 1] = (next - f2) * sum;
+        h.style.top = (f2 * 100) + "%";
+        buildPalette();
+        $("preset").value = "custom";
+      };
+      const up = () => {
+        h.classList.remove("drag");
+        h.removeEventListener("pointermove", move);
+        h.removeEventListener("pointerup", up);
+      };
+      h.addEventListener("pointermove", move);
+      h.addEventListener("pointerup", up);
+    });
+    palPillBox.append(h);
+  }
+}
+let palDirty = true;
+
+function renderSwatches() {
+  const host = $("swatches");
+  host.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.className = "pal-wrap";
+  const pill = document.createElement("div");
+  pill.className = "pal-pill";
+  const pc = document.createElement("canvas");
+  pc.width = 30; pc.height = 240;
+  pill.append(pc);
+  const rows = document.createElement("div");
+  rows.className = "pal-rows";
+  wrap.append(pill, rows);
+  host.append(wrap);
+  palPillCanvas = pc;
+  palPillBox = pill;
+  state.colors.forEach((hex, i) => {
+    const row = document.createElement("div");
+    row.className = "swatch";
+    const pick = document.createElement("input");
+    pick.type = "color"; pick.value = hex;
+    pick.setAttribute("aria-label", "Color " + (i + 1));
+    const txt = document.createElement("input");
+    txt.type = "text"; txt.value = hex.toUpperCase(); txt.maxLength = 7; txt.spellcheck = false;
+    const del = document.createElement("button");
+    del.textContent = "×";
+    del.setAttribute("aria-label", "Remove color " + (i + 1));
+    del.disabled = state.colors.length <= 2;
+    pick.addEventListener("input", () => {
+      state.colors[i] = pick.value; txt.value = pick.value.toUpperCase();
+      buildPalette(); $("preset").value = "custom";
+    });
+    txt.addEventListener("change", () => {
+      let v = txt.value.trim();
+      if (!v.startsWith("#")) v = "#" + v;
+      if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v)) {
+        state.colors[i] = v; pick.value = v.length === 4
+          ? "#" + [...v.slice(1)].map(c => c + c).join("") : v;
+        buildPalette(); $("preset").value = "custom";
+      } else txt.value = state.colors[i].toUpperCase();
+    });
+    del.addEventListener("click", () => {
+      state.colors.splice(i, 1);
+      state.weights.splice(i, 1);
+      buildPalette(); renderSwatches(); $("preset").value = "custom";
+    });
+    row.append(pick, txt, del);
+    rows.append(row);
+  });
+  buildStops();
+  updatePill();
+}
+$("addColor").addEventListener("click", () => {
+  if (state.colors.length >= 8) return;
+  state.colors.push("#7FDFFD");
+  state.weights.push(100);
+  buildPalette(); renderSwatches(); $("preset").value = "custom";
+});
+$("preset").addEventListener("change", e => {
+  const p = PRESETS[e.target.value];
+  if (!p) return;
+  state.colors = [...p];
+  state.weights = p.map(() => 100);
+  buildPalette(); renderSwatches();
+});
+renderSwatches(); buildPalette();
+
+/* ================= segmented buttons ================= */
+function seg(id, attr, get, set) {
+  const host = $(id);
+  const sync = () => host.querySelectorAll("button").forEach(b =>
+    b.classList.toggle("active", b.dataset[attr] === String(get())));
+  host.addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    set(b.dataset[attr]);
+    sync();
+  });
+  sync();
+  return sync;
+}
+seg("styleSeg", "style", () => state.style, v => { state.style = +v; });
+
+/* ================= WebGL ================= */
+const canvas = $("gl");
+const gl = canvas.getContext("webgl2", { antialias: false, preserveDrawingBuffer: true })
+        || canvas.getContext("webgl", { antialias: false, preserveDrawingBuffer: true });
+if (!gl) {
+  document.body.innerHTML = '<p style="padding:40px;font:16px sans-serif;color:#eceef4">' +
+    'This browser has WebGL disabled. Vibe studio needs it \u2014 try Chrome.</p>';
+  throw new Error("no webgl");
+}
+
+const VERT = `
+attribute vec2 a;
+void main() { gl_Position = vec4(a, 0.0, 1.0); }`;
+
+const FRAG = `
+precision highp float;
+uniform vec2 u_res;
+uniform float u_time;
+uniform int u_style;
+uniform sampler2D u_pal;
+uniform sampler2D u_prev;
+uniform sampler2D u_wave;
+uniform float u_trails, u_fbZoom, u_fbSpin;
+uniform float u_bass, u_mid, u_high, u_beat;
+uniform float u_scale, u_warp, u_grain, u_bands, u_blobs;
+
+float hash(float n) { return fract(sin(n * 78.233) * 43758.5453123); }
+float hash2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+vec3 pal(float t) {
+  t = clamp(t, 0.0, 1.0);
+  if (u_bands >= 2.0) t = (floor(t * u_bands) + 0.5) / u_bands;
+  return texture2D(u_pal, vec2(t, 0.5)).rgb;
+}
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / u_res;
+  vec2 p = (gl_FragCoord.xy - 0.5 * u_res) / u_res.y;
+  float T = u_time;
+  float v = 0.0;
+
+  if (u_style == 0) {
+    float f = 0.0;
+    for (int i = 0; i < 8; i++) {
+      float fi = float(i);
+      float w = clamp(u_blobs - fi, 0.0, 1.0);
+      float a = hash(fi + 1.3) * 6.2831;
+      float sp = 0.25 + hash(fi + 4.1) * 0.45;
+      float rad = (0.16 + hash(fi + 7.9) * 0.16) * u_scale;
+      vec2 c = vec2(cos(T * sp + a), sin(T * sp * 1.27 + a * 1.7)) * (0.40 + 0.30 * hash(fi + 2.2));
+      vec2 dd = p - c;
+      f += w * rad * rad / (dot(dd, dd) + 0.0015);
+    }
+    v = 1.0 - exp(-f * 0.75);
+  } else if (u_style == 1) {
+    vec2 q = p * (2.0 + u_warp * 5.0) / u_scale;
+    float s = sin(q.x + T) + sin(q.y * 1.3 - T * 0.7)
+            + sin((q.x + q.y) * 0.8 + T * 1.3) + sin(length(q) * 2.2 - T * 1.6);
+    v = 0.5 + 0.125 * s;
+  } else if (u_style == 2) {
+    float band = p.y * (3.0 / u_scale) + sin(p.x * 4.0 + T) * u_warp * 1.6 + T * 0.25;
+    v = abs(fract(band * 0.5) * 2.0 - 1.0);
+  } else if (u_style == 4) {
+    // oscilloscope: the live waveform texture, drawn as a glowing trace
+    float wv = texture2D(u_wave, vec2(uv.x, 0.5)).r * 2.0 - 1.0;
+    float amp = 0.42 * u_scale * (1.0 + u_bass * 0.6);
+    float d = abs(p.y - wv * amp);
+    float th = mix(0.006, 0.06, u_warp);
+    v = pow(clamp(1.0 - d / th, 0.0, 1.0), 1.4);
+  } else {
+    vec2 z = p * 1.7 / u_scale;
+    vec2 c = 0.7885 * vec2(cos(T * 0.25), sin(T * 0.25));
+    float it = 0.0;
+    for (int i = 0; i < 48; i++) {
+      z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;
+      if (dot(z, z) > 4.0) break;
+      it += 1.0;
+    }
+    v = sqrt(it / 48.0);
+  }
+
+  vec3 col = pal(v);
+
+  vec2 fuv = uv - 0.5;
+  float ca = u_fbSpin;
+  fuv = mat2(cos(ca), -sin(ca), sin(ca), cos(ca)) * fuv * (1.0 - u_fbZoom);
+  vec3 prev = texture2D(u_prev, fuv + 0.5).rgb;
+  col = mix(col, max(col * 0.75, prev * 0.985), u_trails);
+
+  float g = hash2(gl_FragCoord.xy + fract(T) * 421.0) - 0.5;
+  col += g * u_grain * 0.4;
+  col *= 1.0 + u_beat * 0.6;
+
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+const COPY = `
+precision highp float;
+uniform sampler2D u_tex;
+uniform vec2 u_res;
+void main() { gl_FragColor = texture2D(u_tex, gl_FragCoord.xy / u_res); }`;
+
+function compile(src, type) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+function program(fragSrc) {
+  const p = gl.createProgram();
+  gl.attachShader(p, compile(VERT, gl.VERTEX_SHADER));
+  gl.attachShader(p, compile(fragSrc, gl.FRAGMENT_SHADER));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  return p;
+}
+const scene = program(FRAG), copy = program(COPY);
+
+const quad = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+[scene, copy].forEach(p => {
+  const loc = gl.getAttribLocation(p, "a");
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+});
+
+const waveTex = gl.createTexture();
+const waveArr = new Uint8Array(512 * 4);
+gl.bindTexture(gl.TEXTURE_2D, waveTex);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+const palTex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, palTex);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+function makeTarget(w, h) {
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  const fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  return { tex, fb, w, h };
+}
+let A = null, B = null;
+function resize() {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  let w = Math.max(2, Math.round(canvas.clientWidth * dpr));
+  let h = Math.max(2, Math.round(canvas.clientHeight * dpr));
+  const cap = 2600000;                       // keep the pixel budget sane on 4K panels
+  if (w * h > cap) { const s = Math.sqrt(cap / (w * h)); w = Math.round(w * s); h = Math.round(h * s); }
+  if (canvas.width === w && canvas.height === h) return;
+  canvas.width = w; canvas.height = h;
+  A = makeTarget(w, h); B = makeTarget(w, h);
+}
+addEventListener("resize", resize);
+
+/* ================= audio ================= */
+let timeData = null;
+let actx = null, analyser = null, freq = null, srcNode = null, audioEl = null,
+    micStream = null, dest = null, sampleRate = 48000;
+const band = { bass: 0, mid: 0, high: 0 };
+let beatEnv = 0, bassAvg = 0, lastBeat = 0;
+
+function bandLevel(loHz, hiHz) {
+  const n = freq.length;
+  const lo = Math.max(0, Math.floor(loHz / (sampleRate / 2) * n));
+  const hi = Math.min(n - 1, Math.ceil(hiHz / (sampleRate / 2) * n));
+  let s = 0;
+  for (let i = lo; i <= hi; i++) s += freq[i];
+  return s / ((hi - lo + 1) * 255);
+}
+async function ensureCtx() {
+  if (!actx) {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = actx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.55;
+    freq = new Uint8Array(analyser.frequencyBinCount);
+    dest = actx.createMediaStreamDestination();
+    sampleRate = actx.sampleRate;
+  }
+  if (actx.state === "suspended") await actx.resume();
+}
+function disconnectSource() {
+  if (srcNode) { try { srcNode.disconnect(); } catch (e) { /* already gone */ } srcNode = null; }
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if (audioEl) { audioEl.pause(); audioEl = null; }
+}
+async function useMic() {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext) {
+      $("srcNote").className = "note warn";
+      $("srcNote").textContent = "The browser won't allow microphone access on this page. "
+        + "Mic input needs the deployed https:// address — a file:// copy opened from disk can't ask for permission. "
+        + "Audio file works either way.";
+      srcMode = "none"; segSrc();
+      return;
+    }
+    $("srcNote").className = "note";
+    $("srcNote").textContent = "Asking for microphone permission…";
+    await ensureCtx();
+    disconnectSource();
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+    });
+    srcNode = actx.createMediaStreamSource(micStream);
+    srcNode.connect(analyser);
+    srcNode.connect(dest);          // recorded, but never back to the speakers
+    $("srcNote").textContent = "Listening to the microphone.";
+    segSrc();
+  } catch (err) {
+    $("srcNote").className = "note warn";
+    $("srcNote").textContent = err.name === "NotAllowedError"
+      ? "Microphone permission was denied — allow it in the address-bar icon, then click Microphone again."
+      : "Microphone unavailable: " + err.message;
+    srcMode = "none"; segSrc();
+  }
+}
+async function useFile(file) {
+  await ensureCtx();
+  disconnectSource();
+  audioEl = new Audio(URL.createObjectURL(file));
+  audioEl.loop = true;
+  audioEl.crossOrigin = "anonymous";
+  srcNode = actx.createMediaElementSource(audioEl);
+  srcNode.connect(analyser);
+  srcNode.connect(dest);
+  srcNode.connect(actx.destination);   // you hear the track
+  await audioEl.play();
+  $("srcNote").textContent = "Playing " + file.name + " (looping).";
+  segSrc();
+}
+let srcMode = "none";
+const segSrc = seg("srcSeg", "src", () => srcMode, v => {
+  srcMode = v;
+  if (v === "mic") useMic();
+  else if (v === "file") $("audioFile").click();
+});
+$("audioFile").addEventListener("change", e => {
+  const f = e.target.files[0];
+  if (f) useFile(f);
+  else { srcMode = "none"; segSrc(); }
+  e.target.value = "";
+});
+
+/* ================= render loop ================= */
+let T = 0, last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  resize();
+
+  if (analyser) {
+    if (!timeData || timeData.length !== analyser.fftSize) timeData = new Uint8Array(analyser.fftSize);
+    analyser.getByteTimeDomainData(timeData);
+    const stride = timeData.length / 512;
+    for (let i = 0; i < 512; i++) {
+      const s = timeData[Math.floor(i * stride)] - 128;
+      waveArr[i * 4] = Math.max(0, Math.min(255, 128 + s * state.gain));
+      waveArr[i * 4 + 3] = 255;
+    }
+  } else {
+    // idle: a gentle sine so the scope still reads as alive with no input
+    for (let i = 0; i < 512; i++) {
+      const x = i / 512;
+      waveArr[i * 4] = 128 + Math.sin(x * Math.PI * 4 + T * 1.6) * 70 * (0.5 + 0.4 * Math.sin(T * 0.6));
+      waveArr[i * 4 + 3] = 255;
+    }
+  }
+  if (analyser) {
+    analyser.getByteFrequencyData(freq);
+    const g = state.gain, k = state.smooth;
+    const b = Math.min(1, bandLevel(20, 200) * g);
+    const m = Math.min(1, bandLevel(200, 2000) * g * 1.5);
+    const h = Math.min(1, bandLevel(2000, 9000) * g * 2.2);
+    band.bass += (b - band.bass) * (1 - k);
+    band.mid += (m - band.mid) * (1 - k);
+    band.high += (h - band.high) * (1 - k);
+    bassAvg += (b - bassAvg) * 0.04;
+    if (b > bassAvg * 1.32 && b > 0.12 && now - lastBeat > 160) { beatEnv = 1; lastBeat = now; }
+  } else {
+    band.bass = band.mid = band.high = 0;
+  }
+  beatEnv *= Math.pow(0.0025, dt);
+
+  $("mBass").style.height = (band.bass * 100) + "%";
+  $("mMid").style.height = (band.mid * 100) + "%";
+  $("mHigh").style.height = (band.high * 100) + "%";
+
+  T += dt * state.speed * (1 + band.mid * state.modMotion);
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, A.fb);
+  gl.viewport(0, 0, A.w, A.h);
+  gl.useProgram(scene);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  gl.vertexAttribPointer(gl.getAttribLocation(scene, "a"), 2, gl.FLOAT, false, 0, 0);
+
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, palTex);
+  if (palDirty) {
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, palData);
+    palDirty = false;
+  }
+  gl.uniform1i(gl.getUniformLocation(scene, "u_pal"), 0);
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, B.tex);
+  gl.uniform1i(gl.getUniformLocation(scene, "u_prev"), 1);
+  gl.activeTexture(gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, waveTex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 512, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, waveArr);
+  gl.uniform1i(gl.getUniformLocation(scene, "u_wave"), 2);
+
+  const U = n => gl.getUniformLocation(scene, n);
+  gl.uniform2f(U("u_res"), A.w, A.h);
+  gl.uniform1f(U("u_time"), T);
+  gl.uniform1i(U("u_style"), state.style);
+  gl.uniform1f(U("u_trails"), state.trails);
+  gl.uniform1f(U("u_fbZoom"), state.fbZoom);
+  gl.uniform1f(U("u_fbSpin"), state.fbSpin);
+  gl.uniform1f(U("u_bass"), band.bass);
+  gl.uniform1f(U("u_mid"), band.mid);
+  gl.uniform1f(U("u_high"), band.high);
+  gl.uniform1f(U("u_beat"), beatEnv * state.modFlash);
+  gl.uniform1f(U("u_scale"), state.scale * (1 + band.bass * state.modSize));
+  gl.uniform1f(U("u_warp"), state.warp);
+  gl.uniform1f(U("u_grain"), Math.min(1.5, state.grain + band.high * state.modGrain));
+  gl.uniform1f(U("u_bands"), state.bands);
+  gl.uniform1f(U("u_blobs"), state.blobs);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.useProgram(copy);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  gl.vertexAttribPointer(gl.getAttribLocation(copy, "a"), 2, gl.FLOAT, false, 0, 0);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, A.tex);
+  gl.uniform1i(gl.getUniformLocation(copy, "u_tex"), 0);
+  gl.uniform2f(gl.getUniformLocation(copy, "u_res"), canvas.width, canvas.height);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  const t = A; A = B; B = t;      // ping-pong: this frame becomes next frame's history
+  requestAnimationFrame(frame);
+}
+resize();
+requestAnimationFrame(frame);
+
+/* ================= output ================= */
+$("fsBtn").addEventListener("click", () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else $("stage").requestFullscreen().catch(e => { $("outNote").textContent = "Fullscreen blocked: " + e.message; });
+});
+$("hideBtn").addEventListener("click", () => document.body.classList.add("hide-ui"));
+$("showBtn").addEventListener("click", () => document.body.classList.remove("hide-ui"));
+addEventListener("keydown", e => {
+  if (e.target.matches("input, select, textarea")) return;
+  if (e.key === "f") $("fsBtn").click();
+  if (e.key === "h") document.body.classList.toggle("hide-ui");
+  if (e.key === "Escape") document.body.classList.remove("hide-ui");
+});
+setTimeout(() => { const el = $("hint"); if (el) el.style.display = "none"; }, 6000);
+(() => {
+  const link = $("patternLink");
+  if (location.protocol === "file:") { link.href = "pattern-studio.html"; return; }
+  const u = new URL(location.href);
+  u.searchParams.delete("app");
+  link.href = u.toString();
+})();
+
+let rec = null, chunks = [];
+$("recBtn").addEventListener("click", () => {
+  if (rec) { rec.stop(); return; }
+  const stream = canvas.captureStream(60);
+  if (dest && dest.stream.getAudioTracks().length) {
+    try { stream.addTrack(dest.stream.getAudioTracks()[0]); } catch (e) { /* video only */ }
+  }
+  const mime = ["video/mp4", "video/webm;codecs=vp9", "video/webm"]
+    .find(m => MediaRecorder.isTypeSupported(m)) || "";
+  rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 16000000 });
+  chunks = [];
+  rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  rec.onstop = () => {
+    const blob = new Blob(chunks, { type: mime || "video/webm" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "vibe-studio." + (mime.includes("mp4") ? "mp4" : "webm");
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    rec = null;
+    $("recBtn").textContent = "Record performance";
+    $("recBtn").classList.remove("on");
+    $("outNote").textContent = "Recording saved.";
+  };
+  rec.start();
+  $("recBtn").textContent = "Stop recording";
+  $("recBtn").classList.add("on");
+  $("outNote").textContent = "Recording\u2026 this captures the canvas live, with audio if a source is on.";
+});
+</script>
+</body>
+</html>
