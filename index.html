@@ -81,7 +81,14 @@
   fieldset.collapsed > legend::before { transform: rotate(-45deg) translate(-1px, 1px); }
   fieldset.collapsed > :not(legend) { display: none; }
   fieldset.collapsed { margin-bottom: 14px; }
-  fieldset.fixed > legend { cursor: default; }
+  fieldset.fixed > legend { cursor: default; min-height: 30px; align-items: center; padding-bottom: 8px; }
+  .headctl { margin-left: auto; display: flex; gap: 6px; letter-spacing: 0; text-transform: none; }
+  .headctl button {
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); border-radius: 999px;
+    padding: 5px 12px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
+  }
+  .headctl button:not(.active):hover { color: var(--text); background: #1b1b21; }
+  .headctl button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
   fieldset.fixed > legend::before { display: none; }
   fieldset.fixed > legend:hover { color: var(--muted); }
   .row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
@@ -155,7 +162,7 @@
   }
   .swatch button:hover { color: var(--text); background: var(--panel-2); }
   .sep { height: 1px; background: var(--line); margin: 12px 0 0; }
-  .meters { display: flex; gap: 6px; align-items: flex-end; height: 34px; margin: 24px 0 8px; }
+  .meters { display: flex; gap: 6px; align-items: flex-end; height: 34px; margin: 20px 0 12px; }
   .meter { flex: 1; background: var(--panel-2); border-radius: 4px; position: relative; height: 100%; }
   .meter i {
     position: absolute; left: 0; right: 0; bottom: 0; border-radius: 4px;
@@ -198,7 +205,7 @@
   .scrub span { flex: 0 0 76px; text-align: right; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .tracks {
     list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px;
-    max-height: 92px; overflow-y: auto;       /* two rows; the library scrolls inside the pinned block */
+    max-height: 102px; overflow-y: auto;      /* two rows; the library scrolls inside the pinned block */
   }
   .track {
     display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px;
@@ -240,7 +247,8 @@
   }
   .libline button:hover { background: #1b1b21; }
   .vid { margin: 10px 0 0; }
-  .player { margin-top: 10px; }
+  .player { margin-top: 2px; }
+  .tracks:empty { display: none; }
   .vid button {
     flex: 0 0 auto; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
     padding: 5px 12px; border-radius: 999px; font: inherit; font-size: 12px; cursor: pointer; min-width: 62px;
@@ -267,20 +275,14 @@
   <aside class="panel" id="panel">
     <div class="pinned">
     <fieldset class="fixed">
-      <legend>Sound in</legend>
-      <div class="seg" id="srcSeg">
-        <button data-src="mic">Microphone</button>
-        <button data-src="music">Music</button>
-      </div>
-      <div class="sep"></div>
-      <div class="meters">
-        <div class="meter"><span>Bass</span><i id="mBass"></i></div>
-        <div class="meter"><span>Mid</span><i id="mMid"></i></div>
-        <div class="meter"><span>High</span><i id="mHigh"></i></div>
-      </div>
+      <legend>Sound in
+        <span class="headctl seg" id="srcSeg">
+          <button data-src="mic">Mic</button>
+          <button data-src="music">Music</button>
+        </span>
+      </legend>
       <p class="note" id="srcNote" hidden>Idle — pick a sound source to react to audio.</p>
-      <div class="sep"></div>
-      <div class="player">
+      <div class="player" id="player" hidden>
         <div class="cover empty" id="npCover" aria-hidden="true"></div>
         <div class="np-text">
           <div class="np-title" id="npTitle">Nothing playing</div>
@@ -306,15 +308,16 @@
     </fieldset>
 
     <fieldset class="fixed">
-      <legend>Video in</legend>
-      <button class="pill" id="imgBtn" style="margin-top:0">Load image or video</button>
+      <legend>Video in
+        <span class="headctl"><button id="imgBtn">Load image or video</button></span>
+      </legend>
       <input type="file" id="imgFile" accept="image/*,video/*" hidden>
       <div class="row vid" id="vidRow" hidden>
         <button id="vidPlay" aria-label="Play or pause the video">Pause</button>
         <input type="range" id="vidScrub" min="0" max="1000" value="0" step="1" aria-label="Video position">
         <span id="vidTime">0:00</span>
       </div>
-      <p class="note" id="imgNote">Nothing loaded — image patterns use a plasma field until you do. Dropping a file on the stage works too.</p>
+      <p class="note" id="imgNote">Nothing loaded — image patterns use a plasma field. Drop a file on the stage to load one.</p>
     </fieldset>
     </div>
     <div class="scrolls">
@@ -396,6 +399,11 @@
 
     <fieldset>
       <legend>Reactivity</legend>
+      <div class="meters">
+        <div class="meter"><span>Bass</span><i id="mBass"></i></div>
+        <div class="meter"><span>Mid</span><i id="mMid"></i></div>
+        <div class="meter"><span>High</span><i id="mHigh"></i></div>
+      </div>
       <div id="audioRows"></div>
       <div id="modRows"></div>
     </fieldset>
@@ -417,7 +425,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.5.2";  // pinned Sound in and Video in, per-mode controls, resizable panel
+const APP_VERSION = "0.5.3";  // shorter pinned sections; meters live under Reactivity
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -1630,7 +1638,14 @@ const dbDel = id => dbRun("readwrite", s => s.delete(id));
 const fmtClock = s => isFinite(s) ? Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0") : "0:00";
 const niceName = n => n.replace(/\.[^.]+$/, "").replace(/_+/g, " ").trim();
 const coverUrl = t => { if (t.cover && !t._url) t._url = URL.createObjectURL(t.cover); return t._url; };
-const libNote = (msg, warn) => { $("libNote").className = warn ? "note warn" : "note"; $("libNote").textContent = msg; $("libNote").hidden = !msg; };
+let libNoteT = 0;
+const libNote = (msg, warn) => {
+  $("libNote").className = warn ? "note warn" : "note";
+  $("libNote").textContent = msg;
+  $("libNote").hidden = !msg;
+  clearTimeout(libNoteT);
+  if (msg && !warn) libNoteT = setTimeout(() => libNote(""), 4000);
+};
 const isAudio = f => f.type.startsWith("audio/") || /\.(mp3|m4a|aac|flac|wav|ogg|oga|opus|webm)$/i.test(f.name);
 
 async function addSongs(files) {
@@ -1683,14 +1698,18 @@ async function playTrack(i) {
     await el.play();
     srcMode = "music"; segSrc();
     $("srcNote").hidden = true;            // the player card says what is playing
+    failStreak = 0;
   } catch (err) {
     $("srcNote").className = "note warn";
     $("srcNote").textContent = "Couldn’t play " + t.name + ": " + err.message;
     $("srcNote").hidden = false;
+    // move on to the next song, unless every song in the library has just failed
+    if (++failStreak < lib.length) setTimeout(() => { if (cur === lib.indexOf(t)) playTrack(cur + 1); }, 600);
   }
   renderLibrary();
   setMediaSession(t);
 }
+let failStreak = 0;
 function togglePlay() {
   if (!audioEl) {
     if (lib.length) playTrack(cur < 0 ? 0 : cur); else $("songFiles").click();
@@ -1714,6 +1733,7 @@ function renderNowPlaying() {
 function renderLibrary() {
   const host = $("trackList");
   host.innerHTML = "";
+  $("player").hidden = !lib.length;
   lib.forEach((t, i) => {
     const li = document.createElement("li");
     li.className = "track" + (i === cur ? " now" : "");
