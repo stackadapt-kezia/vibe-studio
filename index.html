@@ -214,6 +214,19 @@
     </fieldset>
 
     <fieldset>
+      <legend>Distort</legend>
+      <div class="seg" id="distSeg">
+        <button data-dist="0">None</button>
+        <button data-dist="1">Fisheye</button>
+        <button data-dist="2">Scanlines</button>
+        <button data-dist="3">Band shift</button>
+        <button data-dist="4">Mirror</button>
+        <button data-dist="5">Grid</button>
+      </div>
+      <div id="distRows" style="margin-top:10px"></div>
+    </fieldset>
+
+    <fieldset>
       <legend>Reactivity</legend>
       <div id="modRows"></div>
     </fieldset>
@@ -233,7 +246,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.3.0";  // image and video input, Heatmap pattern
+const APP_VERSION = "0.3.1";  // Distort: fisheye, scanlines, band shift, mirror, grid on every pattern
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -250,7 +263,8 @@ const state = {
   scale: 1, speed: 1, warp: 0.4, blobs: 5,
   trails: 0.45, fbZoom: 0.004, fbSpin: 0.002,
   grain: 0.08, bands: 0,
-  modSize: 0.9, modMotion: 0.7, modGrain: 0.5, modFlash: 0.6,
+  dist: 0, distort: 0.5,
+  modSize: 0.9, modMotion: 0.7, modGrain: 0.5, modFlash: 0.6, modDist: 0.3,
   gain: 1.6, smooth: 0.7,
 };
 
@@ -270,6 +284,10 @@ const MODS = [
   ["modMotion", "Mids → Motion", 0, 2, 0.05, v => v.toFixed(2)],
   ["modGrain", "Highs → Grain", 0, 2, 0.05, v => v.toFixed(2)],
   ["modFlash", "Beat → Flash", 0, 1, 0.05, v => v.toFixed(2)],
+  ["modDist", "Beat → Distort", 0, 1, 0.05, v => v.toFixed(2)],
+];
+const DIST_ROWS = [
+  ["distort", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
 ];
 const AUDIO_ROWS = [
   ["gain", "Gain", 0.2, 4, 0.05, v => v.toFixed(2)],
@@ -305,6 +323,7 @@ function buildRows(host, spec) {
 buildRows($("lookRows"), LOOK);
 buildRows($("modRows"), MODS);
 buildRows($("audioRows"), AUDIO_ROWS);
+buildRows($("distRows"), DIST_ROWS);
 
 /* ================= palette ================= */
 const palData = new Uint8Array(256 * 4);
@@ -545,6 +564,7 @@ function seg(id, attr, get, set) {
   return sync;
 }
 seg("styleSeg", "style", () => state.style, v => { state.style = +v; });
+seg("distSeg", "dist", () => state.dist, v => { state.dist = +v; });
 
 /* ================= WebGL ================= */
 const canvas = $("gl");
@@ -566,7 +586,8 @@ precision highp float;
 #define WAVE_N ${WAVE_N}.0
 uniform vec2 u_res;
 uniform float u_time;
-uniform int u_style;
+uniform int u_style, u_dist;
+uniform float u_distort;
 uniform sampler2D u_pal;
 uniform sampler2D u_prev;
 uniform sampler2D u_wave;
@@ -611,6 +632,35 @@ float field(vec2 uv, vec2 p, float T) {
   return u_hasImg > 0.5 ? imgLum(uv) : plasma(p * 2.5, T * 0.5);
 }
 
+// family 1: move the coordinate before anything samples it. Applies to every
+// pattern, since each one reads uv or p after this.
+vec2 distort(vec2 uv, float T) {
+  float a = u_distort;
+  if (u_dist == 1) {
+    // fisheye: bulge the centre, squeeze the edges
+    vec2 d = uv - 0.5;
+    float r = length(d * vec2(u_res.x / u_res.y, 1.0)) * 1.4;
+    uv = 0.5 + d * mix(1.0, 1.0 - 0.5 * r * r, a);
+  } else if (u_dist == 2) {
+    // wavy scanlines: every row slides sideways on two sines
+    uv.x += a * (0.05 * sin(uv.y * 70.0 + T * 4.0) + 0.02 * sin(uv.y * 9.0 - T * 1.5));
+  } else if (u_dist == 3) {
+    // band shift: some rows jump sideways, re-rolled twice a second
+    float row = floor(uv.y * 18.0), roll = floor(T * 2.0);
+    float on = step(0.55, hash(row + roll * 5.1));
+    uv.x += a * 0.3 * (hash(row * 3.7 + roll * 11.3) - 0.5) * on;
+  } else if (u_dist == 4) {
+    // mirror: fold the frame left-to-right, and top-to-bottom past half
+    if (a > 0.0) uv.x = 0.5 - abs(uv.x - 0.5);
+    if (a > 0.5) uv.y = 0.5 - abs(uv.y - 0.5);
+  } else if (u_dist == 5) {
+    // grid: repeat a crop of the frame 2 to 4 times across
+    float n = 1.0 + floor(a * 3.99);
+    uv = fract(uv * n);
+  }
+  return uv;
+}
+
 vec3 pal(float t) {
   t = clamp(t, 0.0, 1.0);
   if (u_bands >= 2.0) t = (floor(t * u_bands) + 0.5) / u_bands;
@@ -618,9 +668,10 @@ vec3 pal(float t) {
 }
 
 void main() {
-  vec2 uv = gl_FragCoord.xy / u_res;
-  vec2 p = (gl_FragCoord.xy - 0.5 * u_res) / u_res.y;
+  vec2 uv0 = gl_FragCoord.xy / u_res;          // untouched, for the feedback tap
   float T = u_time;
+  vec2 uv = distort(uv0, T);
+  vec2 p = (uv - 0.5) * vec2(u_res.x / u_res.y, 1.0);
   float v = 0.0;
 
   if (u_style == 0) {
@@ -667,7 +718,7 @@ void main() {
 
   vec3 col = pal(v);
 
-  vec2 fuv = uv - 0.5;
+  vec2 fuv = uv0 - 0.5;
   float ca = u_fbSpin;
   fuv = mat2(cos(ca), -sin(ca), sin(ca), cos(ca)) * fuv * (1.0 - u_fbZoom);
   vec3 prev = texture2D(u_prev, fuv + 0.5).rgb;
@@ -1010,6 +1061,8 @@ function frame(now) {
   gl.uniform1f(U("u_grain"), Math.min(1.5, state.grain + band.high * state.modGrain));
   gl.uniform1f(U("u_bands"), state.bands);
   gl.uniform1f(U("u_blobs"), state.blobs);
+  gl.uniform1i(U("u_dist"), state.dist);
+  gl.uniform1f(U("u_distort"), Math.min(1.5, state.distort + beatEnv * state.modDist));
   gl.uniform1f(U("u_hasImg"), imgSrc ? 1 : 0);
   gl.uniform1f(U("u_imgAspect"), imgAspect);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
