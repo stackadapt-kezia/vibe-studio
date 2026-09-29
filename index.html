@@ -79,6 +79,7 @@
     padding: 9px 10px; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer;
   }
   .seg button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  #styleSeg button:nth-child(13) { grid-column: span 2; }
   .stage.drop::after {
     content: "Drop to load"; position: absolute; inset: 12px; border: 2px dashed var(--accent);
     border-radius: 12px; display: grid; place-items: center; color: var(--text);
@@ -192,6 +193,10 @@
         <button data-style="6">Mosaic</button>
         <button data-style="7">Halftone</button>
         <button data-style="8">Prism</button>
+        <button data-style="9">Edges</button>
+        <button data-style="10">Relief</button>
+        <button data-style="11">Contour</button>
+        <button data-style="12">Hatch</button>
       </div>
     </fieldset>
 
@@ -249,7 +254,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.4.1";  // Prism pattern
+const APP_VERSION = "0.4.2";  // Edges, Relief, Contour and Hatch patterns
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -670,6 +675,18 @@ float field(vec2 uv, vec2 p, float T) {
 float fld(vec2 uv, float T) {
   return field(uv, (uv - 0.5) * vec2(u_res.x / u_res.y, 1.0), T);
 }
+// Sobel gradient of the field at uv, with taps e apart (uv units); family 7
+vec2 sobel(vec2 uv, vec2 e, float T) {
+  float tl = fld(uv + vec2(-e.x,  e.y), T), tc = fld(uv + vec2(0.0,  e.y), T), tr = fld(uv + vec2(e.x,  e.y), T);
+  float ml = fld(uv + vec2(-e.x,  0.0), T),                                    mr = fld(uv + vec2(e.x,  0.0), T);
+  float bl = fld(uv + vec2(-e.x, -e.y), T), bc = fld(uv + vec2(0.0, -e.y), T), br = fld(uv + vec2(e.x, -e.y), T);
+  return vec2(tr + 2.0 * mr + br - tl - 2.0 * ml - bl, tl + 2.0 * tc + tr - bl - 2.0 * bc - br) / 8.0;
+}
+// one set of parallel hatch lines at angle a; q in aspect-correct units
+float hatch(vec2 q, float a, float freq, float aa) {
+  float s = fract(dot(q, vec2(cos(a), sin(a))) * freq);
+  return 1.0 - smoothstep(0.0, aa, min(s, 1.0 - s));
+}
 
 // family 1: move the coordinate before anything samples it. Applies to every
 // pattern, since each one reads uv or p after this.
@@ -788,6 +805,50 @@ void main() {
     colv = pal(l2 * u_palEnd);
     colv = mix(colv, pal(fract(l1 * u_palEnd + 0.333)), clamp(abs(l1 - l2) * 3.0, 0.0, 1.0));
     colv = mix(colv, pal(fract(l3 * u_palEnd + 0.667)), clamp(abs(l3 - l2) * 3.0, 0.0, 1.0));
+  } else if (u_style >= 9 && u_style <= 12) {
+    // family 7: everything below comes from one Sobel gradient of the field.
+    // Scale sets the tap spacing (wider reads softer, larger features).
+    float ca = u_res.x / u_res.y;
+    vec2 e = 2.0 * u_scale / u_res;
+    vec2 gr = sobel(uv, e, T);
+    float l = fld(uv, T);
+    float m = clamp(length(gr) * 3.0, 0.0, 1.0);
+    if (u_style == 9) {
+      // edges: ink where the gradient is strong, coloured by its strength
+      ink = smoothstep(0.03, 0.4, m);
+      v = m * u_palEnd;
+    } else if (u_style == 10) {
+      // relief: luminance as height, lit from the direction Warp sets
+      float a = u_warp * 6.2832;
+      float sh = 0.5 + dot(gr, vec2(cos(a), sin(a))) * 10.0;
+      v = clamp(sh, 0.0, 1.0) * u_palEnd;
+    } else if (u_style == 11) {
+      // contour: posterised height bands with a line of the first colour at
+      // each step. Bands sets the level count (8 when off). Line width is
+      // held near 1.5px using the gradient.
+      float k = u_bands >= 2.0 ? u_bands : 8.0;
+      float f = fract(l * k);
+      float w = max(k * length(gr) / (2.0 * u_scale) * 1.5, 0.004);
+      ink = smoothstep(w, w * 2.0, min(f, 1.0 - f));
+      v = (floor(l * k) + 0.5) / k * u_palEnd;
+    } else {
+      // hatch: pen cross-hatching, more line sets as the field darkens. Where
+      // the gradient is strong the first set follows it, rounded to 45 degrees,
+      // so strokes wrap around forms; flat areas use one fixed angle. Warp
+      // rotates the whole set.
+      vec2 q = (uv - 0.5) * vec2(ca, 1.0);
+      float freq = 42.0 / u_scale;
+      float aa = freq * 1.6 / u_res.y;
+      float follow = length(gr) > 0.03 ? floor((atan(gr.y, gr.x) + 6.2832) / 0.7854 + 0.5) * 0.7854 : 0.7854;
+      float base = u_warp * 3.14159 + follow;
+      float h = 0.0;
+      if (l < 0.85) h = max(h, hatch(q, base, freq, aa));
+      if (l < 0.6) h = max(h, hatch(q, base + 1.5708, freq, aa));
+      if (l < 0.35) h = max(h, hatch(q, base + 0.7854, freq, aa));
+      if (l < 0.15) h = max(h, hatch(q, base - 0.7854, freq, aa));
+      ink = h;
+      v = u_palEnd;
+    }
   } else {
     vec2 z = p * 1.7 / u_scale;
     vec2 c = 0.7885 * vec2(cos(T * 0.25), sin(T * 0.25));
