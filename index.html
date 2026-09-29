@@ -79,6 +79,7 @@
     padding: 9px 10px; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer;
   }
   .seg button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  #styleSeg button:nth-child(7) { grid-column: span 2; }
   .stage.drop::after {
     content: "Drop to load"; position: absolute; inset: 12px; border: 2px dashed var(--accent);
     border-radius: 12px; display: grid; place-items: center; color: var(--text);
@@ -189,6 +190,7 @@
         <button data-style="3">Fractal</button>
         <button data-style="4">Oscilloscope</button>
         <button data-style="5">Heatmap</button>
+        <button data-style="6">Mosaic</button>
       </div>
     </fieldset>
 
@@ -246,7 +248,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.3.1";  // Distort: fisheye, scanlines, band shift, mirror, grid on every pattern
+const APP_VERSION = "0.3.2";  // Mosaic pattern
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -673,6 +675,7 @@ void main() {
   vec2 uv = distort(uv0, T);
   vec2 p = (uv - 0.5) * vec2(u_res.x / u_res.y, 1.0);
   float v = 0.0;
+  float shade = 1.0;                             // post-palette darkening, e.g. mosaic grout
 
   if (u_style == 0) {
     float f = 0.0;
@@ -704,6 +707,26 @@ void main() {
     // about mid-grey, Warp cycles the palette over time; the ramp loops, so fract.
     float l = field(uv, p, T);
     v = fract((l - 0.5) * u_scale + 0.5 + T * 0.08 * u_warp);
+  } else if (u_style == 6) {
+    // mosaic: jittered-grid Voronoi cells, each filled with the field at its seed.
+    // Scale sets the cell size, Warp the jitter from a clean grid to scattered tiles.
+    float ca = u_res.x / u_res.y;
+    float n = 14.0 / u_scale;
+    vec2 g = uv * vec2(ca, 1.0) * n;
+    vec2 gi = floor(g);
+    float d1 = 9.0, d2 = 9.0;
+    vec2 seed = gi + 0.5;
+    for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+      vec2 c = gi + vec2(float(x), float(y));
+      vec2 j = vec2(hash2(c), hash2(c + 7.1)) - 0.5;
+      vec2 s = c + 0.5 + j * u_warp * 0.9
+             + u_warp * 0.1 * vec2(sin(T + c.y * 1.7), cos(T * 1.3 + c.x * 1.1));
+      float d = length(s - g);
+      if (d < d1) { d2 = d1; d1 = d; seed = s; } else if (d < d2) d2 = d;
+    }
+    vec2 suv = seed / (n * vec2(ca, 1.0));
+    v = field(suv, (suv - 0.5) * vec2(ca, 1.0), T);
+    shade = smoothstep(0.0, 0.08, d2 - d1);     // grout between tiles
   } else {
     vec2 z = p * 1.7 / u_scale;
     vec2 c = 0.7885 * vec2(cos(T * 0.25), sin(T * 0.25));
@@ -716,7 +739,7 @@ void main() {
     v = sqrt(it / 48.0);
   }
 
-  vec3 col = pal(v);
+  vec3 col = pal(v) * shade;
 
   vec2 fuv = uv0 - 0.5;
   float ca = u_fbSpin;
