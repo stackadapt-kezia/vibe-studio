@@ -230,6 +230,16 @@
     font-size: 15px; padding: 2px 6px; border-radius: 5px;
   }
   .track button:hover { color: var(--text); background: var(--panel-2); }
+  .route { display: flex; align-items: center; gap: 5px; margin-bottom: 6px; }
+  .route select { flex: 1 1 0; min-width: 0; width: auto; padding: 5px 4px; font-size: 12px; }
+  .route .arrow { color: var(--muted); font-size: 12px; flex: 0 0 auto; }
+  .route input[type=range] { flex: 1.1 1 0; min-width: 40px; accent-color: var(--accent); }
+  .route output { flex: 0 0 30px; text-align: right; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .route button {
+    background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 15px;
+    padding: 2px 4px; border-radius: 5px; flex: 0 0 auto;
+  }
+  .route button:hover { color: var(--text); background: var(--panel-2); }
   .libline { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
   .libtoggle {
     background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-size: 12px;
@@ -409,7 +419,11 @@
         <div class="meter"><span>High</span><i id="mHigh"></i></div>
       </div>
       <div id="audioRows"></div>
-      <div id="modRows"></div>
+      <div id="routeRows"></div>
+      <div class="libline">
+        <span class="note">Each row sends one band to one control.</span>
+        <button id="addRoute">+ Add route</button>
+      </div>
     </fieldset>
 
     <fieldset>
@@ -429,7 +443,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.5.4";  // microphone input picker and silent-input warning
+const APP_VERSION = "0.6.0";  // reactivity routes: send any band to any control
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -448,7 +462,7 @@ const state = {
   grain: 0.08, bands: 0,
   dist: 0, distort: 0.5,
   screen: 0, screenAmt: 0.7,
-  modSize: 0.9, modMotion: 0.7, modGrain: 0.5, modFlash: 0.6, modDist: 0.3,
+  routes: [],                                   // filled from DEFAULT_ROUTES or storage below
   gain: 1.6, smooth: 0.7,
 };
 
@@ -463,13 +477,17 @@ const LOOK = [
   ["grain", "Grain", 0, 1, 0.01, v => v.toFixed(2)],
   ["bands", "Bands", 0, 8, 1, v => (v < 2 ? "Off" : String(v))],
 ];
-const MODS = [
-  ["modSize", "Bass → Size", 0, 2, 0.05, v => v.toFixed(2)],
-  ["modMotion", "Mids → Motion", 0, 2, 0.05, v => v.toFixed(2)],
-  ["modGrain", "Highs → Grain", 0, 2, 0.05, v => v.toFixed(2)],
-  ["modFlash", "Beat → Flash", 0, 1, 0.05, v => v.toFixed(2)],
-  ["modDist", "Beat → Distort", 0, 1, 0.05, v => v.toFixed(2)],
+// Reactivity routing: each route sends one audio band to one control.
+const SOURCES = { bass: "Bass", mid: "Mids", high: "Highs", beat: "Beat" };
+const TARGETS = {
+  size: "Size", motion: "Motion", colour: "Colour", grain: "Grain", flash: "Flash",
+  distort: "Distort", warp: "Warp", trails: "Trails", push: "Push", spin: "Spin",
+};
+const DEFAULT_ROUTES = [
+  ["bass", "size", 0.9], ["mid", "motion", 0.7], ["high", "grain", 0.5],
+  ["beat", "flash", 0.6], ["beat", "distort", 0.3],
 ];
+const ROUTE_MAX = 8;
 const DIST_ROWS = [
   ["distort", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
 ];
@@ -509,7 +527,52 @@ function buildRows(host, spec) {
   });
 }
 buildRows($("lookRows"), LOOK);
-buildRows($("modRows"), MODS);
+
+/* ================= reactivity routes ================= */
+function loadRoutes() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem("vibe.routes") || "null"); } catch (e) { /* no storage */ }
+  const ok = Array.isArray(saved) && saved.every(r => r && SOURCES[r.src] && TARGETS[r.dst] && isFinite(r.amt));
+  state.routes = (ok ? saved : DEFAULT_ROUTES.map(([src, dst, amt]) => ({ src, dst, amt }))).slice(0, ROUTE_MAX);
+}
+function saveRoutes() {
+  try { localStorage.setItem("vibe.routes", JSON.stringify(state.routes)); } catch (e) { /* no storage */ }
+}
+function renderRoutes() {
+  const host = $("routeRows");
+  host.innerHTML = "";
+  const pick = (opts, value, label, onchange) => {
+    const s = document.createElement("select");
+    Object.entries(opts).forEach(([k, v]) => { const o = document.createElement("option"); o.value = k; o.textContent = v; s.append(o); });
+    s.value = value; s.setAttribute("aria-label", label);
+    s.addEventListener("change", () => onchange(s.value));
+    return s;
+  };
+  state.routes.forEach((r, i) => {
+    const row = document.createElement("div");
+    row.className = "route";
+    const src = pick(SOURCES, r.src, "Source band", v => { r.src = v; saveRoutes(); });
+    const arrow = document.createElement("span"); arrow.textContent = "\u2192"; arrow.className = "arrow";
+    const dst = pick(TARGETS, r.dst, "Target control", v => { r.dst = v; saveRoutes(); });
+    const amt = document.createElement("input");
+    amt.type = "range"; amt.min = 0; amt.max = 2; amt.step = 0.05; amt.value = r.amt;
+    amt.setAttribute("aria-label", "Amount");
+    const out = document.createElement("output"); out.textContent = (+r.amt).toFixed(2);
+    amt.addEventListener("input", () => { r.amt = +amt.value; out.textContent = r.amt.toFixed(2); saveRoutes(); });
+    const del = document.createElement("button");
+    del.textContent = "\u00d7"; del.title = "Remove route"; del.setAttribute("aria-label", "Remove route");
+    del.addEventListener("click", () => { state.routes.splice(i, 1); saveRoutes(); renderRoutes(); });
+    row.append(src, arrow, dst, amt, out, del);
+    host.append(row);
+  });
+  $("addRoute").disabled = state.routes.length >= ROUTE_MAX;
+}
+$("addRoute").addEventListener("click", () => {
+  if (state.routes.length >= ROUTE_MAX) return;
+  state.routes.push({ src: "mid", dst: "colour", amt: 0.5 });
+  saveRoutes(); renderRoutes();
+});
+loadRoutes(); renderRoutes();
 buildRows($("audioRows"), AUDIO_ROWS);
 buildRows($("distRows"), DIST_ROWS);
 buildRows($("screenRows"), SCREEN_ROWS);
@@ -794,7 +857,6 @@ function syncControls() {
   show("blobs", s === 0);
   show("warp", !NO_WARP.includes(s));
   show("distort", state.dist !== 0);
-  show("modDist", state.dist !== 0);
   show("screenAmt", state.screen !== 0);
   $("microRow").hidden = s !== 14;
 }
@@ -885,6 +947,7 @@ uniform float u_trails, u_fbZoom, u_fbSpin;
 uniform float u_bass, u_mid, u_high, u_beat;
 uniform float u_scale, u_warp, u_grain, u_bands, u_blobs;
 uniform float u_palEnd;      // where the palette's wrap-around segment starts
+uniform float u_shift;       // palette rotation from the Colour route
 
 float hash(float n) { return fract(sin(n * 78.233) * 43758.5453123); }
 float hash2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -1012,7 +1075,7 @@ vec3 screenFx(vec3 col, vec2 uv0, float T) {
 }
 
 vec3 pal(float t) {
-  t = clamp(t, 0.0, 1.0);
+  t = fract(clamp(t, 0.0, 1.0) + u_shift);     // the palette loops, so a shift just rotates it
   if (u_bands >= 2.0) t = (floor(t * u_bands) + 0.5) / u_bands;
   return texture2D(u_pal, vec2(t, 0.5)).rgb;
 }
@@ -1871,7 +1934,7 @@ const segSrc = seg("srcSeg", "src", () => srcMode, v => {
 });
 
 /* ================= render loop ================= */
-let T = 0, last = performance.now();
+let T = 0, last = performance.now(), lastMod = {};
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
@@ -1915,7 +1978,13 @@ function frame(now) {
   $("mMid").style.height = (band.mid * 100) + "%";
   $("mHigh").style.height = (band.high * 100) + "%";
 
-  T += dt * state.speed * (1 + band.mid * state.modMotion);
+  // sum every route into its target
+  const lvl = { bass: band.bass, mid: band.mid, high: band.high, beat: beatEnv };
+  const mod = {};
+  for (const r of state.routes) mod[r.dst] = (mod[r.dst] || 0) + lvl[r.src] * r.amt;
+  const m = k => mod[k] || 0;
+  lastMod = mod;
+  T += dt * state.speed * (1 + m("motion"));
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, A.fb);
   gl.viewport(0, 0, A.w, A.h);
@@ -1951,23 +2020,24 @@ function frame(now) {
   gl.uniform2f(U("u_res"), A.w, A.h);
   gl.uniform1f(U("u_time"), T);
   gl.uniform1i(U("u_style"), state.style);
-  gl.uniform1f(U("u_trails"), state.trails);
-  gl.uniform1f(U("u_fbZoom"), state.fbZoom);
-  gl.uniform1f(U("u_fbSpin"), state.fbSpin);
+  gl.uniform1f(U("u_trails"), Math.min(0.97, state.trails + m("trails") * 0.5));
+  gl.uniform1f(U("u_fbZoom"), state.fbZoom + m("push") * 0.02);
+  gl.uniform1f(U("u_fbSpin"), state.fbSpin + m("spin") * 0.02);
   gl.uniform1f(U("u_bass"), band.bass);
   gl.uniform1f(U("u_mid"), band.mid);
   gl.uniform1f(U("u_high"), band.high);
-  gl.uniform1f(U("u_beat"), beatEnv * state.modFlash);
-  gl.uniform1f(U("u_scale"), state.scale * (1 + band.bass * state.modSize));
-  gl.uniform1f(U("u_warp"), state.warp);
-  gl.uniform1f(U("u_grain"), Math.min(1.5, state.grain + band.high * state.modGrain));
+  gl.uniform1f(U("u_beat"), m("flash"));
+  gl.uniform1f(U("u_scale"), state.scale * (1 + m("size")));
+  gl.uniform1f(U("u_warp"), Math.min(1, state.warp + m("warp") * 0.5));
+  gl.uniform1f(U("u_grain"), Math.min(1.5, state.grain + m("grain")));
+  gl.uniform1f(U("u_shift"), m("colour"));
   gl.uniform1f(U("u_bands"), state.bands);
   gl.uniform1f(U("u_palEnd"), palEnd);
   gl.uniform1f(U("u_blobs"), state.blobs);
   gl.uniform1i(U("u_dist"), state.dist);
   gl.uniform1i(U("u_screen"), state.screen);
   gl.uniform1f(U("u_screenAmt"), state.screenAmt);
-  gl.uniform1f(U("u_distort"), Math.min(1.5, state.distort + beatEnv * state.modDist));
+  gl.uniform1f(U("u_distort"), Math.min(1.5, state.distort + m("distort")));
   gl.uniform1f(U("u_hasImg"), imgSrc ? 1 : 0);
   gl.uniform1f(U("u_imgAspect"), imgAspect);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
