@@ -248,7 +248,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.3.3";  // Mosaic is pixel blocks with ordered dither
+const APP_VERSION = "0.3.4";  // double-click the palette pill to add a color
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -500,6 +500,15 @@ function renderSwatches() {
   host.append(wrap);
   palPillCanvas = pc;
   palPillBox = pill;
+  pill.title = "Double-click to add a color here";
+  pill.addEventListener("dblclick", e => {
+    // hit-test rather than trust e.target: a stop's drag captures the pointer
+    // on the pill, so clicks that follow are retargeted to the pill
+    const hit = document.elementFromPoint(e.clientX, e.clientY);
+    if (hit && hit.closest(".pal-stop")) return;
+    const r = pill.getBoundingClientRect();
+    addColorAt((e.clientY - r.top) / r.height);
+  });
   state.colors.forEach((hex, i) => {
     const row = document.createElement("div");
     row.className = "swatch";
@@ -535,6 +544,25 @@ function renderSwatches() {
   });
   buildStops();
   updatePill();
+}
+// Insert a color at fraction f down the pill, sampled from the blend already
+// there, splitting the band it lands in so the ramp looks the same until the
+// new stop is moved.
+function addColorAt(f) {
+  if (state.colors.length >= 8) return;
+  f = Math.max(0.02, Math.min(0.98, f));
+  const k = Math.min(255, Math.floor(f * 256)) * 4;
+  const hex = "#" + [palData[k], palData[k + 1], palData[k + 2]]
+    .map(c => c.toString(16).padStart(2, "0")).join("").toUpperCase();
+  const w = state.weights.map(x => Math.max(0.05, +x || 1));
+  const sum = w.reduce((a, b) => a + b, 0);
+  const starts = [0, ...stopFractions(), 1];
+  let i = 0;
+  while (i < state.colors.length - 1 && f >= starts[i + 1]) i++;
+  state.colors.splice(i + 1, 0, hex);
+  state.weights[i] = (f - starts[i]) * sum;
+  state.weights.splice(i + 1, 0, (starts[i + 1] - f) * sum);
+  buildPalette(); renderSwatches(); $("preset").value = "custom";
 }
 $("addColor").addEventListener("click", () => {
   if (state.colors.length >= 8) return;
