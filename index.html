@@ -248,7 +248,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.3.2";  // Mosaic pattern
+const APP_VERSION = "0.3.3";  // Mosaic is pixel blocks with ordered dither
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -624,6 +624,9 @@ vec2 imgUV(vec2 uv) {
 float imgLum(vec2 uv) {
   return dot(texture2D(u_img, imgUV(uv)).rgb, vec3(0.2126, 0.7152, 0.0722));
 }
+// 4x4 Bayer ordered-dither threshold in (0, 1) for an integer cell
+float bayer2(vec2 c) { c = mod(c, 2.0); return 2.0 * c.x + 3.0 * c.y - 4.0 * c.x * c.y; }
+float bayer4(vec2 c) { return (4.0 * bayer2(floor(c * 0.5)) + bayer2(c) + 0.5) / 16.0; }
 float plasma(vec2 q, float T) {
   float s = sin(q.x + T) + sin(q.y * 1.3 - T * 0.7)
           + sin((q.x + q.y) * 0.8 + T * 1.3) + sin(length(q) * 2.2 - T * 1.6);
@@ -675,7 +678,6 @@ void main() {
   vec2 uv = distort(uv0, T);
   vec2 p = (uv - 0.5) * vec2(u_res.x / u_res.y, 1.0);
   float v = 0.0;
-  float shade = 1.0;                             // post-palette darkening, e.g. mosaic grout
 
   if (u_style == 0) {
     float f = 0.0;
@@ -708,25 +710,18 @@ void main() {
     float l = field(uv, p, T);
     v = fract((l - 0.5) * u_scale + 0.5 + T * 0.08 * u_warp);
   } else if (u_style == 6) {
-    // mosaic: jittered-grid Voronoi cells, each filled with the field at its seed.
-    // Scale sets the cell size, Warp the jitter from a clean grid to scattered tiles.
+    // mosaic: square pixel blocks, posterised to a few levels with an ordered
+    // (Bayer) dither at block resolution. Scale sets the block size, Warp the
+    // dither strength, Bands the number of levels (4 when Bands is off).
     float ca = u_res.x / u_res.y;
-    float n = 14.0 / u_scale;
-    vec2 g = uv * vec2(ca, 1.0) * n;
-    vec2 gi = floor(g);
-    float d1 = 9.0, d2 = 9.0;
-    vec2 seed = gi + 0.5;
-    for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
-      vec2 c = gi + vec2(float(x), float(y));
-      vec2 j = vec2(hash2(c), hash2(c + 7.1)) - 0.5;
-      vec2 s = c + 0.5 + j * u_warp * 0.9
-             + u_warp * 0.1 * vec2(sin(T + c.y * 1.7), cos(T * 1.3 + c.x * 1.1));
-      float d = length(s - g);
-      if (d < d1) { d2 = d1; d1 = d; seed = s; } else if (d < d2) d2 = d;
-    }
-    vec2 suv = seed / (n * vec2(ca, 1.0));
-    v = field(suv, (suv - 0.5) * vec2(ca, 1.0), T);
-    shade = smoothstep(0.0, 0.08, d2 - d1);     // grout between tiles
+    float n = 96.0 / u_scale;                          // blocks down the height
+    vec2 cell = floor(uv * vec2(ca, 1.0) * n);
+    vec2 cuv = (cell + 0.5) / n / vec2(ca, 1.0);
+    float l = field(cuv, (cuv - 0.5) * vec2(ca, 1.0), T);
+    float L = u_bands >= 2.0 ? u_bands : 4.0;
+    float th = (bayer4(cell) - 0.5) * u_warp;
+    float q = clamp(floor(l * (L - 1.0) + 0.5 + th), 0.0, L - 1.0);
+    v = (q + 0.5) / L;                                 // band centres, so the ramp never wraps
   } else {
     vec2 z = p * 1.7 / u_scale;
     vec2 c = 0.7885 * vec2(cos(T * 0.25), sin(T * 0.25));
@@ -739,7 +734,7 @@ void main() {
     v = sqrt(it / 48.0);
   }
 
-  vec3 col = pal(v) * shade;
+  vec3 col = pal(v);
 
   vec2 fuv = uv0 - 0.5;
   float ca = u_fbSpin;
