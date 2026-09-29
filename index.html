@@ -107,6 +107,7 @@
   .pal-stop:hover::after, .pal-stop.drag::after {
     width: 20px; height: 20px; border-color: var(--accent);
   }
+  .pal-stop.to-front::after { border-color: #fff; box-shadow: 0 0 0 3px var(--accent); }
   .pal-stop.fixed { cursor: default; }
   .pal-stop.fixed:hover::after { width: 16px; height: 16px; border-color: #fff; }
   .pal-rows { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -220,7 +221,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.2.0";  // oscilloscope, palette pill, editable values, mic diagnostics
+const APP_VERSION = "0.2.1";  // palette stops reorder by dragging past a neighbour or to the top
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -355,43 +356,98 @@ function buildStops() {
     h.className = "pal-stop" + (i === 0 ? " fixed" : "");
     h.style.top = (f * 100) + "%";
     h.style.setProperty("--c", state.colors[i]);
-    if (i === 0) {
-      h.title = "First color anchors the top of the ramp";
-      palPillBox.append(h);
-      continue;
+    if (i === 0) h.title = "First color anchors the top of the ramp";
+    else {
+      h.title = "Drag to balance color " + i + " and color " + (i + 1)
+        + ". Drag past a neighbour to reorder, or to the top to make it first.";
+      h.addEventListener("pointerdown", e => dragStop(e, i));
     }
-    const j = i - 1;
-    h.title = "Drag to balance color " + i + " and color " + (i + 1);
-    h.addEventListener("pointerdown", e => {
-      e.preventDefault();
-      h.setPointerCapture(e.pointerId);
-      h.classList.add("drag");
-      const rect = palPillBox.getBoundingClientRect();
-      const w = state.weights.map(x => Math.max(0.05, +x || 1));
-      const sum = w.reduce((a, b) => a + b, 0);
-      const cur = stopFractions();
-      const base = j === 0 ? 0 : cur[j - 1];
-      const next = j === cur.length - 1 ? 1 : cur[j + 1];
-      const lo = base + 0.02, hi = next - 0.02;
-      const move = ev => {
-        let f2 = (ev.clientY - rect.top) / rect.height;
-        f2 = Math.max(lo, Math.min(hi, f2));
-        state.weights[j] = (f2 - base) * sum;
-        state.weights[j + 1] = (next - f2) * sum;
-        h.style.top = (f2 * 100) + "%";
-        buildPalette();
-        $("preset").value = "custom";
-      };
-      const up = () => {
-        h.classList.remove("drag");
-        h.removeEventListener("pointermove", move);
-        h.removeEventListener("pointerup", up);
-      };
-      h.addEventListener("pointermove", move);
-      h.addEventListener("pointerup", up);
-    });
     palPillBox.append(h);
   }
+}
+// Stop i marks where color i begins: the boundary between colors i-1 and i.
+// Dragging it rebalances those two weights. Dragging it past the stop above or
+// below swaps color i with that neighbour, so the ramp can be reordered by hand,
+// and dropping it above the seam makes it the first color.
+// The pill box (not the stop) holds pointer capture, so stops can be rebuilt
+// mid-drag when colors swap.
+function dragStop(e, i) {
+  e.preventDefault();
+  const box = palPillBox;
+  box.setPointerCapture(e.pointerId);
+  const rect = box.getBoundingClientRect();
+  const GAP = 0.02;                                   // minimum band height, as a fraction of the pill
+  const w = state.weights.map(x => Math.max(0.05, +x || 1));
+  const sum = w.reduce((a, b) => a + b, 0);
+  // each color's height when the drag began, keyed by its starting slot, so a
+  // color that gets hopped over comes back at the size it had
+  const origH = w.map(x => x / sum);
+  const slot = state.colors.map((_, k) => k);
+  const starts = () => [0, ...stopFractions(), 1];   // starts[k] = top of color k
+  const stops = () => box.querySelectorAll(".pal-stop");
+  const full = v => v.length === 4 ? "#" + [...v.slice(1)].map(c => c + c).join("") : v;
+  const syncRow = k => {
+    const row = box.parentElement.querySelectorAll(".swatch")[k];
+    if (!row) return;
+    row.querySelector("input[type=color]").value = full(state.colors[k]);
+    row.querySelector("input[type=text]").value = state.colors[k].toUpperCase();
+  };
+  const swap = (a, b) => {
+    [state.colors[a], state.colors[b]] = [state.colors[b], state.colors[a]];
+    [slot[a], slot[b]] = [slot[b], slot[a]];
+    syncRow(a); syncRow(b);
+    buildStops();
+  };
+  let toFront = false;
+  const move = ev => {
+    const f = (ev.clientY - rect.top) / rect.height;
+    toFront = f <= GAP;
+    let s = starts();
+    if (f > s[i + 1] + GAP / 2 && i + 1 < state.colors.length) {
+      // pushed below the next stop: color i hops under color i+1, which keeps its height
+      const P = s[i + 1];
+      const top = Math.max(s[i - 1] + GAP, P - origH[slot[i + 1]]);
+      state.weights[i - 1] = (top - s[i - 1]) * sum;
+      state.weights[i] = (P - top) * sum;
+      state.weights[i + 1] = (s[i + 2] - P) * sum;
+      swap(i, i + 1); i++;
+      s = starts();
+    } else if (f < s[i - 1] - GAP / 2 && i > 1) {
+      // pulled above the previous stop: color i hops over color i-1, which keeps its height
+      const P = s[i - 1];
+      const bottom = Math.max(P + GAP, s[i + 1] - origH[slot[i - 1]]);
+      state.weights[i - 1] = (bottom - P) * sum;
+      state.weights[i] = (s[i + 1] - bottom) * sum;
+      swap(i - 1, i); i--;
+      s = starts();
+    }
+    const fc = Math.max(s[i - 1] + GAP, Math.min(s[i + 1] - GAP, f));
+    state.weights[i - 1] = (fc - s[i - 1]) * sum;
+    state.weights[i] = (s[i + 1] - fc) * sum;
+    const h = stops()[i];
+    h.classList.add("drag");
+    h.classList.toggle("to-front", toFront);
+    h.style.top = (fc * 100) + "%";
+    buildPalette();
+    $("preset").value = "custom";
+  };
+  const up = () => {
+    stops().forEach(el => el.classList.remove("drag", "to-front"));
+    box.removeEventListener("pointermove", move);
+    box.removeEventListener("pointerup", up);
+    box.removeEventListener("pointercancel", up);
+    if (toFront) {
+      // dropped above the seam: this color takes the top of the ramp
+      state.colors.unshift(state.colors.splice(i, 1)[0]);
+      state.weights.unshift(state.weights.splice(i, 1)[0]);
+      buildPalette();
+      renderSwatches();
+    }
+  };
+  stops()[i].classList.add("drag");
+  box.addEventListener("pointermove", move);
+  box.addEventListener("pointerup", up);
+  box.addEventListener("pointercancel", up);
 }
 let palDirty = true;
 
@@ -460,7 +516,7 @@ $("preset").addEventListener("change", e => {
   state.weights = p.map(() => 100);
   buildPalette(); renderSwatches();
 });
-renderSwatches(); buildPalette();
+buildPalette(); renderSwatches();   // palette first: the stops are positioned from state.weights
 
 /* ================= segmented buttons ================= */
 function seg(id, attr, get, set) {
