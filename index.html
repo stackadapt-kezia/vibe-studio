@@ -13,6 +13,7 @@
     --text: #eceef4; --muted: #85899a; --accent: #3d84ff; --radius: 8px;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }   /* beats display rules on .row and grids */
   body {
     margin: 0; background: var(--bg); color: var(--text);
     font: 400 14px/1.5 "Source Sans 3", system-ui, sans-serif;
@@ -36,7 +37,7 @@
   .ver { color: var(--muted); font-size: 12px; }
   .app { flex: 1; display: flex; min-height: 0; }
   .panel {
-    width: 300px; flex: 0 0 300px; background: var(--panel);
+    width: 380px; flex: 0 0 380px; background: var(--panel);
     border-right: 1px solid var(--line); overflow-y: auto; padding: 16px;
   }
   .stage {
@@ -58,7 +59,30 @@
   legend {
     font: 500 10px/1 "Space Grotesk", sans-serif; letter-spacing: .12em;
     text-transform: uppercase; color: var(--muted); padding: 0 0 10px;
+    cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px; width: 100%;
   }
+  legend::before {
+    content: ""; width: 5px; height: 5px; border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor; transform: rotate(45deg) translate(-1px, -1px);
+    transition: transform .15s;
+  }
+  legend:hover { color: var(--text); }
+  legend:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+  fieldset.collapsed > legend::before { transform: rotate(-45deg) translate(-1px, 1px); }
+  fieldset.collapsed > :not(legend) { display: none; }
+  fieldset.collapsed { margin-bottom: 14px; }
+  /* audio on the left, video on the right */
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+  .duo .seg { grid-template-columns: 1fr; }
+  .duo .row { flex-wrap: wrap; }
+  .duo .row label { flex: 1 0 100%; margin-bottom: -4px; }
+  .duo .meters { margin-top: 26px; }
+  .duo .np { flex-direction: column; align-items: stretch; text-align: center; }
+  .duo .cover { width: 100%; height: auto; aspect-ratio: 1; flex: 0 0 auto; }
+  .duo .transport { gap: 8px; }
+  .duo .transport button { width: 32px; height: 32px; }
+  .duo .transport button.big { width: 40px; height: 40px; }
+  .duo .scrub span { flex: 0 0 100%; text-align: center; margin-top: -2px; }
   .row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
   .row label { flex: 0 0 86px; font-size: 13px; color: var(--muted); }
   .row input[type=range] { flex: 1; accent-color: var(--accent); min-width: 0; }
@@ -79,7 +103,9 @@
     padding: 9px 10px; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer;
   }
   .seg button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-  #styleSeg button:nth-child(15) { grid-column: span 2; }
+  #styleSeg { grid-template-columns: repeat(3, 1fr); }
+  #styleSeg button { padding: 8px 4px; font-size: 12px; }
+  #microRow { margin-top: 10px; display: grid; grid-template-columns: 1fr 120px; gap: 6px; }
   .stage.drop::after {
     content: "Drop to load"; position: absolute; inset: 12px; border: 2px dashed var(--accent);
     border-radius: 12px; display: grid; place-items: center; color: var(--text);
@@ -215,6 +241,8 @@
 </header>
 <div class="app">
   <aside class="panel">
+    <div class="duo">
+    <div>
     <fieldset>
       <legend>Sound in</legend>
       <div class="seg" id="srcSeg">
@@ -257,7 +285,8 @@
       <p class="note" id="libCount"></p>
       <p class="note" id="libNote"></p>
     </fieldset>
-
+    </div>
+    <div>
     <fieldset>
       <legend>Image in</legend>
       <button class="pill" id="imgBtn" style="margin-top:0">Load image or video</button>
@@ -269,6 +298,8 @@
       </div>
       <p class="note" id="imgNote">Nothing loaded — image patterns use the plasma field until you do. You can also drop a file on the stage.</p>
     </fieldset>
+    </div>
+    </div>
 
     <fieldset>
       <legend>Pattern</legend>
@@ -288,6 +319,15 @@
         <button data-style="12">Hatch</button>
         <button data-style="13">ASCII</button>
         <button data-style="14">Microtext</button>
+      </div>
+      <div id="microRow" hidden>
+        <input type="text" id="microText" value="STACKADAPT VIBE " maxlength="32" spellcheck="false" aria-label="Microtext copy">
+        <select id="microFont" aria-label="Microtext font">
+          <option value='"Space Grotesk", sans-serif'>Space Grotesk</option>
+          <option value='"Source Sans 3", sans-serif'>Source Sans</option>
+          <option value="ui-monospace, Menlo, Consolas, monospace">Monospace</option>
+          <option value="Georgia, 'Times New Roman', serif">Serif</option>
+        </select>
       </div>
     </fieldset>
 
@@ -356,7 +396,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.5.0";  // music library and player with tags and cover art
+const APP_VERSION = "0.5.1";  // custom Microtext copy and font, finer Scale, folding sections, panel layout
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -380,7 +420,7 @@ const state = {
 };
 
 const LOOK = [
-  ["scale", "Scale", 0.4, 2, 0.01, v => v.toFixed(2)],
+  ["scale", "Scale", 0.2, 2, 0.01, v => v.toFixed(2)],
   ["speed", "Speed", 0, 3, 0.01, v => v.toFixed(2)],
   ["warp", "Warp", 0, 1, 0.01, v => v.toFixed(2)],
   ["blobs", "Blobs", 2, 8, 1, v => String(v)],
@@ -707,7 +747,30 @@ function seg(id, attr, get, set) {
   sync();
   return sync;
 }
-seg("styleSeg", "style", () => state.style, v => { state.style = +v; });
+seg("styleSeg", "style", () => state.style, v => { state.style = +v; $("microRow").hidden = state.style !== 14; });
+
+/* ================= collapsible sections ================= */
+// Click a heading to fold its section; the fold state is remembered per browser.
+(() => {
+  let folded = {};
+  try { folded = JSON.parse(localStorage.getItem("vibe.folded") || "{}"); } catch (e) { /* no storage */ }
+  document.querySelectorAll(".panel fieldset").forEach(fs => {
+    const lg = fs.querySelector("legend");
+    const key = lg.textContent.trim();
+    lg.tabIndex = 0; lg.setAttribute("role", "button");
+    const sync = () => lg.setAttribute("aria-expanded", String(!fs.classList.contains("collapsed")));
+    const toggle = () => {
+      fs.classList.toggle("collapsed");
+      folded[key] = fs.classList.contains("collapsed");
+      try { localStorage.setItem("vibe.folded", JSON.stringify(folded)); } catch (e) { /* no storage */ }
+      sync();
+    };
+    if (folded[key]) fs.classList.add("collapsed");
+    lg.addEventListener("click", toggle);
+    lg.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
+    sync();
+  });
+})();
 seg("distSeg", "dist", () => state.dist, v => { state.dist = +v; });
 seg("screenSeg", "screen", () => state.screen, v => { state.screen = +v; });
 
@@ -738,6 +801,7 @@ uniform sampler2D u_prev;
 uniform sampler2D u_wave;
 uniform sampler2D u_img;
 uniform sampler2D u_glyph;
+uniform float u_glyphN, u_textN;   // glyphs in the atlas, and how many of them are Microtext copy
 uniform float u_hasImg, u_imgAspect;
 uniform float u_trails, u_fbZoom, u_fbSpin;
 uniform float u_bass, u_mid, u_high, u_beat;
@@ -1011,8 +1075,8 @@ void main() {
     vec2 ci = floor(g), cf = fract(g);
     vec2 cuv = (ci + 0.5) / n / vec2(ca, 1.0);
     float l = fld(cuv, T);
-    float idx = u_style == 13 ? floor((1.0 - l) * 15.99) : 16.0 + mod(ci.x + ci.y * 5.0, 16.0);
-    float cov = texture2D(u_glyph, vec2((idx + 0.04 + cf.x * 0.92) / 32.0, cf.y)).r;
+    float idx = u_style == 13 ? floor((1.0 - l) * 15.99) : 16.0 + mod(ci.x + ci.y * 5.0, u_textN);
+    float cov = texture2D(u_glyph, vec2((idx + 0.04 + cf.x * 0.92) / u_glyphN, cf.y)).r;
     ink = u_style == 13 ? cov : cov * smoothstep(0.0, 0.7, 1.0 - l);
     v = (1.0 - l) * u_palEnd;
   } else {
@@ -1105,28 +1169,42 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
 /* ================= glyph atlas (family 9) ================= */
-// 32 square glyphs in one strip: 16 by ink density for ASCII, then 16
-// characters of brand copy for Microtext. Drawn once on a 2D canvas.
+// Square glyphs in one strip: 16 by ink density for ASCII, then the Microtext
+// copy, one cell per character. Drawn on a 2D canvas and rebuilt whenever the
+// copy or its font changes.
 const GLYPH_PX = 32;
-const GLYPHS = " .':-=+*xo%#8W&@" + "STACKADAPT VIBE ";
+const DENSITY = " .':-=+*xo%#8W&@";
 const glyphTex = gl.createTexture();
-(() => {
+gl.bindTexture(gl.TEXTURE_2D, glyphTex);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+let glyphN = 32, textN = 16;
+function buildGlyphAtlas() {
+  const text = $("microText").value || " ";
+  const font = $("microFont").value;
+  textN = text.length;
+  glyphN = DENSITY.length + textN;
   const c = document.createElement("canvas");
-  c.width = GLYPHS.length * GLYPH_PX; c.height = GLYPH_PX;
+  c.width = glyphN * GLYPH_PX; c.height = GLYPH_PX;
   const x = c.getContext("2d");
   x.fillStyle = "#000"; x.fillRect(0, 0, c.width, c.height);
   x.fillStyle = "#fff"; x.textAlign = "center"; x.textBaseline = "middle";
+  const draw = (ch, i) => x.fillText(ch, i * GLYPH_PX + GLYPH_PX / 2, GLYPH_PX / 2 + 1);
   x.font = "bold 27px ui-monospace, Menlo, Consolas, monospace";
-  [...GLYPHS].forEach((ch, i) => x.fillText(ch, i * GLYPH_PX + GLYPH_PX / 2, GLYPH_PX / 2 + 1));
+  [...DENSITY].forEach(draw);
+  x.font = "600 26px " + font;
+  [...text].forEach((ch, i) => draw(ch, DENSITY.length + i));
   gl.bindTexture(gl.TEXTURE_2D, glyphTex);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-})();
+}
+buildGlyphAtlas();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(buildGlyphAtlas);   // once the web fonts land
+$("microText").addEventListener("input", buildGlyphAtlas);
+$("microFont").addEventListener("change", buildGlyphAtlas);
 
 function makeTarget(w, h) {
   const tex = gl.createTexture();
@@ -1714,6 +1792,8 @@ function frame(now) {
   gl.activeTexture(gl.TEXTURE4);
   gl.bindTexture(gl.TEXTURE_2D, glyphTex);
   gl.uniform1i(gl.getUniformLocation(scene, "u_glyph"), 4);
+  gl.uniform1f(gl.getUniformLocation(scene, "u_glyphN"), glyphN);
+  gl.uniform1f(gl.getUniformLocation(scene, "u_textN"), textN);
 
   const U = n => gl.getUniformLocation(scene, n);
   gl.uniform2f(U("u_res"), A.w, A.h);
