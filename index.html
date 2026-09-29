@@ -36,16 +36,26 @@
   .backlink:hover { color: var(--text); }
   .ver { color: var(--muted); font-size: 12px; }
   .app { flex: 1; display: flex; min-height: 0; }
+  :root { --panelW: 340px; }
   .panel {
-    width: 380px; flex: 0 0 380px; background: var(--panel);
-    border-right: 1px solid var(--line); overflow-y: auto; padding: 16px;
+    width: var(--panelW); flex: 0 0 var(--panelW); background: var(--panel);
+    display: flex; flex-direction: column; min-height: 0; overflow: hidden;
   }
+  /* Sound in and Video in stay put; everything else scrolls beneath them */
+  .pinned {
+    flex: 0 0 auto; padding: 16px 16px 0; border-bottom: 1px solid var(--line);
+    max-height: 75%; overflow-y: auto;
+  }
+  .scrolls { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; }
+  .resizer { flex: 0 0 6px; cursor: col-resize; border-right: 1px solid var(--line); background: var(--panel); }
+  .resizer:hover, .resizer.on { background: var(--accent); }
+  body.resizing { cursor: col-resize; user-select: none; }
   .stage {
     flex: 1; min-width: 0; position: relative; background: #000;
     display: flex; align-items: center; justify-content: center;
   }
   canvas { display: block; width: 100%; height: 100%; }
-  body.hide-ui .panel, body.hide-ui header { display: none; }
+  body.hide-ui .panel, body.hide-ui .resizer, body.hide-ui header { display: none; }
   .showui { display: none; }
   body.hide-ui .showui {
     display: block; position: fixed; top: 14px; left: 14px; z-index: 50;
@@ -71,18 +81,9 @@
   fieldset.collapsed > legend::before { transform: rotate(-45deg) translate(-1px, 1px); }
   fieldset.collapsed > :not(legend) { display: none; }
   fieldset.collapsed { margin-bottom: 14px; }
-  /* audio on the left, video on the right */
-  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
-  .duo .seg { grid-template-columns: 1fr; }
-  .duo .row { flex-wrap: wrap; }
-  .duo .row label { flex: 1 0 100%; margin-bottom: -4px; }
-  .duo .meters { margin-top: 26px; }
-  .duo .np { flex-direction: column; align-items: stretch; text-align: center; }
-  .duo .cover { width: 100%; height: auto; aspect-ratio: 1; flex: 0 0 auto; }
-  .duo .transport { gap: 8px; }
-  .duo .transport button { width: 32px; height: 32px; }
-  .duo .transport button.big { width: 40px; height: 40px; }
-  .duo .scrub span { flex: 0 0 100%; text-align: center; margin-top: -2px; }
+  fieldset.fixed > legend { cursor: default; }
+  fieldset.fixed > legend::before { display: none; }
+  fieldset.fixed > legend:hover { color: var(--muted); }
   .row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
   .row label { flex: 0 0 86px; font-size: 13px; color: var(--muted); }
   .row input[type=range] { flex: 1; accent-color: var(--accent); min-width: 0; }
@@ -105,7 +106,7 @@
   .seg button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
   #styleSeg { grid-template-columns: repeat(3, 1fr); }
   #styleSeg button { padding: 8px 4px; font-size: 12px; }
-  #microRow { margin-top: 10px; display: grid; grid-template-columns: 1fr 120px; gap: 6px; }
+  #microRow select { flex: 0 0 118px; width: 118px; }
   .stage.drop::after {
     content: "Drop to load"; position: absolute; inset: 12px; border: 2px dashed var(--accent);
     border-radius: 12px; display: grid; place-items: center; color: var(--text);
@@ -153,8 +154,8 @@
     font-size: 15px; padding: 2px 6px; border-radius: 5px;
   }
   .swatch button:hover { color: var(--text); background: var(--panel-2); }
-  .sep { height: 1px; background: var(--line); margin: 18px 0 0; }
-  .meters { display: flex; gap: 6px; align-items: flex-end; height: 46px; margin: 30px 0 14px; }
+  .sep { height: 1px; background: var(--line); margin: 12px 0 0; }
+  .meters { display: flex; gap: 6px; align-items: flex-end; height: 34px; margin: 24px 0 8px; }
   .meter { flex: 1; background: var(--panel-2); border-radius: 4px; position: relative; height: 100%; }
   .meter i {
     position: absolute; left: 0; right: 0; bottom: 0; border-radius: 4px;
@@ -165,34 +166,40 @@
     letter-spacing: .1em; text-transform: uppercase;
   }
   .note { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
-  .player { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
-  .np { display: flex; gap: 12px; align-items: center; }
+  .player {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px;
+    display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 6px 10px; align-items: center;
+    grid-template-areas: "cover text transport" "scrub scrub scrub";
+  }
   .cover {
-    width: 64px; height: 64px; flex: 0 0 64px; border-radius: 8px; position: relative;
+    grid-area: cover; width: 56px; height: 56px; border-radius: 8px; position: relative;
     background: #1b1b21 center / cover no-repeat; border: 1px solid var(--line);
   }
   .cover.empty::after {
     content: "\266A"; position: absolute; inset: 0; display: grid; place-items: center;
     color: var(--muted); font-size: 26px;
   }
-  .np-text { min-width: 0; }
+  .np-text { grid-area: text; min-width: 0; }
   .np-title, .np-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .np-title { font: 600 14px/1.3 "Space Grotesk", sans-serif; }
   .np-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
-  .transport { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 12px 0 4px; }
+  .transport { grid-area: transport; display: flex; align-items: center; gap: 6px; }
   .transport button {
-    width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); padding: 0;
+    width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); padding: 0;
     background: var(--panel); color: var(--text); cursor: pointer; display: grid; place-items: center;
   }
-  .transport button svg { width: 18px; height: 18px; fill: currentColor; }
-  .transport button.big { width: 46px; height: 46px; background: var(--accent); border-color: var(--accent); color: #fff; }
-  .transport button.big svg { width: 22px; height: 22px; }
+  .transport button svg { width: 14px; height: 14px; fill: currentColor; }
+  .transport button.big { width: 36px; height: 36px; background: var(--accent); border-color: var(--accent); color: #fff; }
+  .transport button.big svg { width: 18px; height: 18px; }
   .transport button:hover { filter: brightness(1.15); }
   #tPlay .ic-pause, #tPlay.playing .ic-play { display: none; }
   #tPlay.playing .ic-pause { display: block; }
-  .scrub { margin: 4px 0 0; }
+  .scrub { grid-area: scrub; margin: 0; }
   .scrub span { flex: 0 0 76px; text-align: right; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .tracks { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .tracks {
+    list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px;
+    max-height: 92px; overflow-y: auto;       /* two rows; the library scrolls inside the pinned block */
+  }
   .track {
     display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px;
     cursor: pointer; border: 1px solid transparent;
@@ -216,7 +223,24 @@
     font-size: 15px; padding: 2px 6px; border-radius: 5px;
   }
   .track button:hover { color: var(--text); background: var(--panel-2); }
+  .libline { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+  .libtoggle {
+    background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-size: 12px;
+    cursor: pointer; display: flex; align-items: center; gap: 6px;
+  }
+  .libtoggle::before {
+    content: ""; width: 5px; height: 5px; border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor; transform: rotate(45deg) translate(-1px, -1px);
+  }
+  .libtoggle[aria-expanded="false"]::before { transform: rotate(-45deg) translate(-1px, 1px); }
+  .libtoggle:hover { color: var(--text); }
+  .libline button {
+    background: none; border: 1px solid var(--line); color: var(--text); border-radius: 999px;
+    padding: 5px 12px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
+  }
+  .libline button:hover { background: #1b1b21; }
   .vid { margin: 10px 0 0; }
+  .player { margin-top: 10px; }
   .vid button {
     flex: 0 0 auto; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
     padding: 5px 12px; border-radius: 999px; font: inherit; font-size: 12px; cursor: pointer; min-width: 62px;
@@ -240,10 +264,9 @@
   <span class="ver" id="ver"></span>
 </header>
 <div class="app">
-  <aside class="panel">
-    <div class="duo">
-    <div>
-    <fieldset>
+  <aside class="panel" id="panel">
+    <div class="pinned">
+    <fieldset class="fixed">
       <legend>Sound in</legend>
       <div class="seg" id="srcSeg">
         <button data-src="mic">Microphone</button>
@@ -255,19 +278,13 @@
         <div class="meter"><span>Mid</span><i id="mMid"></i></div>
         <div class="meter"><span>High</span><i id="mHigh"></i></div>
       </div>
-      <div id="audioRows"></div>
-      <p class="note" id="srcNote">Idle — pick a sound source to react to audio.</p>
-    </fieldset>
-
-    <fieldset>
-      <legend>Music</legend>
+      <p class="note" id="srcNote" hidden>Idle — pick a sound source to react to audio.</p>
+      <div class="sep"></div>
       <div class="player">
-        <div class="np">
-          <div class="cover empty" id="npCover" aria-hidden="true"></div>
-          <div class="np-text">
-            <div class="np-title" id="npTitle">Nothing playing</div>
-            <div class="np-sub" id="npSub">Add songs to build the library</div>
-          </div>
+        <div class="cover empty" id="npCover" aria-hidden="true"></div>
+        <div class="np-text">
+          <div class="np-title" id="npTitle">Nothing playing</div>
+          <div class="np-sub" id="npSub">Add songs to build the library</div>
         </div>
         <div class="transport">
           <button id="tPrev" aria-label="Previous song"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zm12 0-9 7 9 7z"/></svg></button>
@@ -280,15 +297,16 @@
         </div>
       </div>
       <ol class="tracks" id="trackList"></ol>
-      <button class="pill" id="addSongs">Add songs</button>
+      <div class="libline">
+        <button class="libtoggle" id="libCount" aria-expanded="true" aria-controls="trackList">No songs yet</button>
+        <button id="addSongs">+ Add songs</button>
+      </div>
       <input type="file" id="songFiles" accept="audio/*,.mp3,.m4a,.aac,.flac,.wav,.ogg,.opus" multiple hidden>
-      <p class="note" id="libCount"></p>
-      <p class="note" id="libNote"></p>
+      <p class="note" id="libNote" hidden></p>
     </fieldset>
-    </div>
-    <div>
-    <fieldset>
-      <legend>Image in</legend>
+
+    <fieldset class="fixed">
+      <legend>Video in</legend>
       <button class="pill" id="imgBtn" style="margin-top:0">Load image or video</button>
       <input type="file" id="imgFile" accept="image/*,video/*" hidden>
       <div class="row vid" id="vidRow" hidden>
@@ -296,11 +314,10 @@
         <input type="range" id="vidScrub" min="0" max="1000" value="0" step="1" aria-label="Video position">
         <span id="vidTime">0:00</span>
       </div>
-      <p class="note" id="imgNote">Nothing loaded — image patterns use the plasma field until you do. You can also drop a file on the stage.</p>
+      <p class="note" id="imgNote">Nothing loaded — image patterns use a plasma field until you do. Dropping a file on the stage works too.</p>
     </fieldset>
     </div>
-    </div>
-
+    <div class="scrolls">
     <fieldset>
       <legend>Pattern</legend>
       <div class="seg" id="styleSeg">
@@ -319,15 +336,6 @@
         <button data-style="12">Hatch</button>
         <button data-style="13">ASCII</button>
         <button data-style="14">Microtext</button>
-      </div>
-      <div id="microRow" hidden>
-        <input type="text" id="microText" value="STACKADAPT VIBE " maxlength="32" spellcheck="false" aria-label="Microtext copy">
-        <select id="microFont" aria-label="Microtext font">
-          <option value='"Space Grotesk", sans-serif'>Space Grotesk</option>
-          <option value='"Source Sans 3", sans-serif'>Source Sans</option>
-          <option value="ui-monospace, Menlo, Consolas, monospace">Monospace</option>
-          <option value="Georgia, 'Times New Roman', serif">Serif</option>
-        </select>
       </div>
     </fieldset>
 
@@ -349,6 +357,16 @@
 
     <fieldset>
       <legend>Look</legend>
+      <div class="row" id="microRow" hidden>
+        <label for="microText">Copy</label>
+        <input type="text" id="microText" value="STACKADAPT VIBE " maxlength="32" spellcheck="false" aria-label="Microtext copy">
+        <select id="microFont" aria-label="Microtext font">
+          <option value='"Space Grotesk", sans-serif'>Space Grotesk</option>
+          <option value='"Source Sans 3", sans-serif'>Source Sans</option>
+          <option value="ui-monospace, Menlo, Consolas, monospace">Monospace</option>
+          <option value="Georgia, 'Times New Roman', serif">Serif</option>
+        </select>
+      </div>
       <div id="lookRows"></div>
     </fieldset>
 
@@ -378,6 +396,7 @@
 
     <fieldset>
       <legend>Reactivity</legend>
+      <div id="audioRows"></div>
       <div id="modRows"></div>
     </fieldset>
 
@@ -388,7 +407,9 @@
       <button class="pill" id="recBtn">Record performance</button>
       <p class="note" id="outNote">Drag this window to the projector display, then go fullscreen.</p>
     </fieldset>
+    </div>
   </aside>
+  <div class="resizer" id="resizer" title="Drag to resize the panel. Double-click to reset."></div>
   <button class="pill showui" id="showBtn">Show panel</button>
   <main class="stage" id="stage">
     <canvas id="gl"></canvas>
@@ -396,7 +417,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.5.1";  // custom Microtext copy and font, finer Scale, folding sections, panel layout
+const APP_VERSION = "0.5.2";  // pinned Sound in and Video in, per-mode controls, resizable panel
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -452,6 +473,7 @@ function buildRows(host, spec) {
   spec.forEach(([key, label, min, max, step]) => {
     const row = document.createElement("div");
     row.className = "row";
+    row.dataset.key = key;
     const lb = document.createElement("label");
     lb.textContent = label;
     lb.htmlFor = "s_" + key;
@@ -747,14 +769,30 @@ function seg(id, attr, get, set) {
   sync();
   return sync;
 }
-seg("styleSeg", "style", () => state.style, v => { state.style = +v; $("microRow").hidden = state.style !== 14; });
+seg("styleSeg", "style", () => state.style, v => { state.style = +v; syncControls(); });
+
+/* ================= which controls matter for the current mode ================= */
+// Read from the shader: Blobs only counts on Blobs; Warp is unused by Blobs,
+// Fractal, Edges, Contour, ASCII and Microtext; the Distort and Screen amounts
+// (and Beat -> Distort) only matter once a kind is chosen.
+const NO_WARP = [0, 3, 9, 11, 13, 14];
+function syncControls() {
+  const s = state.style;
+  const show = (key, on) => document.querySelectorAll('.row[data-key="' + key + '"]').forEach(r => { r.hidden = !on; });
+  show("blobs", s === 0);
+  show("warp", !NO_WARP.includes(s));
+  show("distort", state.dist !== 0);
+  show("modDist", state.dist !== 0);
+  show("screenAmt", state.screen !== 0);
+  $("microRow").hidden = s !== 14;
+}
 
 /* ================= collapsible sections ================= */
 // Click a heading to fold its section; the fold state is remembered per browser.
 (() => {
   let folded = {};
   try { folded = JSON.parse(localStorage.getItem("vibe.folded") || "{}"); } catch (e) { /* no storage */ }
-  document.querySelectorAll(".panel fieldset").forEach(fs => {
+  document.querySelectorAll(".panel fieldset:not(.fixed)").forEach(fs => {
     const lg = fs.querySelector("legend");
     const key = lg.textContent.trim();
     lg.tabIndex = 0; lg.setAttribute("role", "button");
@@ -771,8 +809,36 @@ seg("styleSeg", "style", () => state.style, v => { state.style = +v; $("microRow
     sync();
   });
 })();
-seg("distSeg", "dist", () => state.dist, v => { state.dist = +v; });
-seg("screenSeg", "screen", () => state.screen, v => { state.screen = +v; });
+seg("distSeg", "dist", () => state.dist, v => { state.dist = +v; syncControls(); });
+seg("screenSeg", "screen", () => state.screen, v => { state.screen = +v; syncControls(); });
+syncControls();
+
+/* ================= resizable panel ================= */
+(() => {
+  const MIN = 280, MAX = 640, DEF = 340;
+  const set = w => document.documentElement.style.setProperty("--panelW", Math.max(MIN, Math.min(MAX, w)) + "px");
+  try { const w = +localStorage.getItem("vibe.panelW"); if (w) set(w); } catch (e) { /* no storage */ }
+  const bar = $("resizer");
+  bar.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    bar.setPointerCapture(e.pointerId);
+    bar.classList.add("on");
+    document.body.classList.add("resizing");
+    const move = ev => set(ev.clientX - $("panel").getBoundingClientRect().left);
+    const up = () => {
+      bar.classList.remove("on");
+      document.body.classList.remove("resizing");
+      bar.removeEventListener("pointermove", move);
+      bar.removeEventListener("pointerup", up);
+      bar.removeEventListener("pointercancel", up);
+      try { localStorage.setItem("vibe.panelW", String(parseInt($("panel").getBoundingClientRect().width))); } catch (e) { /* no storage */ }
+    };
+    bar.addEventListener("pointermove", move);
+    bar.addEventListener("pointerup", up);
+    bar.addEventListener("pointercancel", up);
+  });
+  bar.addEventListener("dblclick", () => { set(DEF); try { localStorage.removeItem("vibe.panelW"); } catch (e) { /* no storage */ } });
+})();
 
 /* ================= WebGL ================= */
 const canvas = $("gl");
@@ -1368,6 +1434,7 @@ async function useMic() {
   try {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext) {
       $("srcNote").className = "note warn";
+      $("srcNote").hidden = false;
       $("srcNote").textContent = "The browser won't allow microphone access on this page. "
         + "Mic input needs the deployed https:// address — a file:// copy opened from disk can't ask for permission. "
         + "Music works either way.";
@@ -1375,6 +1442,7 @@ async function useMic() {
       return;
     }
     $("srcNote").className = "note";
+    $("srcNote").hidden = false;
     $("srcNote").textContent = "Asking for microphone permission…";
     await ensureCtx();
     disconnectSource();
@@ -1562,7 +1630,7 @@ const dbDel = id => dbRun("readwrite", s => s.delete(id));
 const fmtClock = s => isFinite(s) ? Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0") : "0:00";
 const niceName = n => n.replace(/\.[^.]+$/, "").replace(/_+/g, " ").trim();
 const coverUrl = t => { if (t.cover && !t._url) t._url = URL.createObjectURL(t.cover); return t._url; };
-const libNote = (msg, warn) => { $("libNote").className = warn ? "note warn" : "note"; $("libNote").textContent = msg; };
+const libNote = (msg, warn) => { $("libNote").className = warn ? "note warn" : "note"; $("libNote").textContent = msg; $("libNote").hidden = !msg; };
 const isAudio = f => f.type.startsWith("audio/") || /\.(mp3|m4a|aac|flac|wav|ogg|oga|opus|webm)$/i.test(f.name);
 
 async function addSongs(files) {
@@ -1614,11 +1682,11 @@ async function playTrack(i) {
     srcNode.connect(actx.destination);   // you hear the track
     await el.play();
     srcMode = "music"; segSrc();
-    $("srcNote").className = "note";
-    $("srcNote").textContent = "Playing from the music library.";
+    $("srcNote").hidden = true;            // the player card says what is playing
   } catch (err) {
     $("srcNote").className = "note warn";
     $("srcNote").textContent = "Couldn’t play " + t.name + ": " + err.message;
+    $("srcNote").hidden = false;
   }
   renderLibrary();
   setMediaSession(t);
@@ -1667,7 +1735,7 @@ function renderLibrary() {
     host.append(li);
   });
   const mb = lib.reduce((a, t) => a + t.size, 0) / 1048576;
-  $("libCount").textContent = lib.length ? lib.length + " of " + LIB_MAX + " songs · " + mb.toFixed(mb < 10 ? 1 : 0) + " MB" : "";
+  $("libCount").textContent = lib.length ? lib.length + " of " + LIB_MAX + " songs · " + mb.toFixed(mb < 10 ? 1 : 0) + " MB" : "No songs yet";
   renderNowPlaying();
 }
 let scrubT = false, lastT = -1;
@@ -1705,6 +1773,13 @@ $("tScrub").addEventListener("input", () => {
 });
 $("tScrub").addEventListener("change", () => { scrubT = false; });
 $("addSongs").addEventListener("click", () => $("songFiles").click());
+$("libCount").addEventListener("click", () => {
+  const open = $("trackList").hidden;
+  $("trackList").hidden = !open;
+  $("libCount").setAttribute("aria-expanded", String(open));
+  try { localStorage.setItem("vibe.libOpen", open ? "1" : "0"); } catch (e) { /* no storage */ }
+});
+try { if (localStorage.getItem("vibe.libOpen") === "0") { $("trackList").hidden = true; $("libCount").setAttribute("aria-expanded", "false"); } } catch (e) { /* no storage */ }
 $("songFiles").addEventListener("change", e => {
   const files = [...e.target.files];
   e.target.value = "";
