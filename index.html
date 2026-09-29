@@ -282,6 +282,10 @@
         </span>
       </legend>
       <p class="note" id="srcNote" hidden>Idle — pick a sound source to react to audio.</p>
+      <div class="row" id="micRow" hidden>
+        <label for="micSel">Input</label>
+        <select id="micSel" aria-label="Microphone input device"></select>
+      </div>
       <div class="player" id="player" hidden>
         <div class="cover empty" id="npCover" aria-hidden="true"></div>
         <div class="np-text">
@@ -425,7 +429,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.5.3";  // shorter pinned sections; meters live under Reactivity
+const APP_VERSION = "0.5.4";  // microphone input picker and silent-input warning
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -1438,37 +1442,84 @@ function disconnectSource() {
   if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
   if (audioEl) { audioEl.pause(); audioEl = null; }
 }
+let micId = null, micSince = 0, micPeak = 0, micLabel = "";
+try { micId = localStorage.getItem("vibe.micId"); } catch (e) { /* no storage */ }
+const micNote = (msg, warn) => {
+  $("srcNote").className = warn ? "note warn" : "note";
+  $("srcNote").hidden = false;
+  $("srcNote").textContent = msg;
+};
+// fill the input picker; labels only exist once permission has been granted
+async function listMics() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+  const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "audioinput");
+  const sel = $("micSel");
+  sel.innerHTML = "";
+  devs.forEach((d, i) => {
+    const o = document.createElement("option");
+    o.value = d.deviceId;
+    o.textContent = d.label || ("Input " + (i + 1));
+    sel.append(o);
+  });
+  const live = micStream && micStream.getAudioTracks()[0].getSettings().deviceId;
+  if (live && [...sel.options].some(o => o.value === live)) sel.value = live;
+  $("micRow").hidden = devs.length < 2;
+}
 async function useMic() {
   try {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext) {
-      $("srcNote").className = "note warn";
-      $("srcNote").hidden = false;
-      $("srcNote").textContent = "The browser won't allow microphone access on this page. "
+      micNote("The browser won't allow microphone access on this page. "
         + "Mic input needs the deployed https:// address — a file:// copy opened from disk can't ask for permission. "
-        + "Music works either way.";
+        + "Music works either way.", true);
       srcMode = "none"; segSrc();
       return;
     }
-    $("srcNote").className = "note";
-    $("srcNote").hidden = false;
-    $("srcNote").textContent = "Asking for microphone permission…";
+    micNote("Asking for microphone permission\u2026");
     await ensureCtx();
     disconnectSource();
-    micStream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
-    });
+    const base = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: micId ? { ...base, deviceId: { exact: micId } } : base });
+    } catch (err) {
+      if (!micId) throw err;
+      micId = null;                                   // the remembered input is gone: fall back to the default
+      try { localStorage.removeItem("vibe.micId"); } catch (e) { /* no storage */ }
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: base });
+    }
     srcNode = actx.createMediaStreamSource(micStream);
     srcNode.connect(analyser);
     srcNode.connect(dest);          // recorded, but never back to the speakers
-    $("srcNote").textContent = "Listening to the microphone.";
+    const track = micStream.getAudioTracks()[0];
+    micLabel = track.label || "the microphone";
+    micNote("Listening to " + micLabel + ".");
+    micSince = performance.now(); micPeak = 0;
+    track.addEventListener("ended", () => { if (srcMode === "mic") micNote(micLabel + " was disconnected. Pick another input.", true); });
     segSrc();
+    listMics();
   } catch (err) {
-    $("srcNote").className = "note warn";
-    $("srcNote").textContent = err.name === "NotAllowedError"
-      ? "Microphone permission was denied — allow it in the address-bar icon, then click Microphone again."
-      : "Microphone unavailable: " + err.message;
+    micNote(err.name === "NotAllowedError"
+      ? "Microphone permission was denied \u2014 allow it in the address-bar icon, then click Mic again. "
+        + "On a Mac also check System Settings \u2192 Privacy & Security \u2192 Microphone for this browser."
+      : "Microphone unavailable: " + err.message, true);
     srcMode = "none"; segSrc();
   }
+}
+// three seconds of silence from a live input almost always means the wrong
+// device, or a browser macOS has not been allowed to use the mic
+function checkMicSignal(now) {
+  if (srcMode !== "mic" || !micStream || now - micSince < 3000) return;
+  if (micPeak < 0.002) micNote("No signal from " + micLabel + ". Check the input level in System Settings \u2192 Sound, "
+    + "or pick another input.", true);
+  else micNote("Listening to " + micLabel + ".");
+  micSince = now; micPeak = 0;
+}
+$("micSel").addEventListener("change", () => {
+  micId = $("micSel").value;
+  try { localStorage.setItem("vibe.micId", micId); } catch (e) { /* no storage */ }
+  useMic();
+});
+if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+  navigator.mediaDevices.addEventListener("devicechange", () => { if (srcMode === "mic") listMics(); });
 }
 /* ================= tag parsing (no dependencies) ================= */
 // Reads title / artist / album / cover from ID3v2 (MP3), the iTunes atom list
@@ -1812,9 +1863,10 @@ let srcMode = "none";
 const segSrc = seg("srcSeg", "src", () => srcMode, v => {
   srcMode = v;
   if (v === "mic") useMic();
-  else if (v === "music") {
+  if (v !== "mic") $("micRow").hidden = true;
+  if (v === "music") {
     if (lib.length) playTrack(cur < 0 ? 0 : cur);
-    else { srcMode = "none"; $("songFiles").click(); }
+    else { disconnectSource(); srcMode = "none"; segSrc(); $("songFiles").click(); }
   }
 });
 
@@ -1830,7 +1882,12 @@ function frame(now) {
     if (!timeData || timeData.length !== analyser.fftSize) timeData = new Float32Array(analyser.fftSize);
     analyser.getFloatTimeDomainData(timeData);
     const stride = timeData.length / WAVE_N;
-    for (let i = 0; i < WAVE_N; i++) putSample(i, timeData[Math.floor(i * stride)] * state.gain);
+    for (let i = 0; i < WAVE_N; i++) {
+      const s = timeData[Math.floor(i * stride)];
+      if (s > micPeak) micPeak = s; else if (-s > micPeak) micPeak = -s;
+      putSample(i, s * state.gain);
+    }
+    checkMicSignal(now);
   } else {
     // idle: a gentle sine so the scope still reads as alive with no input
     for (let i = 0; i < WAVE_N; i++) {
