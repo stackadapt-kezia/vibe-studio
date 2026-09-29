@@ -79,7 +79,11 @@
     padding: 9px 10px; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer;
   }
   .seg button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-  #styleSeg button:nth-child(5) { grid-column: span 2; }
+  .stage.drop::after {
+    content: "Drop to load"; position: absolute; inset: 12px; border: 2px dashed var(--accent);
+    border-radius: 12px; display: grid; place-items: center; color: var(--text);
+    font: 600 15px "Space Grotesk", sans-serif; background: rgba(0,0,0,.45); pointer-events: none;
+  }
   .seg button:not(.active):hover, .pill:hover { color: var(--text); background: #1b1b21; }
   .pill { width: 100%; margin-top: 8px; color: var(--text); }
   .pill.on { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -170,6 +174,13 @@
     </fieldset>
 
     <fieldset>
+      <legend>Image in</legend>
+      <button class="pill" id="imgBtn" style="margin-top:0">Load image or video</button>
+      <input type="file" id="imgFile" accept="image/*,video/*" hidden>
+      <p class="note" id="imgNote">Nothing loaded — image patterns use the plasma field until you do. You can also drop a file on the stage.</p>
+    </fieldset>
+
+    <fieldset>
       <legend>Pattern</legend>
       <div class="seg" id="styleSeg">
         <button data-style="0">Blobs</button>
@@ -177,6 +188,7 @@
         <button data-style="2">Waves</button>
         <button data-style="3">Fractal</button>
         <button data-style="4">Oscilloscope</button>
+        <button data-style="5">Heatmap</button>
       </div>
     </fieldset>
 
@@ -221,7 +233,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.2.2";  // oscilloscope trace no longer stair-steps (16-bit samples)
+const APP_VERSION = "0.3.0";  // image and video input, Heatmap pattern
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -558,6 +570,8 @@ uniform int u_style;
 uniform sampler2D u_pal;
 uniform sampler2D u_prev;
 uniform sampler2D u_wave;
+uniform sampler2D u_img;
+uniform float u_hasImg, u_imgAspect;
 uniform float u_trails, u_fbZoom, u_fbSpin;
 uniform float u_bass, u_mid, u_high, u_beat;
 uniform float u_scale, u_warp, u_grain, u_bands, u_blobs;
@@ -576,6 +590,25 @@ float wave(float x) {
   float fx = x * WAVE_N - 0.5;
   float i0 = floor(fx);
   return mix(waveAt(i0), waveAt(i0 + 1.0), fx - i0);
+}
+
+// cover-fit the loaded image to the canvas, like CSS object-fit: cover
+vec2 imgUV(vec2 uv) {
+  float ca = u_res.x / u_res.y;
+  vec2 s = ca > u_imgAspect ? vec2(1.0, u_imgAspect / ca) : vec2(ca / u_imgAspect, 1.0);
+  return (uv - 0.5) * s + 0.5;
+}
+float imgLum(vec2 uv) {
+  return dot(texture2D(u_img, imgUV(uv)).rgb, vec3(0.2126, 0.7152, 0.0722));
+}
+float plasma(vec2 q, float T) {
+  float s = sin(q.x + T) + sin(q.y * 1.3 - T * 0.7)
+          + sin((q.x + q.y) * 0.8 + T * 1.3) + sin(length(q) * 2.2 - T * 1.6);
+  return 0.5 + 0.125 * s;
+}
+// the image field: luminance of the loaded image, or a slow plasma when nothing is loaded
+float field(vec2 uv, vec2 p, float T) {
+  return u_hasImg > 0.5 ? imgLum(uv) : plasma(p * 2.5, T * 0.5);
 }
 
 vec3 pal(float t) {
@@ -604,10 +637,7 @@ void main() {
     }
     v = 1.0 - exp(-f * 0.75);
   } else if (u_style == 1) {
-    vec2 q = p * (2.0 + u_warp * 5.0) / u_scale;
-    float s = sin(q.x + T) + sin(q.y * 1.3 - T * 0.7)
-            + sin((q.x + q.y) * 0.8 + T * 1.3) + sin(length(q) * 2.2 - T * 1.6);
-    v = 0.5 + 0.125 * s;
+    v = plasma(p * (2.0 + u_warp * 5.0) / u_scale, T);
   } else if (u_style == 2) {
     float band = p.y * (3.0 / u_scale) + sin(p.x * 4.0 + T) * u_warp * 1.6 + T * 0.25;
     v = abs(fract(band * 0.5) * 2.0 - 1.0);
@@ -618,6 +648,11 @@ void main() {
     float d = abs(p.y - wv * amp);
     float th = mix(0.006, 0.06, u_warp);
     v = pow(clamp(1.0 - d / th, 0.0, 1.0), 1.4);
+  } else if (u_style == 5) {
+    // heatmap: brightness is the position along the palette. Scale is contrast
+    // about mid-grey, Warp cycles the palette over time; the ramp loops, so fract.
+    float l = field(uv, p, T);
+    v = fract((l - 0.5) * u_scale + 0.5 + T * 0.08 * u_warp);
   } else {
     vec2 z = p * 1.7 / u_scale;
     vec2 c = 0.7885 * vec2(cos(T * 0.25), sin(T * 0.25));
@@ -699,6 +734,13 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
+const imgTex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, imgTex);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
 function makeTarget(w, h) {
   const tex = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -725,6 +767,77 @@ function resize() {
   A = makeTarget(w, h); B = makeTarget(w, h);
 }
 addEventListener("resize", resize);
+
+/* ================= image in ================= */
+const IMG_MAX = 2048;                 // longest side uploaded to the GPU
+let imgSrc = null, imgVideo = null, imgAspect = 1, imgDirty = false, imgName = "";
+function setImageSource(el, w, h, name) {
+  if (imgVideo && imgVideo !== el) { imgVideo.pause(); imgVideo = null; }
+  imgSrc = el; imgAspect = w / h; imgDirty = true; imgName = name;
+  $("imgNote").className = "note";
+  $("imgNote").textContent = "Using " + name + " (" + w + "\u00d7" + h + ").";
+}
+function useImage(file) {
+  const url = URL.createObjectURL(file);
+  if (file.type.startsWith("video/")) {
+    const v = document.createElement("video");
+    v.src = url; v.muted = true; v.loop = true; v.playsInline = true;
+    v.addEventListener("loadeddata", () => {
+      imgVideo = v;
+      setImageSource(v, v.videoWidth, v.videoHeight, file.name);
+    }, { once: true });
+    v.play().catch(err => {
+      $("imgNote").className = "note warn";
+      $("imgNote").textContent = "Couldn\u2019t play " + file.name + ": " + err.message;
+    });
+    return;
+  }
+  const im = new Image();
+  im.onload = () => {
+    URL.revokeObjectURL(url);
+    // downscale big photos once on the CPU rather than every frame on the GPU
+    const s = Math.min(1, IMG_MAX / Math.max(im.width, im.height));
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(im.width * s));
+    c.height = Math.max(1, Math.round(im.height * s));
+    c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+    setImageSource(c, im.width, im.height, file.name);
+  };
+  im.onerror = () => {
+    URL.revokeObjectURL(url);
+    $("imgNote").className = "note warn";
+    $("imgNote").textContent = "Couldn\u2019t read " + file.name + " as an image.";
+  };
+  im.src = url;
+}
+function uploadImage() {
+  const video = imgVideo && imgSrc === imgVideo;
+  if (!imgSrc || !(imgDirty || video)) return;
+  if (video && imgVideo.readyState < 2) return;
+  gl.bindTexture(gl.TEXTURE_2D, imgTex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imgSrc);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  imgDirty = false;
+}
+$("imgBtn").addEventListener("click", () => $("imgFile").click());
+$("imgFile").addEventListener("change", e => {
+  const f = e.target.files[0];
+  if (f) useImage(f);
+  e.target.value = "";
+});
+// drop an image, video or audio file anywhere on the stage
+const stageEl = $("stage");
+stageEl.addEventListener("dragover", e => { e.preventDefault(); stageEl.classList.add("drop"); });
+stageEl.addEventListener("dragleave", () => stageEl.classList.remove("drop"));
+stageEl.addEventListener("drop", e => {
+  e.preventDefault();
+  stageEl.classList.remove("drop");
+  const f = e.dataTransfer.files[0];
+  if (!f) return;
+  if (f.type.startsWith("audio/")) { srcMode = "file"; segSrc(); useFile(f); }
+  else useImage(f);
+});
 
 /* ================= audio ================= */
 let timeData = null;
@@ -876,6 +989,10 @@ function frame(now) {
   gl.bindTexture(gl.TEXTURE_2D, waveTex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, WAVE_N, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, waveArr);
   gl.uniform1i(gl.getUniformLocation(scene, "u_wave"), 2);
+  gl.activeTexture(gl.TEXTURE3);
+  uploadImage();
+  gl.bindTexture(gl.TEXTURE_2D, imgTex);
+  gl.uniform1i(gl.getUniformLocation(scene, "u_img"), 3);
 
   const U = n => gl.getUniformLocation(scene, n);
   gl.uniform2f(U("u_res"), A.w, A.h);
@@ -893,6 +1010,8 @@ function frame(now) {
   gl.uniform1f(U("u_grain"), Math.min(1.5, state.grain + band.high * state.modGrain));
   gl.uniform1f(U("u_bands"), state.bands);
   gl.uniform1f(U("u_blobs"), state.blobs);
+  gl.uniform1f(U("u_hasImg"), imgSrc ? 1 : 0);
+  gl.uniform1f(U("u_imgAspect"), imgAspect);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
