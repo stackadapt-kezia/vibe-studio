@@ -139,6 +139,13 @@
     letter-spacing: .1em; text-transform: uppercase;
   }
   .note { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+  .vid { margin: 10px 0 0; }
+  .vid button {
+    flex: 0 0 auto; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    padding: 5px 12px; border-radius: 999px; font: inherit; font-size: 12px; cursor: pointer; min-width: 62px;
+  }
+  .vid button:hover { background: #1b1b21; }
+  .vid span { flex: 0 0 44px; text-align: right; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .note.warn { color: #ffb37a; }
   .hint {
     position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
@@ -178,6 +185,11 @@
       <legend>Image in</legend>
       <button class="pill" id="imgBtn" style="margin-top:0">Load image or video</button>
       <input type="file" id="imgFile" accept="image/*,video/*" hidden>
+      <div class="row vid" id="vidRow" hidden>
+        <button id="vidPlay" aria-label="Play or pause the video">Pause</button>
+        <input type="range" id="vidScrub" min="0" max="1000" value="0" step="1" aria-label="Video position">
+        <span id="vidTime">0:00</span>
+      </div>
       <p class="note" id="imgNote">Nothing loaded — image patterns use the plasma field until you do. You can also drop a file on the stage.</p>
     </fieldset>
 
@@ -267,7 +279,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.4.4";  // ASCII and Microtext patterns
+const APP_VERSION = "0.4.5";  // video playback controls
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -1072,6 +1084,8 @@ let imgSrc = null, imgVideo = null, imgAspect = 1, imgDirty = false, imgName = "
 function setImageSource(el, w, h, name) {
   if (imgVideo && imgVideo !== el) { imgVideo.pause(); imgVideo = null; }
   imgSrc = el; imgAspect = w / h; imgDirty = true; imgName = name;
+  $("vidRow").hidden = !imgVideo;
+  syncVideoUI();
   $("imgNote").className = "note";
   $("imgNote").textContent = "Using " + name + " (" + w + "\u00d7" + h + ").";
 }
@@ -1108,9 +1122,35 @@ function useImage(file) {
   };
   im.src = url;
 }
+/* video playback: a play/pause pill, a scrubber and a clock, only shown
+   while a video is the image source */
+const fmtTime = s => Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0");
+let scrubbing = false, lastShownTime = -1;
+function syncVideoUI() {
+  const v = imgVideo;
+  if (!v) return;
+  $("vidPlay").textContent = v.paused ? "Play" : "Pause";
+  const t = Math.floor(v.currentTime * 10);
+  if (t === lastShownTime) return;
+  lastShownTime = t;
+  if (!scrubbing && v.duration) $("vidScrub").value = String(Math.round(v.currentTime / v.duration * 1000));
+  $("vidTime").textContent = fmtTime(v.currentTime);
+}
+function toggleVideo() {
+  if (!imgVideo) return;
+  if (imgVideo.paused) imgVideo.play().catch(() => {}); else imgVideo.pause();
+  syncVideoUI();
+}
+$("vidPlay").addEventListener("click", toggleVideo);
+$("vidScrub").addEventListener("pointerdown", () => { scrubbing = true; });
+$("vidScrub").addEventListener("input", () => {
+  if (imgVideo && imgVideo.duration) imgVideo.currentTime = +$("vidScrub").value / 1000 * imgVideo.duration;
+});
+$("vidScrub").addEventListener("change", () => { scrubbing = false; });
 function uploadImage() {
   const video = imgVideo && imgSrc === imgVideo;
   if (!imgSrc || !(imgDirty || video)) return;
+  if (video) syncVideoUI();
   if (video && imgVideo.readyState < 2) return;
   gl.bindTexture(gl.TEXTURE_2D, imgTex);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
@@ -1347,6 +1387,7 @@ $("showBtn").addEventListener("click", () => document.body.classList.remove("hid
 addEventListener("keydown", e => {
   if (e.target.matches("input, select, textarea")) return;
   if (e.key === "f") $("fsBtn").click();
+  if (e.key === " " && imgVideo) { e.preventDefault(); toggleVideo(); }
   if (e.key === "h") document.body.classList.toggle("hide-ui");
   if (e.key === "Escape") document.body.classList.remove("hide-ui");
 });
