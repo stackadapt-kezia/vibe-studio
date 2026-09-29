@@ -191,6 +191,7 @@
         <button data-style="5">Heatmap</button>
         <button data-style="6">Mosaic</button>
         <button data-style="7">Halftone</button>
+        <button data-style="8">Prism</button>
       </div>
     </fieldset>
 
@@ -248,7 +249,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.4.0";  // Halftone pattern
+const APP_VERSION = "0.4.1";  // Prism pattern
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -712,6 +713,7 @@ void main() {
   vec2 p = (uv - 0.5) * vec2(u_res.x / u_res.y, 1.0);
   float v = 0.0;
   float ink = 1.0;           // 0 shows "paper", the first palette colour
+  vec3 colv = vec3(-1.0);    // a mode may set its colour directly instead of via v
 
   if (u_style == 0) {
     float f = 0.0;
@@ -773,6 +775,19 @@ void main() {
     float aa = n * 1.5 / u_res.y;                      // ~1.5px edge
     ink = 1.0 - smoothstep(rad - aa, rad + aa, length(q - cc));
     v = (1.0 - l) * u_palEnd;
+  } else if (u_style == 8) {
+    // prism: the field mapped up the palette, with two copies offset along one
+    // axis. Where a copy disagrees with the base it prints in a colour a third
+    // of the way round the palette, so edges fringe like misregistered plates
+    // while flat areas stay clean. Scale sets the offset, Warp its direction,
+    // bass pushes it further.
+    float ang = u_warp * 3.14159;
+    vec2 o = vec2(cos(ang), sin(ang)) * 0.014 * u_scale * (1.0 + u_bass * 2.0);
+    o.x *= u_res.y / u_res.x;
+    float l1 = fld(uv - o, T), l2 = fld(uv, T), l3 = fld(uv + o, T);
+    colv = pal(l2 * u_palEnd);
+    colv = mix(colv, pal(fract(l1 * u_palEnd + 0.333)), clamp(abs(l1 - l2) * 3.0, 0.0, 1.0));
+    colv = mix(colv, pal(fract(l3 * u_palEnd + 0.667)), clamp(abs(l3 - l2) * 3.0, 0.0, 1.0));
   } else {
     vec2 z = p * 1.7 / u_scale;
     vec2 c = 0.7885 * vec2(cos(T * 0.25), sin(T * 0.25));
@@ -785,7 +800,7 @@ void main() {
     v = sqrt(it / 48.0);
   }
 
-  vec3 col = mix(pal(0.0), pal(v), ink);
+  vec3 col = colv.x < 0.0 ? mix(pal(0.0), pal(v), ink) : colv;
 
   vec2 fuv = uv0 - 0.5;
   float ca = u_fbSpin;
