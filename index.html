@@ -139,6 +139,57 @@
     letter-spacing: .1em; text-transform: uppercase;
   }
   .note { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+  .player { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  .np { display: flex; gap: 12px; align-items: center; }
+  .cover {
+    width: 64px; height: 64px; flex: 0 0 64px; border-radius: 8px; position: relative;
+    background: #1b1b21 center / cover no-repeat; border: 1px solid var(--line);
+  }
+  .cover.empty::after {
+    content: "\266A"; position: absolute; inset: 0; display: grid; place-items: center;
+    color: var(--muted); font-size: 26px;
+  }
+  .np-text { min-width: 0; }
+  .np-title, .np-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .np-title { font: 600 14px/1.3 "Space Grotesk", sans-serif; }
+  .np-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .transport { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 12px 0 4px; }
+  .transport button {
+    width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); padding: 0;
+    background: var(--panel); color: var(--text); cursor: pointer; display: grid; place-items: center;
+  }
+  .transport button svg { width: 18px; height: 18px; fill: currentColor; }
+  .transport button.big { width: 46px; height: 46px; background: var(--accent); border-color: var(--accent); color: #fff; }
+  .transport button.big svg { width: 22px; height: 22px; }
+  .transport button:hover { filter: brightness(1.15); }
+  #tPlay .ic-pause, #tPlay.playing .ic-play { display: none; }
+  #tPlay.playing .ic-pause { display: block; }
+  .scrub { margin: 4px 0 0; }
+  .scrub span { flex: 0 0 76px; text-align: right; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tracks { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .track {
+    display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px;
+    cursor: pointer; border: 1px solid transparent;
+  }
+  .track:hover { background: var(--panel-2); }
+  .track.now { border-color: var(--accent); background: rgba(61, 132, 255, .12); }
+  .thumb {
+    width: 30px; height: 30px; flex: 0 0 30px; border-radius: 5px; position: relative;
+    background: #1b1b21 center / cover no-repeat; border: 1px solid var(--line);
+  }
+  .thumb.empty::after {
+    content: "\266A"; position: absolute; inset: 0; display: grid; place-items: center;
+    color: var(--muted); font-size: 14px;
+  }
+  .tmeta { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+  .tmeta b, .tmeta small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tmeta b { font-weight: 600; font-size: 13px; }
+  .tmeta small { color: var(--muted); font-size: 11px; }
+  .track button {
+    background: none; border: 0; color: var(--muted); cursor: pointer;
+    font-size: 15px; padding: 2px 6px; border-radius: 5px;
+  }
+  .track button:hover { color: var(--text); background: var(--panel-2); }
   .vid { margin: 10px 0 0; }
   .vid button {
     flex: 0 0 auto; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
@@ -168,9 +219,8 @@
       <legend>Sound in</legend>
       <div class="seg" id="srcSeg">
         <button data-src="mic">Microphone</button>
-        <button data-src="file">Audio file</button>
+        <button data-src="music">Music</button>
       </div>
-      <input type="file" id="audioFile" accept="audio/*" hidden>
       <div class="sep"></div>
       <div class="meters">
         <div class="meter"><span>Bass</span><i id="mBass"></i></div>
@@ -179,6 +229,33 @@
       </div>
       <div id="audioRows"></div>
       <p class="note" id="srcNote">Idle — pick a sound source to react to audio.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Music</legend>
+      <div class="player">
+        <div class="np">
+          <div class="cover empty" id="npCover" aria-hidden="true"></div>
+          <div class="np-text">
+            <div class="np-title" id="npTitle">Nothing playing</div>
+            <div class="np-sub" id="npSub">Add songs to build the library</div>
+          </div>
+        </div>
+        <div class="transport">
+          <button id="tPrev" aria-label="Previous song"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zm12 0-9 7 9 7z"/></svg></button>
+          <button id="tPlay" class="big" aria-label="Play or pause"><svg class="ic-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><svg class="ic-pause" viewBox="0 0 24 24"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg></button>
+          <button id="tNext" aria-label="Next song"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM6 5l9 7-9 7z"/></svg></button>
+        </div>
+        <div class="row scrub">
+          <input type="range" id="tScrub" min="0" max="1000" value="0" step="1" aria-label="Song position">
+          <span id="tTime">0:00 / 0:00</span>
+        </div>
+      </div>
+      <ol class="tracks" id="trackList"></ol>
+      <button class="pill" id="addSongs">Add songs</button>
+      <input type="file" id="songFiles" accept="audio/*,.mp3,.m4a,.aac,.flac,.wav,.ogg,.opus" multiple hidden>
+      <p class="note" id="libCount"></p>
+      <p class="note" id="libNote"></p>
     </fieldset>
 
     <fieldset>
@@ -279,7 +356,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.4.5";  // video playback controls
+const APP_VERSION = "0.5.0";  // music library and player with tags and cover art
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -1173,7 +1250,7 @@ stageEl.addEventListener("drop", e => {
   stageEl.classList.remove("drop");
   const f = e.dataTransfer.files[0];
   if (!f) return;
-  if (f.type.startsWith("audio/")) { srcMode = "file"; segSrc(); useFile(f); }
+  if (isAudio(f)) addSongs([f]).then(i => { if (i >= 0) playTrack(i); });
   else useImage(f);
 });
 
@@ -1215,7 +1292,7 @@ async function useMic() {
       $("srcNote").className = "note warn";
       $("srcNote").textContent = "The browser won't allow microphone access on this page. "
         + "Mic input needs the deployed https:// address — a file:// copy opened from disk can't ask for permission. "
-        + "Audio file works either way.";
+        + "Music works either way.";
       srcMode = "none"; segSrc();
       return;
     }
@@ -1239,31 +1316,333 @@ async function useMic() {
     srcMode = "none"; segSrc();
   }
 }
-async function useFile(file) {
-  await ensureCtx();
-  disconnectSource();
-  audioEl = new Audio(URL.createObjectURL(file));
-  audioEl.loop = true;
-  audioEl.crossOrigin = "anonymous";
-  srcNode = actx.createMediaElementSource(audioEl);
-  srcNode.connect(analyser);
-  srcNode.connect(dest);
-  srcNode.connect(actx.destination);   // you hear the track
-  await audioEl.play();
-  $("srcNote").textContent = "Playing " + file.name + " (looping).";
-  segSrc();
+/* ================= tag parsing (no dependencies) ================= */
+// Reads title / artist / album / cover from ID3v2 (MP3), the iTunes atom list
+// (M4A, AAC in MP4) and FLAC metadata. Returns whatever it finds; the caller
+// fills the gaps from the filename.
+function parseTags(buf) {
+  const u8 = new Uint8Array(buf);
+  const four = i => String.fromCharCode(u8[i], u8[i + 1], u8[i + 2], u8[i + 3]);
+  if (u8.length > 10 && u8[0] === 0x49 && u8[1] === 0x44 && u8[2] === 0x33) return parseID3(u8);
+  if (u8.length > 8 && four(4) === "ftyp") return parseMP4(u8);
+  if (u8.length > 4 && four(0) === "fLaC") return parseFLAC(u8);
+  return {};
 }
+const td = enc => new TextDecoder(enc);
+const latin1 = (u8, a, b) => td("latin1").decode(u8.subarray(a, b)).replace(/\0+$/, "");
+const be32 = (b, i) => ((b[i] << 24) | (b[i + 1] << 16) | (b[i + 2] << 8) | b[i + 3]) >>> 0;
+const syncsafe = (b, i) => ((b[i] & 0x7f) << 21) | ((b[i + 1] & 0x7f) << 14) | ((b[i + 2] & 0x7f) << 7) | (b[i + 3] & 0x7f);
+function id3Text(f) {
+  const enc = f[0], b = f.subarray(1);
+  const s = enc === 1 ? td("utf-16").decode(b) : enc === 2 ? td("utf-16be").decode(b)
+          : enc === 3 ? td("utf-8").decode(b) : td("latin1").decode(b);
+  return s.replace(/\0+$/, "").trim();
+}
+// index just past the string terminator for this encoding, searching from i
+function id3Term(f, enc, i) {
+  if (enc === 1 || enc === 2) {
+    for (; i + 1 < f.length; i += 2) if (f[i] === 0 && f[i + 1] === 0) return i + 2;
+    return f.length;
+  }
+  for (; i < f.length; i++) if (f[i] === 0) return i + 1;
+  return f.length;
+}
+function unsync(b) {                       // undo ID3 unsynchronisation: FF 00 -> FF
+  const out = new Uint8Array(b.length);
+  let n = 0;
+  for (let i = 0; i < b.length; i++) { out[n++] = b[i]; if (b[i] === 0xff && b[i + 1] === 0) i++; }
+  return out.subarray(0, n);
+}
+function parseID3(u8) {
+  const out = {};
+  const ver = u8[3], flags = u8[5];
+  let body = u8.subarray(10, 10 + syncsafe(u8, 6));
+  if (ver <= 3 && (flags & 0x80)) body = unsync(body);            // v2.2/2.3: whole tag unsynchronised
+  let pos = 0;
+  if (ver >= 3 && (flags & 0x40)) pos += ver === 4 ? syncsafe(body, 0) : be32(body, 0) + 4;
+  const hdr = ver === 2 ? 6 : 10;
+  while (pos + hdr <= body.length) {
+    const id = String.fromCharCode(...body.subarray(pos, pos + (ver === 2 ? 3 : 4)));
+    if (!/^[A-Z0-9]{3,4}$/.test(id)) break;                        // padding
+    const size = ver === 2 ? (body[pos + 3] << 16) | (body[pos + 4] << 8) | body[pos + 5]
+               : ver === 4 ? syncsafe(body, pos + 4) : be32(body, pos + 4);
+    const fflags = ver === 2 ? 0 : (body[pos + 8] << 8) | body[pos + 9];
+    let f = body.subarray(pos + hdr, pos + hdr + size);
+    pos += hdr + size;
+    if (!size) continue;
+    if (ver === 4 && (fflags & 0x0c)) continue;                     // compressed or encrypted
+    if (ver === 3 && (fflags & 0xc0)) continue;
+    if (ver === 4 && (fflags & 0x01)) f = f.subarray(4);            // data length indicator
+    if (ver === 4 && (fflags & 0x02)) f = unsync(f);                // per-frame unsynchronisation
+    if (id === "TIT2" || id === "TT2") out.title = id3Text(f);
+    else if (id === "TPE1" || id === "TP1") out.artist = id3Text(f);
+    else if (id === "TALB" || id === "TAL") out.album = id3Text(f);
+    else if ((id === "APIC" || id === "PIC") && !out.cover) {
+      const enc = f[0];
+      let i, mime;
+      if (id === "PIC") { mime = latin1(f, 1, 4) === "PNG" ? "image/png" : "image/jpeg"; i = 4; }
+      else { let j = 1; while (j < f.length && f[j] !== 0) j++; mime = latin1(f, 1, j); i = j + 1; }
+      i++;                                                          // picture type
+      i = id3Term(f, enc, i);                                       // description
+      out.cover = new Blob([f.subarray(i)], { type: mime || "image/jpeg" });
+    }
+  }
+  return out;
+}
+function parseMP4(u8) {
+  const out = {};
+  const type = i => String.fromCharCode(u8[i + 4], u8[i + 5], u8[i + 6], u8[i + 7]);
+  const walk = (a, b) => {
+    while (a + 8 <= b) {
+      let size = be32(u8, a), h = 8;
+      const t = type(a);
+      if (size === 1) { size = be32(u8, a + 8) * 4294967296 + be32(u8, a + 12); h = 16; }
+      if (size === 0) size = b - a;
+      if (size < h) return;
+      const c0 = a + h, c1 = Math.min(b, a + size);
+      if (t === "moov" || t === "udta" || t === "ilst") walk(c0, c1);
+      else if (t === "meta") walk(c0 + 4, c1);                      // version + flags first
+      else if (t === "©nam" || t === "©ART" || t === "©alb" || t === "covr") {
+        let d = c0;                                                 // one or more 'data' atoms
+        while (d + 16 <= c1) {
+          const ds = be32(u8, d);
+          if (ds < 8) break;
+          if (type(d) === "data" && ds >= 16) {
+            const kind = be32(u8, d + 8) & 0xffffff, p = u8.subarray(d + 16, d + ds);
+            if (t === "covr") { if (!out.cover) out.cover = new Blob([p], { type: kind === 14 ? "image/png" : "image/jpeg" }); }
+            else {
+              const s = td("utf-8").decode(p).trim();
+              if (t === "©nam") out.title = s; else if (t === "©ART") out.artist = s; else out.album = s;
+            }
+          }
+          d += ds;
+        }
+      }
+      a += size;
+    }
+  };
+  walk(0, u8.length);
+  return out;
+}
+function parseFLAC(u8) {
+  const out = {};
+  const le32 = i => (u8[i] | (u8[i + 1] << 8) | (u8[i + 2] << 16) | (u8[i + 3] << 24)) >>> 0;
+  let pos = 4, last = false;
+  while (!last && pos + 4 <= u8.length) {
+    const h = u8[pos];
+    last = !!(h & 0x80);
+    const t = h & 0x7f, len = (u8[pos + 1] << 16) | (u8[pos + 2] << 8) | u8[pos + 3], a = pos + 4;
+    if (t === 4) {                                                   // VORBIS_COMMENT
+      let i = a + 4 + le32(a);
+      const n = le32(i); i += 4;
+      for (let k = 0; k < n && i + 4 <= u8.length; k++) {
+        const l = le32(i); i += 4;
+        const s = td("utf-8").decode(u8.subarray(i, i + l)); i += l;
+        const eq = s.indexOf("="), key = s.slice(0, eq).toUpperCase(), val = s.slice(eq + 1).trim();
+        if (key === "TITLE") out.title = val; else if (key === "ARTIST") out.artist = val; else if (key === "ALBUM") out.album = val;
+      }
+    } else if (t === 6 && !out.cover) {                              // PICTURE
+      let i = a + 4;
+      const ml = be32(u8, i); i += 4;
+      const mime = latin1(u8, i, i + ml); i += ml;
+      const dl = be32(u8, i); i += 4 + dl + 16;                      // description, then w/h/depth/colours
+      const n = be32(u8, i); i += 4;
+      out.cover = new Blob([u8.subarray(i, i + n)], { type: mime || "image/jpeg" });
+    }
+    pos = a + len;
+  }
+  return out;
+}
+
+/* ================= music library ================= */
+// A few songs kept in IndexedDB (localStorage is far too small for audio),
+// with the tags read once when a file is added. Falls back to a session-only
+// list if storage is unavailable.
+const LIB_MAX = 12;
+const DB_NAME = "vibe-studio", DB_STORE = "tracks";
+let lib = [], cur = -1, audioURL = null, coverURL = null;
+function dbOpen() {
+  return new Promise((res, rej) => {
+    if (!window.indexedDB) return rej(new Error("no IndexedDB"));
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(DB_STORE, { keyPath: "id" });
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function dbRun(mode, fn) {
+  return dbOpen().then(db => new Promise((res, rej) => {
+    const r = fn(db.transaction(DB_STORE, mode).objectStore(DB_STORE));
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  }));
+}
+const dbAll = () => dbRun("readonly", s => s.getAll());
+const dbPut = t => dbRun("readwrite", s => s.put(t));
+const dbDel = id => dbRun("readwrite", s => s.delete(id));
+
+const fmtClock = s => isFinite(s) ? Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0") : "0:00";
+const niceName = n => n.replace(/\.[^.]+$/, "").replace(/_+/g, " ").trim();
+const coverUrl = t => { if (t.cover && !t._url) t._url = URL.createObjectURL(t.cover); return t._url; };
+const libNote = (msg, warn) => { $("libNote").className = warn ? "note warn" : "note"; $("libNote").textContent = msg; };
+const isAudio = f => f.type.startsWith("audio/") || /\.(mp3|m4a|aac|flac|wav|ogg|oga|opus|webm)$/i.test(f.name);
+
+async function addSongs(files) {
+  let added = 0, first = -1;
+  for (const f of [...files].filter(isAudio)) {
+    if (lib.length >= LIB_MAX) { libNote("Library is full (" + LIB_MAX + " songs). Remove one to add more.", true); break; }
+    let tags = {};
+    try { tags = parseTags(await f.arrayBuffer()); } catch (e) { /* unreadable tags: use the filename */ }
+    const t = {
+      id: Date.now() + "-" + Math.random().toString(36).slice(2, 8),
+      name: f.name, size: f.size, added: Date.now(), file: f,
+      title: tags.title || niceName(f.name), artist: tags.artist || "", album: tags.album || "",
+      cover: tags.cover || null,
+    };
+    try { await dbPut(t); } catch (e) { /* no storage: keep it for this session only */ }
+    lib.push(t);
+    if (first < 0) first = lib.length - 1;
+    added++;
+  }
+  renderLibrary();
+  if (added) libNote("Added " + added + " song" + (added > 1 ? "s" : "") + ".");
+  return first;
+}
+async function removeSong(i) {
+  const t = lib[i];
+  if (!t) return;
+  try { await dbDel(t.id); } catch (e) { /* not stored */ }
+  if (t._url) URL.revokeObjectURL(t._url);
+  lib.splice(i, 1);
+  if (i === cur) { disconnectSource(); cur = -1; srcMode = "none"; segSrc(); }
+  else if (i < cur) cur--;
+  renderLibrary();
+}
+async function playTrack(i) {
+  if (!lib.length) return;
+  cur = ((i % lib.length) + lib.length) % lib.length;
+  const t = lib[cur];
+  try {
+    await ensureCtx();
+    disconnectSource();
+    if (audioURL) URL.revokeObjectURL(audioURL);
+    audioURL = URL.createObjectURL(t.file);
+    const el = new Audio(audioURL);
+    el.addEventListener("ended", () => { if (audioEl === el) playTrack(cur + 1); });
+    audioEl = el;
+    srcNode = actx.createMediaElementSource(el);
+    srcNode.connect(analyser);
+    srcNode.connect(dest);
+    srcNode.connect(actx.destination);   // you hear the track
+    await el.play();
+    srcMode = "music"; segSrc();
+    $("srcNote").className = "note";
+    $("srcNote").textContent = "Playing from the music library.";
+  } catch (err) {
+    $("srcNote").className = "note warn";
+    $("srcNote").textContent = "Couldn’t play " + t.name + ": " + err.message;
+  }
+  renderLibrary();
+  setMediaSession(t);
+}
+function togglePlay() {
+  if (!audioEl) {
+    if (lib.length) playTrack(cur < 0 ? 0 : cur); else $("songFiles").click();
+    return;
+  }
+  if (audioEl.paused) audioEl.play().catch(() => {}); else audioEl.pause();
+  renderNowPlaying();
+}
+function renderNowPlaying() {
+  const t = lib[cur];
+  const cov = $("npCover");
+  if (coverURL) { URL.revokeObjectURL(coverURL); coverURL = null; }
+  cov.style.backgroundImage = "";
+  cov.classList.toggle("empty", !(t && t.cover));
+  if (t && t.cover) { coverURL = URL.createObjectURL(t.cover); cov.style.backgroundImage = "url(" + coverURL + ")"; }
+  $("npTitle").textContent = t ? t.title : "Nothing playing";
+  $("npSub").textContent = t ? ([t.artist, t.album].filter(Boolean).join(" · ") || t.name)
+                             : (lib.length ? "Pick a song below" : "Add songs to build the library");
+  $("tPlay").classList.toggle("playing", !!(audioEl && !audioEl.paused));
+}
+function renderLibrary() {
+  const host = $("trackList");
+  host.innerHTML = "";
+  lib.forEach((t, i) => {
+    const li = document.createElement("li");
+    li.className = "track" + (i === cur ? " now" : "");
+    const th = document.createElement("span");
+    th.className = "thumb" + (t.cover ? "" : " empty");
+    if (t.cover) th.style.backgroundImage = "url(" + coverUrl(t) + ")";
+    const meta = document.createElement("span");
+    meta.className = "tmeta";
+    const a = document.createElement("b"); a.textContent = t.title;
+    const b = document.createElement("small"); b.textContent = t.artist || t.album || t.name;
+    meta.append(a, b);
+    const del = document.createElement("button");
+    del.textContent = "×";
+    del.title = "Remove from library";
+    del.setAttribute("aria-label", "Remove " + t.title);
+    del.addEventListener("click", e => { e.stopPropagation(); removeSong(i); });
+    li.append(th, meta, del);
+    li.addEventListener("click", () => playTrack(i));
+    host.append(li);
+  });
+  const mb = lib.reduce((a, t) => a + t.size, 0) / 1048576;
+  $("libCount").textContent = lib.length ? lib.length + " of " + LIB_MAX + " songs · " + mb.toFixed(mb < 10 ? 1 : 0) + " MB" : "";
+  renderNowPlaying();
+}
+let scrubT = false, lastT = -1;
+function syncPlayerUI() {
+  if (!audioEl) { $("tPlay").classList.remove("playing"); return; }
+  const c = Math.floor(audioEl.currentTime * 10);
+  if (c === lastT) return;
+  lastT = c;
+  if (!scrubT && audioEl.duration) $("tScrub").value = String(Math.round(audioEl.currentTime / audioEl.duration * 1000));
+  $("tTime").textContent = fmtClock(audioEl.currentTime) + " / " + fmtClock(audioEl.duration);
+  $("tPlay").classList.toggle("playing", !audioEl.paused);
+}
+function setMediaSession(t) {
+  if (!("mediaSession" in navigator)) return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: t.title, artist: t.artist, album: t.album,
+      artwork: t.cover ? [{ src: coverUrl(t), type: t.cover.type }] : [],
+    });
+    navigator.mediaSession.setActionHandler("play", togglePlay);
+    navigator.mediaSession.setActionHandler("pause", togglePlay);
+    navigator.mediaSession.setActionHandler("previoustrack", () => playTrack(cur - 1));
+    navigator.mediaSession.setActionHandler("nexttrack", () => playTrack(cur + 1));
+  } catch (e) { /* not supported */ }
+}
+$("tPlay").addEventListener("click", togglePlay);
+$("tPrev").addEventListener("click", () => {
+  if (audioEl && audioEl.currentTime > 3) { audioEl.currentTime = 0; return; }   // like a real player
+  playTrack(cur - 1);
+});
+$("tNext").addEventListener("click", () => playTrack(cur + 1));
+$("tScrub").addEventListener("pointerdown", () => { scrubT = true; });
+$("tScrub").addEventListener("input", () => {
+  if (audioEl && audioEl.duration) audioEl.currentTime = +$("tScrub").value / 1000 * audioEl.duration;
+});
+$("tScrub").addEventListener("change", () => { scrubT = false; });
+$("addSongs").addEventListener("click", () => $("songFiles").click());
+$("songFiles").addEventListener("change", e => {
+  const files = [...e.target.files];
+  e.target.value = "";
+  addSongs(files).then(first => { if (first >= 0 && !audioEl) playTrack(first); });
+});
+dbAll().then(rows => { lib = rows.sort((a, b) => a.added - b.added); renderLibrary(); })
+       .catch(() => { libNote("Songs can’t be stored in this browser; they’ll last for this session.", true); renderLibrary(); });
+
 let srcMode = "none";
 const segSrc = seg("srcSeg", "src", () => srcMode, v => {
   srcMode = v;
   if (v === "mic") useMic();
-  else if (v === "file") $("audioFile").click();
-});
-$("audioFile").addEventListener("change", e => {
-  const f = e.target.files[0];
-  if (f) useFile(f);
-  else { srcMode = "none"; segSrc(); }
-  e.target.value = "";
+  else if (v === "music") {
+    if (lib.length) playTrack(cur < 0 ? 0 : cur);
+    else { srcMode = "none"; $("songFiles").click(); }
+  }
 });
 
 /* ================= render loop ================= */
@@ -1272,6 +1651,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   resize();
+  syncPlayerUI();
 
   if (analyser) {
     if (!timeData || timeData.length !== analyser.fftSize) timeData = new Float32Array(analyser.fftSize);
@@ -1387,7 +1767,10 @@ $("showBtn").addEventListener("click", () => document.body.classList.remove("hid
 addEventListener("keydown", e => {
   if (e.target.matches("input, select, textarea")) return;
   if (e.key === "f") $("fsBtn").click();
-  if (e.key === " " && imgVideo) { e.preventDefault(); toggleVideo(); }
+  if (e.key === " ") {
+    if (srcMode === "music") { e.preventDefault(); togglePlay(); }
+    else if (imgVideo) { e.preventDefault(); toggleVideo(); }
+  }
   if (e.key === "h") document.body.classList.toggle("hide-ui");
   if (e.key === "Escape") document.body.classList.remove("hide-ui");
 });
