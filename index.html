@@ -235,6 +235,17 @@
     </fieldset>
 
     <fieldset>
+      <legend>Screen</legend>
+      <div class="seg" id="screenSeg">
+        <button data-screen="0">None</button>
+        <button data-screen="1">CRT</button>
+        <button data-screen="2">LCD</button>
+        <button data-screen="3">VHS</button>
+      </div>
+      <div id="screenRows" style="margin-top:10px"></div>
+    </fieldset>
+
+    <fieldset>
       <legend>Reactivity</legend>
       <div id="modRows"></div>
     </fieldset>
@@ -254,7 +265,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.4.2";  // Edges, Relief, Contour and Hatch patterns
+const APP_VERSION = "0.4.3";  // Screen: CRT, LCD and VHS treatments
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -272,6 +283,7 @@ const state = {
   trails: 0.45, fbZoom: 0.004, fbSpin: 0.002,
   grain: 0.08, bands: 0,
   dist: 0, distort: 0.5,
+  screen: 0, screenAmt: 0.7,
   modSize: 0.9, modMotion: 0.7, modGrain: 0.5, modFlash: 0.6, modDist: 0.3,
   gain: 1.6, smooth: 0.7,
 };
@@ -296,6 +308,9 @@ const MODS = [
 ];
 const DIST_ROWS = [
   ["distort", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
+];
+const SCREEN_ROWS = [
+  ["screenAmt", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
 ];
 const AUDIO_ROWS = [
   ["gain", "Gain", 0.2, 4, 0.05, v => v.toFixed(2)],
@@ -332,6 +347,7 @@ buildRows($("lookRows"), LOOK);
 buildRows($("modRows"), MODS);
 buildRows($("audioRows"), AUDIO_ROWS);
 buildRows($("distRows"), DIST_ROWS);
+buildRows($("screenRows"), SCREEN_ROWS);
 
 /* ================= palette ================= */
 const palData = new Uint8Array(256 * 4);
@@ -602,6 +618,7 @@ function seg(id, attr, get, set) {
 }
 seg("styleSeg", "style", () => state.style, v => { state.style = +v; });
 seg("distSeg", "dist", () => state.dist, v => { state.dist = +v; });
+seg("screenSeg", "screen", () => state.screen, v => { state.screen = +v; });
 
 /* ================= WebGL ================= */
 const canvas = $("gl");
@@ -623,8 +640,8 @@ precision highp float;
 #define WAVE_N ${WAVE_N}.0
 uniform vec2 u_res;
 uniform float u_time;
-uniform int u_style, u_dist;
-uniform float u_distort;
+uniform int u_style, u_dist, u_screen;
+uniform float u_distort, u_screenAmt;
 uniform sampler2D u_pal;
 uniform sampler2D u_prev;
 uniform sampler2D u_wave;
@@ -714,7 +731,50 @@ vec2 distort(vec2 uv, float T) {
     float n = 1.0 + floor(a * 3.99);
     uv = fract(uv * n);
   }
+  if (u_screen == 3) {
+    // VHS tape damage: the odd row tears sideways, the whole frame wobbles a
+    // touch, and the tracking band at the bottom smears
+    float s = u_screenAmt;
+    float row = floor(uv.y * u_res.y / 3.0);
+    float tear = step(0.96, hash(row * 1.3 + floor(T * 8.0) * 7.7));
+    uv.x += tear * (hash(row + floor(T * 30.0)) - 0.5) * 0.06 * s;
+    uv.x += 0.002 * s * sin(uv.y * 40.0 + T * 6.0);
+    uv.x += s * smoothstep(0.06, 0.0, uv.y) * 0.05 * sin(T * 40.0 + uv.y * 300.0);
+  }
   return uv;
+}
+// family 8: the display the picture is shown on, applied after everything else
+vec3 screenFx(vec3 col, vec2 uv0, float T) {
+  float s = u_screenAmt;
+  vec2 fc = gl_FragCoord.xy;
+  if (u_screen == 1) {
+    // CRT: phosphor stripes, a 4px scanline, a soft vignette and a flicker
+    float px = mod(fc.x, 3.0);
+    vec3 m = px < 1.0 ? vec3(1.0, 0.55, 0.55) : px < 2.0 ? vec3(0.55, 1.0, 0.55) : vec3(0.55, 0.55, 1.0);
+    col *= mix(vec3(1.0), m * 1.3, s);
+    float sl = 0.5 + 0.5 * sin(fc.y * 1.5708);
+    col *= mix(1.0, 0.7 + 0.3 * sl, s);
+    col *= 1.0 - s * 0.6 * pow(length((uv0 - 0.5) * vec2(1.2, 1.4)), 3.0);
+    col *= 1.0 + s * 0.05 * (hash(floor(T * 24.0)) - 0.5);
+  } else if (u_screen == 2) {
+    // LCD: a 4px cell with three colour sub-cells and a dark gap around each
+    vec2 c = mod(fc, 4.0);
+    float sub = floor(c.x);
+    vec3 m = sub < 1.0 ? vec3(1.0, 0.45, 0.45) : sub < 2.0 ? vec3(0.45, 1.0, 0.45) : vec3(0.45, 0.45, 1.0);
+    float gap = max(step(3.0, c.x), step(3.0, c.y));
+    col *= mix(vec3(1.0), m * 1.35 * (1.0 - 0.7 * gap), s);
+  } else if (u_screen == 3) {
+    // VHS: washed colour, noise sparkle, the odd bright dropout line and a
+    // dim rolling bar
+    float g = dot(col, vec3(0.333));
+    col = mix(col, vec3(g), s * 0.25);
+    float n = hash2(fc + fract(T) * 977.0);
+    col += s * 0.12 * (n - 0.5);
+    float line = step(0.997, hash(floor(fc.y * 0.5) + floor(T * 20.0) * 3.1));
+    col += s * line * 0.5 * hash(fc.x + T);
+    col *= 1.0 - s * 0.12 * smoothstep(0.12, 0.0, abs(fract(uv0.y + T * 0.07) - 0.5));
+  }
+  return col;
 }
 
 vec3 pal(float t) {
@@ -872,6 +932,7 @@ void main() {
   float g = hash2(gl_FragCoord.xy + fract(T) * 421.0) - 0.5;
   col += g * u_grain * 0.4;
   col *= 1.0 + u_beat * 0.6;
+  col = screenFx(col, uv0, T);
 
   gl_FragColor = vec4(col, 1.0);
 }`;
@@ -1208,6 +1269,8 @@ function frame(now) {
   gl.uniform1f(U("u_palEnd"), palEnd);
   gl.uniform1f(U("u_blobs"), state.blobs);
   gl.uniform1i(U("u_dist"), state.dist);
+  gl.uniform1i(U("u_screen"), state.screen);
+  gl.uniform1f(U("u_screenAmt"), state.screenAmt);
   gl.uniform1f(U("u_distort"), Math.min(1.5, state.distort + beatEnv * state.modDist));
   gl.uniform1f(U("u_hasImg"), imgSrc ? 1 : 0);
   gl.uniform1f(U("u_imgAspect"), imgAspect);
