@@ -79,7 +79,7 @@
     padding: 9px 10px; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer;
   }
   .seg button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-  #styleSeg button:nth-child(13) { grid-column: span 2; }
+  #styleSeg button:nth-child(15) { grid-column: span 2; }
   .stage.drop::after {
     content: "Drop to load"; position: absolute; inset: 12px; border: 2px dashed var(--accent);
     border-radius: 12px; display: grid; place-items: center; color: var(--text);
@@ -197,6 +197,8 @@
         <button data-style="10">Relief</button>
         <button data-style="11">Contour</button>
         <button data-style="12">Hatch</button>
+        <button data-style="13">ASCII</button>
+        <button data-style="14">Microtext</button>
       </div>
     </fieldset>
 
@@ -265,7 +267,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.4.3";  // Screen: CRT, LCD and VHS treatments
+const APP_VERSION = "0.4.4";  // ASCII and Microtext patterns
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -646,6 +648,7 @@ uniform sampler2D u_pal;
 uniform sampler2D u_prev;
 uniform sampler2D u_wave;
 uniform sampler2D u_img;
+uniform sampler2D u_glyph;
 uniform float u_hasImg, u_imgAspect;
 uniform float u_trails, u_fbZoom, u_fbSpin;
 uniform float u_bass, u_mid, u_high, u_beat;
@@ -909,6 +912,20 @@ void main() {
       ink = h;
       v = u_palEnd;
     }
+  } else if (u_style == 13 || u_style == 14) {
+    // family 9: one glyph per cell from a 32-glyph atlas. ASCII picks the
+    // glyph by darkness; Microtext spells brand copy across the rows and
+    // weights it by darkness. Scale sets the cell size.
+    float ca = u_res.x / u_res.y;
+    float n = 48.0 / u_scale;
+    vec2 g = uv * vec2(ca, 1.0) * n;
+    vec2 ci = floor(g), cf = fract(g);
+    vec2 cuv = (ci + 0.5) / n / vec2(ca, 1.0);
+    float l = fld(cuv, T);
+    float idx = u_style == 13 ? floor((1.0 - l) * 15.99) : 16.0 + mod(ci.x + ci.y * 5.0, 16.0);
+    float cov = texture2D(u_glyph, vec2((idx + 0.04 + cf.x * 0.92) / 32.0, cf.y)).r;
+    ink = u_style == 13 ? cov : cov * smoothstep(0.0, 0.7, 1.0 - l);
+    v = (1.0 - l) * u_palEnd;
   } else {
     vec2 z = p * 1.7 / u_scale;
     vec2 c = 0.7885 * vec2(cos(T * 0.25), sin(T * 0.25));
@@ -997,6 +1014,30 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+/* ================= glyph atlas (family 9) ================= */
+// 32 square glyphs in one strip: 16 by ink density for ASCII, then 16
+// characters of brand copy for Microtext. Drawn once on a 2D canvas.
+const GLYPH_PX = 32;
+const GLYPHS = " .':-=+*xo%#8W&@" + "STACKADAPT VIBE ";
+const glyphTex = gl.createTexture();
+(() => {
+  const c = document.createElement("canvas");
+  c.width = GLYPHS.length * GLYPH_PX; c.height = GLYPH_PX;
+  const x = c.getContext("2d");
+  x.fillStyle = "#000"; x.fillRect(0, 0, c.width, c.height);
+  x.fillStyle = "#fff"; x.textAlign = "center"; x.textBaseline = "middle";
+  x.font = "bold 27px ui-monospace, Menlo, Consolas, monospace";
+  [...GLYPHS].forEach((ch, i) => x.fillText(ch, i * GLYPH_PX + GLYPH_PX / 2, GLYPH_PX / 2 + 1));
+  gl.bindTexture(gl.TEXTURE_2D, glyphTex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+})();
 
 function makeTarget(w, h) {
   const tex = gl.createTexture();
@@ -1250,6 +1291,9 @@ function frame(now) {
   uploadImage();
   gl.bindTexture(gl.TEXTURE_2D, imgTex);
   gl.uniform1i(gl.getUniformLocation(scene, "u_img"), 3);
+  gl.activeTexture(gl.TEXTURE4);
+  gl.bindTexture(gl.TEXTURE_2D, glyphTex);
+  gl.uniform1i(gl.getUniformLocation(scene, "u_glyph"), 4);
 
   const U = n => gl.getUniformLocation(scene, n);
   gl.uniform2f(U("u_res"), A.w, A.h);
