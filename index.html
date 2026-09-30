@@ -127,8 +127,13 @@
     padding: 9px 10px; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer;
   }
   .seg button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-  #styleSeg { grid-template-columns: repeat(3, 1fr); }
-  #styleSeg button { padding: 8px 4px; font-size: 12px; }
+  #styleSeg { grid-template-columns: repeat(4, 1fr); }
+  #styleSeg button { padding: 8px 2px; font-size: 11.5px; }
+  .mini {
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--text); border-radius: 999px;
+    padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
+  }
+  .mini:hover { background: #1b1b21; }
   #microRow select { flex: 0 0 118px; width: 118px; }
   .stage.drop::after {
     content: "Drop to load"; position: absolute; inset: 12px; border: 2px dashed var(--accent);
@@ -486,7 +491,7 @@
         <button data-style="1">Plasma</button>
         <button data-style="2">Waves</button>
         <button data-style="3">Fractal</button>
-        <button data-style="4">Oscilloscope</button>
+        <button data-style="4">Scope</button>
         <button data-style="5">Heatmap</button>
         <button data-style="6">Mosaic</button>
         <button data-style="7">Halftone</button>
@@ -497,6 +502,7 @@
         <button data-style="12">Hatch</button>
         <button data-style="13">Text</button>
         <button data-style="14">Thermal</button>
+        <button data-style="15">Shapes</button>
       </div>
     </fieldset>
 
@@ -511,6 +517,13 @@
           <option value="ui-monospace, Menlo, Consolas, monospace">Monospace</option>
           <option value="Georgia, 'Times New Roman', serif">Serif</option>
         </select>
+      </div>
+      <div class="row" id="shapeRow" hidden>
+        <label>Shapes</label>
+        <button class="mini" id="addShapes" type="button" title="Add your own SVG files as shapes; they sort into the set by ink coverage">+ Add SVG</button>
+        <button class="mini" id="resetShapes" type="button" title="Back to the built-in shapes">Reset</button>
+        <span class="note" id="shapeCount" style="margin:0"></span>
+        <input type="file" id="shapeFiles" accept=".svg,image/svg+xml" multiple hidden>
       </div>
       <div id="lookRows"></div>
     </fieldset>
@@ -608,7 +621,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.4";  // dust and scratches rebuilt from a film plate: specks, wandering hairs, cracks, grime
+const APP_VERSION = "0.9.5";  // Shapes pattern: pixels as marks from a coverage-sorted atlas, your own SVGs welcome; 1-bit preset; fainter dust hairs
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -1072,6 +1085,7 @@ function syncControls() {
   show("screenAmt", state.screen !== 0);
   show("texAmt", state.tex !== 0);
   $("microRow").hidden = s !== 13;
+  $("shapeRow").hidden = s !== 15;
 }
 
 /* ================= collapsible sections ================= */
@@ -1156,6 +1170,8 @@ uniform sampler2D u_wave;
 uniform sampler2D u_img;
 uniform sampler2D u_glyph;
 uniform float u_glyphN, u_textN;   // glyphs in the atlas, and how many of them are Microtext copy
+uniform sampler2D u_shapes;        // pixel shapes, sorted by ink coverage
+uniform float u_shapeN;
 uniform float u_hasImg, u_imgAspect;
 uniform float u_trails, u_fbZoom, u_fbSpin;
 uniform float u_bass, u_mid, u_high, u_beat;
@@ -1292,10 +1308,10 @@ vec3 textureFx(vec3 col, vec2 uv, float T) {
       float lane = floor(xs);
       float wander = 0.3 * (vnoise(vec2(q.y * 2.5 + lane, lane * 0.13 + fr * 0.05)) - 0.5) + 0.08 * sin(q.y * 23.0 + lane * 2.0);
       float d = abs(fract(xs) - 0.5 - wander);
-      float thin = 1.0 - smoothstep(0.0, 0.02 + 0.025 * hash(lane + fi), d);
-      float along = smoothstep(0.4, 0.62, vnoise(vec2(q.y * 2.0 + lane * 5.0, fr * 0.2 + fi)));
+      float thin = 1.0 - smoothstep(0.0, 0.012 + 0.018 * hash(lane + fi), d);
+      float along = smoothstep(0.45, 0.62, vnoise(vec2(q.y * 2.0 + lane * 5.0, fr * 0.2 + fi)));
       float on = step(1.0 - 0.12 * a, hash(lane * 1.7 + fi * 9.0 + floor(fr * 0.25)));
-      w += on * thin * along * (0.3 + 0.7 * hash(lane + 7.0));
+      w += on * thin * along * (0.12 + 0.4 * hash(lane + 7.0));
     }
     {
       vec2 g = (q + jit * 0.5) * 8.0;
@@ -1304,10 +1320,12 @@ vec3 textureFx(vec3 col, vec2 uv, float T) {
       float ang = hash2(c + 4.4) * 3.14159;
       vec2 dir = vec2(cos(ang), sin(ang));
       float along = dot(f, dir);
-      float across = abs(dot(f, vec2(-dir.y, dir.x)) + 0.04 * sin(along * 50.0 + hash2(c) * 6.0));
+      float bend = 0.09 * (vnoise(vec2(along * 5.0 + hash2(c) * 10.0, c.x * 0.7)) - 0.5);
+      float across = abs(dot(f, vec2(-dir.y, dir.x)) + bend);
       float len = 0.12 + 0.3 * hash2(c + 6.6);
-      float crack = step(1.0 - 0.4 * a, hash2(c + 8.8)) * (1.0 - smoothstep(0.0, 0.01, across)) * step(abs(along), len);
-      w += crack * (0.5 + 0.5 * hash2(c + 1.0));
+      float ends = 1.0 - smoothstep(len * 0.5, len, abs(along));
+      float crack = step(1.0 - 0.4 * a, hash2(c + 8.8)) * (1.0 - smoothstep(0.0, 0.006, across)) * ends;
+      w += crack * (0.25 + 0.45 * hash2(c + 1.0));
     }
     w += smoothstep(0.58, 0.88, fbm(q * 2.5 + jit)) * 0.22 * a;
     col = mix(col, vec3(1.0), clamp(w, 0.0, 1.0) * 0.9);
@@ -1565,6 +1583,21 @@ void main() {
     ink = clamp(ink + fibre, 0.0, 1.0);
     vec3 sheet = paper * (0.9 + 0.1 * vnoise(q * 50.0));
     colv = mix(sheet, inkc, ink);
+  } else if (u_style == 15) {
+    // shapes: every cell is a pixel drawn as a shape, picked by darkness from
+    // an atlas sorted by ink coverage (the built-in set, or your own SVGs), so
+    // the picture becomes a field of marks. Scale sets the cell size; Warp adds
+    // an ordered dither to the pick so gradients step through the shapes.
+    float ca = u_res.x / u_res.y;
+    float n = 48.0 / u_scale;
+    vec2 g = uv * vec2(ca, 1.0) * n;
+    vec2 ci = floor(g), cf = fract(g);
+    vec2 cuv = (ci + 0.5) / n / vec2(ca, 1.0);
+    float l = fld(cuv, T);
+    float pick = (1.0 - l) * u_shapeN + (bayer4(ci) - 0.5) * u_warp * 1.5;
+    float idx = clamp(floor(pick), 0.0, u_shapeN - 1.0);
+    ink = texture2D(u_shapes, vec2((idx + cf.x) / u_shapeN, cf.y)).r;
+    v = (1.0 - l) * u_palEnd;
   } else {
     vec2 z = p * 1.7 / u_scale;
     vec2 c = 0.7885 * vec2(cos(T * 0.25), sin(T * 0.25));
@@ -1694,6 +1727,106 @@ function buildGlyphAtlas() {
 }
 buildGlyphAtlas();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(buildGlyphAtlas);   // once the web fonts land
+
+/* ================= shape atlas (pixels as shapes) ================= */
+// A strip of marks sorted by ink coverage: the built-in set below, plus any
+// SVG files the operator adds (kept in this browser). Each is drawn white on
+// transparent into a 32px cell; coverage decides its place in the ramp.
+const SHAPE_PX = 32, SHAPE_MAX = 40;
+const BUILTIN_SHAPES = [
+  "",
+  '<circle cx="16" cy="16" r="2.5"/>',
+  '<circle cx="16" cy="16" r="5"/>',
+  '<rect x="10" y="10" width="12" height="12" transform="rotate(45 16 16)"/>',
+  '<path d="M14 6h4v8h8v4h-8v8h-4v-8H6v-4h8z"/>',
+  '<circle cx="16" cy="16" r="9" fill="none" stroke="#fff" stroke-width="3.5"/>',
+  '<path d="M16 5l11 20H5z"/>',
+  '<path d="M7 7l18 18M25 7L7 25" stroke="#fff" stroke-width="4" fill="none"/>',
+  '<circle cx="16" cy="16" r="9.5"/>',
+  '<path d="M16 3l11.3 6.5v13L16 29 4.7 22.5v-13z"/>',
+  '<rect x="6" y="6" width="20" height="20" rx="5"/>',
+  '<circle cx="16" cy="16" r="13"/>',
+  '<rect x="3" y="3" width="26" height="26"/>',
+  '<rect x="0" y="0" width="32" height="32"/>',
+];
+const shapeTex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, shapeTex);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+let shapeN = 1, customShapes = [];
+try { const c = JSON.parse(localStorage.getItem("vibe.shapes") || "[]"); customShapes = Array.isArray(c) ? c.filter(s => typeof s === "string") : []; } catch (e) { /* no storage */ }
+const svgData = svg => "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+const builtinSvg = inner => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="#fff">' + inner + "</svg>";
+// give a user's SVG a size to render at, keeping its viewBox
+function normaliseSvg(text) {
+  const doc = new DOMParser().parseFromString(text, "image/svg+xml");
+  const root = doc.documentElement;
+  if (!root || root.nodeName.toLowerCase() !== "svg") return null;
+  if (!root.getAttribute("xmlns")) root.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  if (!root.getAttribute("viewBox") && root.getAttribute("width") && root.getAttribute("height")) {
+    root.setAttribute("viewBox", "0 0 " + parseFloat(root.getAttribute("width")) + " " + parseFloat(root.getAttribute("height")));
+  }
+  root.setAttribute("width", "96"); root.setAttribute("height", "96");
+  return new XMLSerializer().serializeToString(root);
+}
+const loadImg = url => new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = url; });
+async function buildShapeAtlas() {
+  const urls = [...BUILTIN_SHAPES.map(s => svgData(builtinSvg(s))), ...customShapes.map(svgData)];
+  const imgs = await Promise.all(urls.map(loadImg));
+  const cells = [];
+  imgs.forEach(im => {
+    const c = document.createElement("canvas");
+    c.width = SHAPE_PX; c.height = SHAPE_PX;
+    const x = c.getContext("2d");
+    if (im && im.width && im.height) {
+      const s = Math.min(28 / im.width, 28 / im.height);
+      const w = im.width * s, h = im.height * s;
+      x.drawImage(im, (SHAPE_PX - w) / 2, (SHAPE_PX - h) / 2, w, h);
+      x.globalCompositeOperation = "source-in";
+      x.fillStyle = "#fff"; x.fillRect(0, 0, SHAPE_PX, SHAPE_PX);   // whatever colour it was, it is ink now
+    }
+    const d = x.getImageData(0, 0, SHAPE_PX, SHAPE_PX).data;
+    let cov = 0;
+    for (let k = 3; k < d.length; k += 4) cov += d[k];
+    cells.push({ c, cov });
+  });
+  cells.sort((a, b) => a.cov - b.cov);
+  shapeN = cells.length;
+  const atlas = document.createElement("canvas");
+  atlas.width = shapeN * SHAPE_PX; atlas.height = SHAPE_PX;
+  const ax = atlas.getContext("2d");
+  ax.fillStyle = "#000"; ax.fillRect(0, 0, atlas.width, atlas.height);
+  cells.forEach((cell, i) => ax.drawImage(cell.c, i * SHAPE_PX, 0));
+  gl.bindTexture(gl.TEXTURE_2D, shapeTex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlas);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  $("shapeCount").textContent = shapeN + " shapes" + (customShapes.length ? " (" + customShapes.length + " yours)" : "");
+  if (typeof requeueTiles === "function") requeueTiles();
+}
+buildShapeAtlas();
+$("addShapes").addEventListener("click", () => $("shapeFiles").click());
+$("shapeFiles").addEventListener("change", async e => {
+  const files = [...e.target.files];
+  e.target.value = "";
+  let added = 0;
+  for (const f of files) {
+    if (customShapes.length >= SHAPE_MAX) break;
+    if (f.size > 40000) continue;                                        // keep the stored set small
+    const svg = normaliseSvg(await f.text());
+    if (svg) { customShapes.push(svg); added++; }
+  }
+  try { localStorage.setItem("vibe.shapes", JSON.stringify(customShapes)); } catch (e) { /* no storage */ }
+  buildShapeAtlas();
+  if (!added) { $("shapeCount").textContent = "No usable SVGs (each must be an <svg> under 40 KB)."; }
+});
+$("resetShapes").addEventListener("click", () => {
+  customShapes = [];
+  try { localStorage.removeItem("vibe.shapes"); } catch (e) { /* no storage */ }
+  buildShapeAtlas();
+});
 $("microText").addEventListener("input", buildGlyphAtlas);
 $("microFont").addEventListener("change", buildGlyphAtlas);
 
@@ -3006,6 +3139,10 @@ function frame(now) {
   gl.uniform1i(U("u_glyph"), 4);
   gl.uniform1f(U("u_glyphN"), glyphN);
   gl.uniform1f(U("u_textN"), textN);
+  gl.activeTexture(gl.TEXTURE5);
+  gl.bindTexture(gl.TEXTURE_2D, shapeTex);
+  gl.uniform1i(U("u_shapes"), 5);
+  gl.uniform1f(U("u_shapeN"), shapeN);
   gl.uniform1i(U("u_pal"), 0);
   gl.uniform1i(U("u_prev"), 1);
 

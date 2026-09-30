@@ -56,6 +56,18 @@
       "routes": [ { "src": "bass", "dst": "size", "amt": 0.5 }, { "src": "beat", "dst": "flash", "amt": 0.3 } ]
     },
     {
+      "id": "one-bit", "name": "1-bit", "group": "terminal",
+      "look": { "style": 6, "scale": 0.2, "warp": 1, "bands": 2, "trails": 0, "grain": 0 },
+      "palette": { "colors": ["#000000", "#FFFFFF"] },
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.5 }, { "src": "beat", "dst": "flash", "amt": 0.2 } ]
+    },
+    {
+      "id": "shapes", "name": "Shapes", "group": "terminal",
+      "look": { "style": 15, "scale": 0.7, "warp": 0.5, "trails": 0, "grain": 0 },
+      "palette": "sa-light",
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.6 }, { "src": "mid", "dst": "colour", "amt": 0.3 } ]
+    },
+    {
       "id": "dither", "name": "Dither", "group": "terminal",
       "look": { "style": 6, "scale": 0.2, "warp": 1, "bands": 2, "trails": 0 },
       "palette": { "colors": ["#101018", "#E8E8F0"] },
