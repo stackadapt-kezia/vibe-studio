@@ -39,7 +39,9 @@ a shader".
 Not from the list but built along the way: a music library with a player
 (tags and cover art read from MP3, M4A and FLAC), video playback controls, a
 microphone input picker with a silent-input warning, per-mode control
-visibility, folding and resizable panel sections.
+visibility, folding and resizable panel sections, reactivity routes from any
+band to any control, and the preset library with live thumbnails and a set
+list on keys 1–8 (0.7.0, see `docs/preset-library.md`).
 
 ---
 

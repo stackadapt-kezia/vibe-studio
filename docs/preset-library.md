@@ -170,3 +170,59 @@ five hundred presets is wasted here.
   or at tile resolution. Rendering at the real internal resolution is more
   honest about what you'll get.
 - How the set list is edited — drag from the grid, or a separate mode.
+
+---
+
+## Implementation notes (0.7.0)
+
+What was built against this spec, and where it departs.
+
+**Schema.** This app's render is one fixed pipeline (pattern, then the Distort
+layer, then palette lookup, trails, grain, then the Screen layer), so a preset
+is one look object rather than an ordered stack:
+
+```json
+{
+  "id": "dead-channel", "name": "Dead Channel", "group": "broadcast",
+  "look": { "style": 5, "scale": 1, "warp": 0.2, "dist": 2, "distort": 0.35,
+            "screen": 3, "screenAmt": 0.9, "trails": 0.3, "grain": 0.3 },
+  "palette": "sa-dark",
+  "routes": [ { "src": "beat", "dst": "distort", "amt": 0.8 } ]
+}
+```
+
+- `look` keys are the state keys: `style` (pattern index), `scale`, `speed`,
+  `warp`, `blobs`, `trails`, `fbZoom`, `fbSpin`, `grain`, `bands`, `dist`,
+  `distort`, `screen`, `screenAmt`, plus `microText` and `microFont` for
+  Microtext. Any key left out takes the app default, so a preset resets what
+  it does not mention.
+- `palette` is either a named palette key (`sa-light`, `sa-dark`,
+  `cv27-miami`) or `{ "colors": [...], "weights": [...] }`.
+- `routes` are the reactivity routes (`src`: bass, mid, high, beat; `dst`:
+  size, motion, colour, grain, flash, distort, warp, trails, push, spin).
+  Audio bindings are part of the preset, as the spec asks.
+
+**Where edits live.** `presets/library.json` is canonical and loaded by
+fetch. A copy opened from disk cannot fetch, so `index.html` carries a
+three-preset built-in list as a safety net; the JSON is the library. User
+looks saved with "Save look" go to `localStorage` under a "Mine" group, and
+"Export" copies the current look as JSON for pasting into the library.
+
+**Thumbnails.** One shared 160×90 framebuffer; two tiles per frame, round
+robin; tiles off screen do not render. Thumbnails render with trails off (no
+per-tile history) and with the current Microtext atlas, so a Microtext preset's
+tile shows whatever copy is currently set.
+
+**Reference clip.** Resolved without shipping media: the reference is a test
+card drawn on a canvas at startup (grey ramp, colour bars, fine rings, a soft
+highlight, a dark disc, a checkerboard, heavy type). It is static; the looks
+supply the motion. Reference is the default grid source.
+
+**Set list.** Eight slots on keys 1–8, a strip at the top of the Presets
+section, and an overlay on the stage (key S, or the Output button) that also
+carries Gain so it works in fullscreen. Edited from the tiles: the + badge adds
+a preset to the next free slot and shows its slot number once in. Hard cuts;
+no crossfade yet.
+
+**Open questions, answered for now.** Reference clip: generated, not shipped.
+Thumbnail resolution: tile resolution. Set list editing: from the tiles.
