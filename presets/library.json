@@ -92,10 +92,22 @@
       "routes": [ { "src": "bass", "dst": "distort", "amt": 0.6 }, { "src": "beat", "dst": "flash", "amt": 0.3 } ]
     },
     {
-      "id": "fluted", "name": "Fluted", "group": "optical",
-      "look": { "style": 5, "scale": 1.1, "warp": 0, "dist": 7, "distort": 0.85, "trails": 0.2, "grain": 0.06 },
+      "id": "fluted", "name": "Fluted glass", "group": "optical",
+      "look": { "style": 5, "scale": 1.1, "warp": 0, "dist": 7, "distort": 0.85, "glass": 0, "trails": 0.2, "grain": 0.06 },
       "palette": { "colors": ["#0B0410", "#3A1E6E", "#F2531B", "#FFB13B"] },
       "routes": [ { "src": "bass", "dst": "size", "amt": 0.5 }, { "src": "mid", "dst": "colour", "amt": 0.25 } ]
+    },
+    {
+      "id": "glass-blocks", "name": "Glass blocks", "group": "optical",
+      "look": { "style": 5, "scale": 1, "warp": 0, "dist": 7, "distort": 0.7, "glass": 3, "trails": 0.15, "grain": 0.05 },
+      "palette": "sa-light",
+      "routes": [ { "src": "bass", "dst": "distort", "amt": 0.4 }, { "src": "beat", "dst": "flash", "amt": 0.3 } ]
+    },
+    {
+      "id": "ridgeline", "name": "Ridgeline", "group": "optical",
+      "look": { "style": 11, "scale": 0.35, "warp": 0.6, "trails": 0.25, "grain": 0.05 },
+      "palette": { "colors": ["#050008", "#6A2BFF", "#C7B2FF", "#FFFFFF"] },
+      "routes": [ { "src": "bass", "dst": "warp", "amt": 0.8 }, { "src": "beat", "dst": "flash", "amt": 0.3 } ]
     },
     {
       "id": "prism", "name": "Prism", "group": "optical",

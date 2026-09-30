@@ -498,7 +498,7 @@
         <button data-style="8">Prism</button>
         <button data-style="9">Edges</button>
         <button data-style="10">Relief</button>
-        <button data-style="11">Contour</button>
+        <button data-style="11">Lines</button>
         <button data-style="12">Hatch</button>
         <button data-style="13">Text</button>
         <button data-style="14">Thermal</button>
@@ -538,7 +538,15 @@
         <button data-dist="4">Mirror</button>
         <button data-dist="5">Grid</button>
         <button data-dist="6">Bleed</button>
-        <button data-dist="7">Fluted</button>
+        <button data-dist="7">Glass</button>
+      </div>
+      <div class="seg" id="glassSeg" style="margin-top:8px" hidden>
+        <button data-glass="0">Flute</button>
+        <button data-glass="1">Clarity</button>
+        <button data-glass="2">Alpha</button>
+        <button data-glass="3">Cross rib</button>
+        <button data-glass="4">Paralline</button>
+        <button data-glass="5">Wave</button>
       </div>
       <div id="distRows" style="margin-top:10px"></div>
     </fieldset>
@@ -621,7 +629,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.7";  // Scale and Warp say what they do per pattern; Distort, Screen and Texture get a Size slider
+const APP_VERSION = "0.9.8";  // Lines pattern replaces Contour; Glass distortion with Flute, Clarity, Alpha, Cross rib, Paralline and Wave faces, and an angle
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -642,6 +650,7 @@ const state = {
   screen: 0, screenAmt: 0.7,
   tex: 0, texAmt: 0.6,
   distSize: 1, screenSize: 1, texSize: 1,
+  glass: 0, glassAngle: 0,
   routes: [],                                   // filled from DEFAULT_ROUTES or storage below
   gain: 1.6, smooth: 0.7,
 };
@@ -673,6 +682,7 @@ const ROUTE_MAX = 8;
 const DIST_ROWS = [
   ["distort", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
   ["distSize", "Size", 0.25, 4, 0.05, v => v.toFixed(2)],
+  ["glassAngle", "Angle", 0, 180, 1, v => v + "\u00b0"],
 ];
 const SCREEN_ROWS = [
   ["screenAmt", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
@@ -684,8 +694,8 @@ const TEX_ROWS = [
 ];
 // what Scale and Warp mean in each pattern, so the Look rows say so
 const SCALE_LABELS = { 0: "Blob size", 1: "Zoom", 2: "Zoom", 3: "Zoom", 4: "Amplitude", 5: "Contrast", 6: "Block size",
-  7: "Dot pitch", 8: "Offset", 9: "Detail", 10: "Detail", 11: "Detail", 12: "Line pitch", 13: "Cell size", 14: "Grain", 15: "Cell size" };
-const WARP_LABELS = { 1: "Warp", 2: "Warp", 4: "Trace", 5: "Cycle", 6: "Dither", 7: "Angle", 8: "Direction", 10: "Light", 12: "Angle", 14: "Smear", 15: "Dither" };
+  7: "Dot pitch", 8: "Offset", 9: "Detail", 10: "Detail", 11: "Line pitch", 12: "Line pitch", 13: "Cell size", 14: "Grain", 15: "Cell size" };
+const WARP_LABELS = { 1: "Warp", 2: "Warp", 4: "Trace", 5: "Cycle", 6: "Dither", 7: "Angle", 8: "Direction", 10: "Light", 11: "Lift", 12: "Angle", 14: "Smear", 15: "Dither" };
 const AUDIO_ROWS = [
   ["gain", "Gain", 0.2, 4, 0.05, v => v.toFixed(2)],
   ["smooth", "Smoothing", 0, 0.95, 0.05, v => v.toFixed(2)],
@@ -1083,7 +1093,7 @@ const segStyle = seg("styleSeg", "style", () => state.style, v => { state.style 
 // Read from the shader: Blobs only counts on Blobs; Warp is unused by Blobs,
 // Fractal, Edges, Contour, ASCII and Microtext; the Distort and Screen amounts
 // (and Beat -> Distort) only matter once a kind is chosen.
-const NO_WARP = [0, 3, 9, 11, 13];
+const NO_WARP = [0, 3, 9, 13];
 function syncControls() {
   const s = state.style;
   const show = (key, on) => document.querySelectorAll('.row[data-key="' + key + '"]').forEach(r => { r.hidden = !on; });
@@ -1095,6 +1105,8 @@ function syncControls() {
   show("texSize", state.tex !== 0);
   show("screenSize", state.screen !== 0);
   show("distSize", [2, 3, 6, 7].includes(state.dist));   // the kinds with a pitch or a reach
+  show("glassAngle", state.dist === 7);
+  $("glassSeg").hidden = state.dist !== 7;
   const label = (key, text) => { const l = document.querySelector('.row[data-key="' + key + '"] label'); if (l) l.textContent = text; };
   label("scale", SCALE_LABELS[s] || "Scale");
   label("warp", WARP_LABELS[s] || "Warp");
@@ -1127,6 +1139,7 @@ function syncControls() {
 const segDist = seg("distSeg", "dist", () => state.dist, v => { state.dist = +v; syncControls(); touch(); });
 const segScreen = seg("screenSeg", "screen", () => state.screen, v => { state.screen = +v; syncControls(); touch(); });
 const segTex = seg("texSeg", "tex", () => state.tex, v => { state.tex = +v; syncControls(); touch(); });
+const segGlass = seg("glassSeg", "glass", () => state.glass, v => { state.glass = +v; touch(); });
 syncControls();
 
 /* ================= resizable panel ================= */
@@ -1179,6 +1192,8 @@ uniform float u_time;
 uniform int u_style, u_dist, u_screen, u_tex;
 uniform float u_distort, u_screenAmt, u_texAmt;
 uniform float u_distSize, u_screenSize, u_texSize;   // pitch or reach of each layer, 1 = as designed
+uniform int u_glass;                                  // glass type: 0 flute, then the block faces
+uniform float u_glassAngle;
 uniform sampler2D u_pal;
 uniform sampler2D u_prev;
 uniform sampler2D u_wave;
@@ -1281,7 +1296,7 @@ float hatch(vec2 q, float a, float freq, float aa) {
 
 // family 1: move the coordinate before anything samples it. Applies to every
 // pattern, since each one reads uv or p after this.
-float fluteRx = 0.0;                    // handed from distort() to the colour stage
+float glassShade = 1.0, glassHi = 0.0;  // handed from distort() to the colour stage
 vec2 distort(vec2 uv, float T) {
   float a = u_distort;
   if (u_dist == 1) {
@@ -1314,17 +1329,67 @@ vec2 distort(vec2 uv, float T) {
     float n2 = fbm(vec2(uv.x * 9.0 + 3.0, uv.y * 4.0 - T * 1.4));
     uv += a * 0.008 * vec2(n1 - 0.5, (n2 - 0.5) * 1.5);
   } else if (u_dist == 7) {
-    // fluted glass: the picture behind reeded glass. Each vertical rib is a
-    // cylindrical lens that squeezes its slice of the picture into a streak,
-    // the image softens across the rib, and the colour stage shades the rib
-    // edges and adds a highlight.
-    float n = 54.0 / u_distSize;
-    float c = (floor(uv.x * n) + 0.5) / n;
-    float rx = (uv.x - c) * n * 2.0;
-    fluteRx = rx;
-    float bulge = asin(clamp(rx, -1.0, 1.0)) / 1.5708;
-    uv.x = c + bulge * (0.5 / n) * (1.0 - 0.9 * a) + a * 0.012 * rx;
-    uv.y += a * 0.003 * sin(rx * 3.14159);
+    // glass: the picture behind textured glass, in the frame Angle rotates.
+    // Flute is reeded glass, each rib a cylindrical lens squeezing its slice
+    // into a streak. The others are glass block tiles: a grid of bevelled
+    // blocks with a seam and a rim highlight, each face with its own optics.
+    // The image also softens (in imgLum). Amount sets the refraction.
+    float ca = u_res.x / u_res.y;
+    float cA = cos(u_glassAngle), sA = sin(u_glassAngle);
+    mat2 R = mat2(cA, -sA, sA, cA), Ri = mat2(cA, sA, -sA, cA);
+    vec2 p = R * ((uv - 0.5) * vec2(ca, 1.0));
+    vec2 d = vec2(0.0);
+    if (u_glass == 0) {
+      float n = 54.0 / u_distSize;
+      float c = (floor(p.x * n) + 0.5) / n;
+      float rx = (p.x - c) * n * 2.0;
+      float bulge = asin(clamp(rx, -1.0, 1.0)) / 1.5708;
+      d.x = (c + bulge * (0.5 / n) * (1.0 - 0.9 * a) + a * 0.012 * rx) - p.x;
+      d.y = a * 0.003 * sin(rx * 3.14159);
+      glassShade = 0.82 + 0.18 * cos(rx * 3.14159);
+      glassHi = 0.1 * pow(max(0.0, cos(rx * 3.14159 - 0.7)), 10.0);
+    } else {
+      float S = 0.24 * u_distSize;                         // block size
+      vec2 cell = floor(p / S);
+      vec2 l = (fract(p / S) - 0.5) * 2.0;                 // -1..1 across the block
+      float rim = max(abs(l.x), abs(l.y));
+      float bevel = smoothstep(0.7, 1.0, rim);
+      vec2 dir = abs(l.x) > abs(l.y) ? vec2(sign(l.x), 0.0) : vec2(0.0, sign(l.y));
+      d += dir * bevel * bevel * 0.1 * S * a;              // the rounded rim bends the view outward
+      float ribHi = 0.0;
+      if (u_glass == 1) {
+        // clarity: a nearly flat face with a slow wave in it
+        d += a * 0.02 * S * vec2(sin(l.y * 3.0 + cell.x), sin(l.x * 3.0 + cell.y * 1.7));
+      } else if (u_glass == 2) {
+        // alpha: a circular lens set in the face, magnifying its centre
+        float r = length(l) / 0.82;
+        float inside = 1.0 - smoothstep(0.96, 1.0, r);
+        d -= l * S * 0.5 * a * inside * (1.0 - 0.45 * r * r);
+        d += l * S * 0.05 * a * (1.0 - smoothstep(1.0, 1.12, r)) * smoothstep(0.88, 1.0, r);
+        ribHi = 0.12 * pow(max(0.0, 1.0 - abs(r - 1.0) * 14.0), 2.0);
+      } else if (u_glass == 3) {
+        // cross ribbed: fine ribs both ways, a lattice of tiny lenses
+        float m = 9.0;
+        vec2 rr = fract(l * m * 0.5) * 2.0 - 1.0;
+        vec2 b = vec2(asin(clamp(rr.x, -1.0, 1.0)), asin(clamp(rr.y, -1.0, 1.0))) / 1.5708;
+        d += (b * (1.0 - 0.85 * a) - rr) * (S / m) * 0.5 * a;
+        ribHi = 0.05 * (pow(max(0.0, cos(rr.x * 3.14159 - 0.6)), 8.0) + pow(max(0.0, cos(rr.y * 3.14159 - 0.6)), 8.0));
+      } else if (u_glass == 4) {
+        // paralline: horizontal ribs across the face
+        float m = 8.0;
+        float ry = fract(l.y * m * 0.5) * 2.0 - 1.0;
+        float b = asin(clamp(ry, -1.0, 1.0)) / 1.5708;
+        d.y += (b * (1.0 - 0.85 * a) - ry) * (S / m) * 0.5 * a;
+        ribHi = 0.07 * pow(max(0.0, cos(ry * 3.14159 - 0.6)), 8.0);
+      } else {
+        // wave: a rolling wave across the face
+        d += a * S * 0.09 * vec2(sin(l.y * 3.0 + l.x * 1.5 + cell.y), sin(l.x * 3.0 - l.y * 1.5 + cell.x));
+      }
+      float seam = 1.0 - smoothstep(0.0, 0.035, 1.0 - rim);
+      glassShade = (1.0 - 0.45 * seam) * (1.0 - 0.12 * bevel);
+      glassHi = 0.1 * pow(max(0.0, 1.0 - abs(rim - 0.84) * 14.0), 2.0) + ribHi;
+    }
+    uv = (Ri * (p + d)) / vec2(ca, 1.0) + 0.5;
   }
   if (u_screen == 3) {
     // VHS tape damage: the odd row tears sideways, the whole frame wobbles a
@@ -1550,15 +1615,33 @@ void main() {
       float sh = 0.5 + dot(gr, vec2(cos(a), sin(a))) * 10.0;
       v = clamp(sh, 0.0, 1.0) * u_palEnd;
     } else if (u_style == 11) {
-      // contour: posterised height bands with a line of the first colour at
-      // each step. Bands sets the level count (8 when off). Line width is
-      // held near 1.5px using the gradient.
-      float k = u_bands >= 2.0 ? u_bands : 8.0;
-      float f = fract(l * k);
-      float w = max(k * length(gr) / (2.0 * u_scale) * 1.5, 0.004);
-      ink = smoothstep(w, w * 2.0, min(f, 1.0 - f));
-      v = floor(min(l, 0.9999) * k) / (k - 1.0);
-      if (u_bands < 2.0) v *= u_palEnd;
+      // lines: a stack of horizontal traces, each lifted into a ridge by the
+      // brightness of the picture along its own row and jittering where it
+      // climbs. Nearer (lower) ridges hide the traces behind them, like a
+      // terrain plot. Line pitch sets the count, Lift the ridge height; traces
+      // colour up the palette with height.
+      float N = 40.0 / u_scale;
+      float amp = min(0.12 + 0.32 * u_warp, 22.0 / N);   // a ridge can climb at most 22 traces
+      float k0 = floor(uv.y * N - 0.5) - 22.0;           // the 24 nearest traces, front (lowest) first
+      float lineV = 0.0;
+      ink = 0.0;
+      for (int i = 0; i < 24; i++) {
+        float k = k0 + float(i);
+        float base = (k + 0.5) / N;
+        if (base > uv.y + 0.003) break;                // past the trace just above the pixel
+        if (base < 0.0) continue;
+        float lk = fld(vec2(uv.x, base), T);
+        float h = lk * amp;
+        float jit = (vnoise(vec2(uv.x * 120.0, k * 3.1 + T * 6.0)) - 0.5) * 0.03 * lk;
+        float y = base + h + jit;
+        float w = 0.0022;
+        if (uv.y <= y + w) {                            // on this trace, or beneath its ridge
+          ink = 1.0 - smoothstep(w * 0.4, w, abs(uv.y - y));
+          lineV = (0.15 + 0.85 * lk) * u_palEnd;
+          break;
+        }
+      }
+      v = lineV;
     } else {
       // hatch: pen cross-hatching, more line sets as the field darkens. Where
       // the gradient is strong the first set follows it, rounded to 45 degrees,
@@ -1647,7 +1730,7 @@ void main() {
   }
 
   vec3 col = colv.x < 0.0 ? mix(pal(0.0), pal(v), ink) : colv;
-  if (u_dist == 7) col = col * (0.82 + 0.18 * cos(fluteRx * 3.14159)) + 0.1 * pow(max(0.0, cos(fluteRx * 3.14159 - 0.7)), 10.0);
+  if (u_dist == 7) col = col * glassShade + glassHi;
 
   vec2 fuv = uv0 - 0.5;
   float ca = u_fbSpin;
@@ -2503,7 +2586,8 @@ const segSrc = seg("srcSeg", "src", () => srcMode, v => {
 // built-in list is a safety net for a copy opened from disk, where fetch
 // cannot read the file.
 const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom", "fbSpin", "grain", "bands",
-                   "dist", "distort", "screen", "screenAmt", "tex", "texAmt", "distSize", "screenSize", "texSize"];
+                   "dist", "distort", "screen", "screenAmt", "tex", "texAmt", "distSize", "screenSize", "texSize",
+                   "glass", "glassAngle"];
 const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
 const GROUPS = { print: "Print", broadcast: "Broadcast", terminal: "Terminal", damaged: "Damaged", optical: "Optical", mine: "Mine" };
 const BUILTIN_PRESETS = [
@@ -2593,6 +2677,8 @@ function setLook(L, m, w, h, pEnd, time = T) {
   gl.uniform1f(U("u_distSize"), L.distSize);
   gl.uniform1f(U("u_screenSize"), L.screenSize);
   gl.uniform1f(U("u_texSize"), L.texSize);
+  gl.uniform1i(U("u_glass"), L.glass);
+  gl.uniform1f(U("u_glassAngle"), L.glassAngle * 3.14159265 / 180);
   gl.uniform1f(U("u_distort"), Math.min(1.5, L.distort + m("distort")));
 }
 
@@ -2779,7 +2865,7 @@ function applyPreset(P) {
   $("preset").value = pal.key;
   state.routes = P.routes.map(r => ({ src: r.src, dst: r.dst, amt: +r.amt })).slice(0, ROUTE_MAX);
   saveRoutes(); renderRoutes();
-  syncSliders(); segStyle(); segDist(); segScreen(); segTex(); syncControls();
+  syncSliders(); segStyle(); segDist(); segScreen(); segTex(); segGlass(); syncControls();
   activeId = P.id; lastPresetId = P.id;               // after the rebuilds, which clear activeId
   renderActive();
 }
