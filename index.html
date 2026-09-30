@@ -186,19 +186,14 @@
     background: var(--accent); height: 0%; display: block;
   }
   .spark { display: block; width: 100%; height: 30px; margin-top: 4px; background: var(--panel-2); border-radius: 4px; }
-  .knobs { display: flex; gap: 18px; justify-content: center; margin: 4px 0 10px; }
-  .knobcell { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 70px; }
-  .knobcell label { font-size: 12px; color: var(--muted); }
-  .knobcell output { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .knob { width: 44px; height: 44px; cursor: ns-resize; touch-action: none; user-select: none; border-radius: 50%; }
-  .knob svg { width: 100%; height: 100%; display: block; }
-  .knob circle { fill: none; stroke-width: 4; stroke-linecap: round; }
-  .knob .track { stroke: var(--line); }
-  .knob .val { stroke: var(--accent); }
-  .knob:hover .track { stroke: #33333b; }
-  .knob:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
-  .route .knob { width: 28px; height: 28px; flex: 0 0 28px; }
-  .route .knob circle { stroke-width: 5; }
+  .faders { display: flex; gap: 28px; justify-content: center; margin: 6px 0 12px; }
+  .fader { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .fader input[type=range] {
+    writing-mode: vertical-lr; direction: rtl; width: 24px; height: 96px; margin: 0;
+    accent-color: var(--accent);
+  }
+  .fader label { font-size: 12px; color: var(--muted); }
+  .fader output { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .meter span {
     position: absolute; top: -16px; left: 0; font-size: 10px; color: var(--muted);
     letter-spacing: .1em; text-transform: uppercase;
@@ -263,59 +258,80 @@
   .track button:hover { color: var(--text); background: var(--panel-2); }
   .pgroup {
     font: 500 10px/1 "Space Grotesk", sans-serif; letter-spacing: .12em; text-transform: uppercase;
-    color: var(--muted); margin: 10px 0 6px;
+    color: var(--muted); margin: 8px 0 5px; cursor: pointer; user-select: none;
+    display: flex; align-items: center; gap: 6px;
   }
-  .ptiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .pgroup::before {
+    content: ""; width: 5px; height: 5px; border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor; transform: rotate(45deg) translate(-1px, -1px);
+  }
+  .pgroup.folded::before { transform: rotate(-45deg) translate(-1px, 1px); }
+  .pgroup:hover { color: var(--text); }
+  .pgroup.folded + .ptiles { display: none; }
+  /* 2 columns at the default width, up to 4 as the panel widens */
+  .ptiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 6px; }
   .ptile {
     position: relative; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
     background: var(--panel-2); cursor: pointer;
   }
-  .ptile canvas { display: block; width: 100%; aspect-ratio: 16 / 9; }
+  .ptile canvas { display: block; width: 100%; aspect-ratio: 2 / 1; }
   .ptile:hover { border-color: var(--muted); }
   .ptile:focus-visible { outline: 1px solid var(--accent); }
   .ptile.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  /* the name sits lower left over a black-to-clear fade, and shows on hover or when active */
   .pname {
-    display: block; padding: 5px 30px 5px 8px; font-size: 12px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 16px 30px 6px 8px;
+    color: #fff; font-size: 12px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
+    background: linear-gradient(to top, rgba(0, 0, 0, .8), rgba(0, 0, 0, 0));
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none;
+    opacity: 0; transition: opacity .15s;
   }
+  .ptile:hover .pname, .ptile:focus-visible .pname, .ptile.active .pname { opacity: 1; }
   .pslot, .pdel {
-    position: absolute; right: 6px; width: 22px; height: 22px; padding: 0; border-radius: 999px;
-    border: 1px solid var(--line); background: rgba(0, 0, 0, .6); color: var(--muted);
+    position: absolute; right: 5px; width: 22px; height: 22px; padding: 0; border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, .35); background: rgba(0, 0, 0, .55); color: #fff;
     font: 600 11px/1 "Space Grotesk", sans-serif; cursor: pointer; display: grid; place-items: center;
+    opacity: 0; transition: opacity .15s;
   }
+  .ptile:hover .pslot, .ptile:hover .pdel, .ptile:focus-visible .pslot, .pslot.in { opacity: 1; }
   .pslot { bottom: 5px; }
-  .pslot:hover, .pdel:hover { color: var(--text); border-color: var(--muted); }
-  .pslot.in { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .pdel { top: 6px; font-size: 13px; }
-  .setstrip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
-  .slot {
-    border: 1px dashed var(--line); background: none; color: var(--muted); border-radius: 8px;
-    padding: 6px 6px; font: inherit; font-size: 11px; cursor: pointer; text-align: left;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
-  }
-  .slot b { color: var(--text); margin-right: 4px; font-family: "Space Grotesk", sans-serif; }
-  .slot.filled { border-style: solid; background: var(--panel-2); color: var(--text); }
-  .slot.active { border-color: var(--accent); }
+  .pslot:hover, .pdel:hover { border-color: #fff; }
+  .pslot.in { background: var(--accent); border-color: var(--accent); }
+  .pdel { top: 5px; font-size: 13px; }
   .libbar { display: flex; gap: 6px; align-items: center; justify-content: flex-end; margin-bottom: 10px; }
   .libbar > button {
     padding: 5px 12px; font-size: 12px; border-radius: 999px; background: var(--panel-2);
     border: 1px solid var(--line); color: var(--text); cursor: pointer; font-family: inherit;
   }
   .libbar > button:hover { background: #1b1b21; }
+  /* the set list: a timeline of eight slots in the lower third of the stage */
   .setlist-overlay {
-    position: absolute; left: 50%; bottom: 44px; transform: translateX(-50%); z-index: 40;
+    position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%); z-index: 40;
     display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px;
-    max-width: 90%; padding: 10px 14px; border-radius: 14px;
+    max-width: 92%; padding: 10px 40px 10px 14px; border-radius: 14px;
     background: rgba(0, 0, 0, .72); border: 1px solid var(--line);
   }
-  .setlist-overlay .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .setlist-overlay .chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
   .chip {
+    display: inline-flex; align-items: center; gap: 6px;
     border: 1px solid var(--line); background: var(--panel-2); color: var(--text); border-radius: 999px;
-    padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer;
+    padding: 6px 10px 6px 12px; font: inherit; font-size: 13px; cursor: pointer; max-width: 170px;
   }
-  .chip b { font-family: "Space Grotesk", sans-serif; margin-right: 6px; color: var(--muted); }
+  .chip span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chip b { font-family: "Space Grotesk", sans-serif; color: var(--muted); }
+  .chip.empty { border-style: dashed; color: var(--muted); cursor: default; padding-right: 14px; }
   .chip.active { background: var(--accent); border-color: var(--accent); }
   .chip.active b { color: #fff; }
+  .chip .rm {
+    border: 0; background: none; color: inherit; opacity: .55; cursor: pointer; padding: 0 2px;
+    font: inherit; font-size: 14px; line-height: 1;
+  }
+  .chip .rm:hover { opacity: 1; }
+  .ovclose {
+    position: absolute; top: 6px; right: 8px; border: 0; background: none; color: var(--muted);
+    font-size: 18px; cursor: pointer; line-height: 1; padding: 2px 4px;
+  }
+  .ovclose:hover { color: var(--text); }
   .setlist-overlay label { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; margin-left: 8px; }
   .setlist-overlay input[type=range] { width: 110px; accent-color: var(--accent); }
   .route { display: flex; align-items: center; gap: 5px; margin-bottom: 6px; }
@@ -425,8 +441,26 @@
     </div>
     <div class="scrolls">
     <fieldset>
+      <legend>Palette</legend>
+      <select id="preset" aria-label="Palette preset">
+        <option value="custom">Custom</option>
+        <optgroup label="StackAdapt core">
+          <option value="sa-light" selected>StackAdapt Light</option>
+          <option value="sa-dark">StackAdapt Dark</option>
+        </optgroup>
+        <optgroup label="Event kits — not core brand">
+          <option value="cv27-miami">Conversion 2027: Miami</option>
+        </optgroup>
+      </select>
+      <div id="swatches" style="margin-top:10px"></div>
+      <div class="pillrow">
+        <button class="pill" id="addColor">Add color</button>
+        <button class="pill" id="mixColors" title="Shuffle the order of the colours">Mix order</button>
+      </div>
+    </fieldset>
+
+    <fieldset>
       <legend>Presets</legend>
-      <div class="setstrip" id="setStrip"></div>
       <div class="libbar">
         <button id="saveLook" title="Save the current controls as a look in Mine">Save look</button>
         <button id="exportLook" title="Copy the current look as JSON for presets/library.json">Export</button>
@@ -452,25 +486,6 @@
         <button data-style="11">Contour</button>
         <button data-style="12">Hatch</button>
         <button data-style="13">Text</button>
-      </div>
-    </fieldset>
-
-    <fieldset>
-      <legend>Palette</legend>
-      <select id="preset" aria-label="Palette preset">
-        <option value="custom">Custom</option>
-        <optgroup label="StackAdapt core">
-          <option value="sa-light" selected>StackAdapt Light</option>
-          <option value="sa-dark">StackAdapt Dark</option>
-        </optgroup>
-        <optgroup label="Event kits — not core brand">
-          <option value="cv27-miami">Conversion 2027: Miami</option>
-        </optgroup>
-      </select>
-      <div id="swatches" style="margin-top:10px"></div>
-      <div class="pillrow">
-        <button class="pill" id="addColor">Add color</button>
-        <button class="pill" id="mixColors" title="Shuffle the order of the colours">Mix order</button>
       </div>
     </fieldset>
 
@@ -520,7 +535,7 @@
         <div class="meter"><span>Mid</span><div class="bar"><i id="mMid"></i></div><canvas class="spark" id="wMid" width="120" height="30"></canvas></div>
         <div class="meter"><span>High</span><div class="bar"><i id="mHigh"></i></div><canvas class="spark" id="wHigh" width="120" height="30"></canvas></div>
       </div>
-      <div class="knobs" id="audioRows"></div>
+      <div class="faders" id="audioRows"></div>
       <div id="routeRows"></div>
       <div class="libline">
         <span class="note">Each row sends one band to one control.</span>
@@ -546,11 +561,12 @@
     <div class="setlist-overlay" id="setOverlay" hidden>
       <div class="chips" id="setChips"></div>
       <label>Gain <input type="range" id="ovGain" min="0.2" max="4" step="0.05" aria-label="Gain"></label>
+      <button class="ovclose" id="ovClose" type="button" aria-label="Hide the set list">×</button>
     </div>
   </main>
 </div>
 <script>
-const APP_VERSION = "0.7.8";  // fixes: palette top colour with Bands on, source buttons on one row
+const APP_VERSION = "0.8.0";  // preset grid: hover labels, 2-4 columns, folding families, image-fed thumbnails; palette first; set list on the stage; faders
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -608,55 +624,21 @@ const AUDIO_ROWS = [
   ["smooth", "Smoothing", 0, 0.95, 0.05, v => v.toFixed(2)],
 ];
 
-// a rotary knob: drag up or down, scroll, or use the arrow keys
-const KNOB_C = 2 * Math.PI * 16, KNOB_ARC = KNOB_C * 0.75;
-function makeKnob(min, max, step, value, label, onchange) {
-  const el = document.createElement("div");
-  el.className = "knob"; el.tabIndex = 0;
-  el.setAttribute("role", "slider"); el.setAttribute("aria-label", label);
-  el.setAttribute("aria-valuemin", String(min)); el.setAttribute("aria-valuemax", String(max));
-  el.innerHTML = '<svg viewBox="0 0 40 40" aria-hidden="true">'
-    + '<circle class="track" cx="20" cy="20" r="16" transform="rotate(135 20 20)" stroke-dasharray="' + KNOB_ARC + ' ' + KNOB_C + '"/>'
-    + '<circle class="val" cx="20" cy="20" r="16" transform="rotate(135 20 20)" stroke-dasharray="0 ' + KNOB_C + '"/></svg>';
-  const arc = el.querySelector(".val");
-  const digits = Math.max(0, Math.ceil(-Math.log10(step)));
-  let v = value;
-  const set = (nv, fire) => {
-    v = Math.min(max, Math.max(min, +(Math.round(nv / step) * step).toFixed(digits)));
-    arc.setAttribute("stroke-dasharray", ((v - min) / (max - min) * KNOB_ARC) + " " + KNOB_C);
-    el.setAttribute("aria-valuenow", String(v));
-    if (fire) onchange(v);
-  };
-  set(value, false);
-  el.addEventListener("pointerdown", e => {
-    e.preventDefault();
-    el.setPointerCapture(e.pointerId);
-    const y0 = e.clientY, v0 = v;
-    const move = ev => set(v0 + (y0 - ev.clientY) / 140 * (max - min) * (ev.shiftKey ? 0.2 : 1), true);
-    const up = () => { el.removeEventListener("pointermove", move); el.removeEventListener("pointerup", up); el.removeEventListener("pointercancel", up); };
-    el.addEventListener("pointermove", move); el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
-  });
-  el.addEventListener("wheel", e => { e.preventDefault(); set(v - Math.sign(e.deltaY) * step * 2, true); }, { passive: false });
-  el.addEventListener("keydown", e => {
-    const d = (e.key === "ArrowUp" || e.key === "ArrowRight") ? 1 : (e.key === "ArrowDown" || e.key === "ArrowLeft") ? -1 : 0;
-    if (!d) return;
-    e.preventDefault();
-    set(v + d * step * (e.shiftKey ? 10 : 1), true);
-  });
-  return { el, set: nv => set(nv, false), get: () => v };
-}
-const knobs = {};                                   // key -> { set, out, fmt } for syncing from state
-function buildKnobs(host, spec) {
+// vertical faders for the audio controls
+const faders = {};                                  // key -> { input, out, fmt } for syncing from state
+function buildFaders(host, spec) {
   spec.forEach(([key, label, min, max, step, fmt]) => {
     const cell = document.createElement("div");
-    cell.className = "knobcell";
-    const out = document.createElement("output");
-    out.textContent = fmt(state[key]);
-    const k = makeKnob(min, max, step, state[key], label, v => { state[key] = v; out.textContent = fmt(v); touch(); });
+    cell.className = "fader";
+    const input = document.createElement("input");
+    input.type = "range"; input.min = min; input.max = max; input.step = step; input.value = state[key];
+    input.setAttribute("aria-label", label);
     const lb = document.createElement("label"); lb.textContent = label;
-    cell.append(k.el, lb, out);
+    const out = document.createElement("output"); out.textContent = fmt(state[key]);
+    input.addEventListener("input", () => { state[key] = +input.value; out.textContent = fmt(state[key]); touch(); });
+    cell.append(input, lb, out);
     host.append(cell);
-    knobs[key] = { set: k.set, out, fmt };
+    faders[key] = { input, out, fmt };
   });
 }
 function buildRows(host, spec) {
@@ -715,8 +697,11 @@ function renderRoutes() {
     const src = pick(SOURCES, r.src, "Source band", v => { r.src = v; saveRoutes(); });
     const arrow = document.createElement("span"); arrow.textContent = "\u2192"; arrow.className = "arrow";
     const dst = pick(TARGETS, r.dst, "Target control", v => { r.dst = v; saveRoutes(); });
+    const amt = document.createElement("input");
+    amt.type = "range"; amt.min = 0; amt.max = 2; amt.step = 0.05; amt.value = r.amt;
+    amt.setAttribute("aria-label", "Amount");
     const out = document.createElement("output"); out.textContent = (+r.amt).toFixed(2);
-    const amt = makeKnob(0, 2, 0.05, +r.amt, "Amount", v => { r.amt = v; out.textContent = v.toFixed(2); saveRoutes(); }).el;
+    amt.addEventListener("input", () => { r.amt = +amt.value; out.textContent = r.amt.toFixed(2); saveRoutes(); });
     const del = document.createElement("button");
     del.textContent = "\u00d7"; del.title = "Remove route"; del.setAttribute("aria-label", "Remove route");
     del.addEventListener("click", () => { state.routes.splice(i, 1); saveRoutes(); renderRoutes(); });
@@ -731,7 +716,7 @@ $("addRoute").addEventListener("click", () => {
   saveRoutes(); renderRoutes();
 });
 loadRoutes(); renderRoutes();
-buildKnobs($("audioRows"), AUDIO_ROWS);
+buildFaders($("audioRows"), AUDIO_ROWS);
 buildRows($("distRows"), DIST_ROWS);
 buildRows($("screenRows"), SCREEN_ROWS);
 
@@ -1569,6 +1554,7 @@ function setImageSource(el, w, h, name) {
   imgSrc = el; imgAspect = w / h; imgDirty = true; imgName = name;
   $("vidRow").hidden = !imgVideo;
   syncVideoUI();
+  if (typeof requeueTiles === "function") setTimeout(requeueTiles, 50);   // thumbnails follow the source
   $("imgNote").className = "note";
   $("imgNote").textContent = "Using " + name + " (" + w + "\u00d7" + h + ").";
 }
@@ -2185,7 +2171,7 @@ const BUILTIN_PRESETS = [
     palette: { colors: ["#0B0B0D", "#F5B301"] },
     routes: [{ src: "bass", dst: "size", amt: 0.4 }, { src: "beat", dst: "flash", amt: 0.4 }] },
 ];
-const SETLIST_N = 8, TILE_W = 160, TILE_H = 90, TILES_PER_FRAME = 3;
+const SETLIST_N = 8, TILE_W = 160, TILE_H = 80, TILES_PER_FRAME = 3;
 let libraryPresets = [], userPresets = [], setlist = [];
 const tiles = [];                                   // { preset, canvas, ctx, img, el, badge }
 const tileQueue = [];                               // tiles still to render, drained a few per frame
@@ -2256,30 +2242,36 @@ function setLook(L, m, w, h, pEnd, time = T) {
   gl.uniform1f(U("u_distort"), Math.min(1.5, L.distort + m("distort")));
 }
 
-// Thumbnails: each preset's name, set in type, is the source image pushed
-// through that look, rendered once. Nothing runs per frame once the grid is
-// built; a queue spreads the renders over a few frames so building it never
-// stalls. Patterns that ignore the source (Blobs, Plasma, Waves, Fractal, the
-// oscilloscope) show themselves instead, and the label below carries the name.
-const tileSrcTex = gl.createTexture();
-gl.bindTexture(gl.TEXTURE_2D, tileSrcTex);
+// Thumbnails: every preset rendered once through its look, at a fixed moment
+// with trails off and no audio, from one shared source image: whatever is
+// loaded in Video in (the current frame, for a video), else presets/thumb.jpg
+// if the repo ships one, else the plasma field. A queue spreads the renders
+// over a few frames, and the grid re-renders when the source changes.
+const TILE_T = 3.0;
+const zeroMod = () => 0;
+zeroMod.mod = {};
+const thumbTex = gl.createTexture();
+let thumbReady = false, thumbAspect = 1;
+gl.bindTexture(gl.TEXTURE_2D, thumbTex);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-const TILE_T = 3.0;                                 // one fixed moment for every tile
-const zeroMod = () => 0;
-zeroMod.mod = {};
-function nameCanvas(name) {
-  const c = document.createElement("canvas");
-  c.width = 320; c.height = 180;
-  const x = c.getContext("2d");
-  x.fillStyle = "#000"; x.fillRect(0, 0, 320, 180);
-  x.fillStyle = "#fff"; x.textAlign = "center"; x.textBaseline = "middle";
-  let size = 76;
-  do { x.font = "600 " + size + "px 'Space Grotesk', sans-serif"; size -= 4; } while (x.measureText(name).width > 292 && size > 24);
-  x.fillText(name, 160, 94);
-  return c;
+(() => {
+  const im = new Image();
+  im.onload = () => {
+    gl.bindTexture(gl.TEXTURE_2D, thumbTex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    thumbAspect = im.width / im.height; thumbReady = true;
+    requeueTiles();
+  };
+  im.src = "presets/thumb.jpg";                     // optional; a 404 just means the fallback stands
+})();
+function requeueTiles() {
+  tileQueue.length = 0;
+  tiles.forEach(t => tileQueue.push(t));
 }
 function renderTile(t) {
   const P = t.preset;
@@ -2288,12 +2280,9 @@ function renderTile(t) {
   gl.vertexAttribPointer(gl.getAttribLocation(scene, "a"), 2, gl.FLOAT, false, 0, 0);
   const U = n => gl.getUniformLocation(scene, n);
   gl.activeTexture(gl.TEXTURE3);
-  gl.bindTexture(gl.TEXTURE_2D, tileSrcTex);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, nameCanvas(P.name));
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-  gl.uniform1f(U("u_hasImg"), 1);
-  gl.uniform1f(U("u_imgAspect"), 320 / 180);
+  if (imgSrc) { gl.bindTexture(gl.TEXTURE_2D, imgTex); gl.uniform1f(U("u_hasImg"), 1); gl.uniform1f(U("u_imgAspect"), imgAspect); }
+  else if (thumbReady) { gl.bindTexture(gl.TEXTURE_2D, thumbTex); gl.uniform1f(U("u_hasImg"), 1); gl.uniform1f(U("u_imgAspect"), thumbAspect); }
+  else { gl.bindTexture(gl.TEXTURE_2D, imgTex); gl.uniform1f(U("u_hasImg"), 0); }
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, B.tex);             // unused at trails 0, but something must be bound
   gl.activeTexture(gl.TEXTURE0);
@@ -2328,10 +2317,22 @@ function buildGrid() {
   tiles.length = 0;
   tileQueue.length = 0;
   const all = allPresets();
+  let folded = {};
+  try { folded = JSON.parse(localStorage.getItem("vibe.pgroups") || "{}"); } catch (e) { /* no storage */ }
   Object.entries(GROUPS).forEach(([g, label]) => {
     const list = all.filter(p => (p.group || "mine") === g);
     if (!list.length) return;
-    const h = document.createElement("h4"); h.className = "pgroup"; h.textContent = label;
+    const h = document.createElement("h4");
+    h.className = "pgroup" + (folded[g] ? " folded" : ""); h.textContent = label;
+    h.tabIndex = 0; h.setAttribute("role", "button"); h.setAttribute("aria-expanded", String(!folded[g]));
+    const fold = () => {
+      h.classList.toggle("folded");
+      folded[g] = h.classList.contains("folded");
+      h.setAttribute("aria-expanded", String(!folded[g]));
+      try { localStorage.setItem("vibe.pgroups", JSON.stringify(folded)); } catch (e) { /* no storage */ }
+    };
+    h.addEventListener("click", fold);
+    h.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fold(); } });
     const wrap = document.createElement("div"); wrap.className = "ptiles";
     list.forEach(p => {
       const el = document.createElement("div");
@@ -2365,7 +2366,7 @@ function buildGrid() {
   renderSetlist();
 }
 function syncSliders() {
-  Object.entries(knobs).forEach(([k, kn]) => { kn.set(state[k]); kn.out.textContent = kn.fmt(state[k]); });
+  Object.entries(faders).forEach(([k, f]) => { f.input.value = state[k]; f.out.textContent = f.fmt(state[k]); });
   document.querySelectorAll(".row[data-key]").forEach(r => {
     const k = r.dataset.key;
     if (!(k in state)) return;
@@ -2448,7 +2449,7 @@ function saveSetlist() {
 function toggleSet(id) {
   const i = setlist.indexOf(id);
   if (i >= 0) setlist.splice(i, 1);
-  else if (setlist.length < SETLIST_N) setlist.push(id);
+  else if (setlist.length < SETLIST_N) { setlist.push(id); toggleOverlay(true); }   // adding reveals the timeline
   else { presetNote("The set list is full (" + SETLIST_N + "). Remove one first.", true); return; }
   saveSetlist(); renderSetlist();
 }
@@ -2458,24 +2459,29 @@ function applySlot(i) {
 }
 function renderSetlist() {
   setlist = setlist.filter(findPreset);
-  const make = (host, cls) => {
-    host.innerHTML = "";
-    for (let i = 0; i < SETLIST_N; i++) {
-      const p = findPreset(setlist[i]);
-      if (!p && cls === "chip") continue;
-      const b = document.createElement("button");
-      b.type = "button"; b.className = cls + (p ? " filled" : "");
-      if (p) b.dataset.id = p.id;
-      const n = document.createElement("b"); n.textContent = String(i + 1);
-      b.append(n, document.createTextNode(p ? p.name : "—"));
-      b.title = p ? "Key " + (i + 1) + ": " + p.name : "Empty slot. Use + on a preset tile to add it.";
+  const host = $("setChips");
+  host.innerHTML = "";
+  for (let i = 0; i < SETLIST_N; i++) {
+    const p = findPreset(setlist[i]);
+    const b = document.createElement("div");
+    b.className = "chip" + (p ? "" : " empty");
+    b.setAttribute("role", "button"); b.tabIndex = p ? 0 : -1;
+    if (p) b.dataset.id = p.id;
+    const n = document.createElement("b"); n.textContent = String(i + 1);
+    const name = document.createElement("span"); name.textContent = p ? p.name : "—";
+    b.append(n, name);
+    b.title = p ? "Key " + (i + 1) + ": " + p.name : "Empty slot. Use + on a preset to add it.";
+    if (p) {
       b.addEventListener("click", () => applySlot(i));
-      host.append(b);
+      b.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); applySlot(i); } });
+      const rm = document.createElement("button");
+      rm.type = "button"; rm.className = "rm"; rm.textContent = "×";
+      rm.setAttribute("aria-label", "Remove " + p.name + " from the set list");
+      rm.addEventListener("click", e => { e.stopPropagation(); toggleSet(p.id); });
+      b.append(rm);
     }
-    if (cls === "chip" && !setlist.length) { const e = document.createElement("span"); e.className = "note"; e.textContent = "No set list yet. Use + on preset tiles."; host.append(e); }
-  };
-  make($("setStrip"), "slot");
-  make($("setChips"), "chip");
+    host.append(b);
+  }
   tiles.forEach(t => {
     const i = setlist.indexOf(t.preset.id);
     t.badge.textContent = i >= 0 ? String(i + 1) : "+";
@@ -2491,6 +2497,7 @@ function toggleOverlay(force) {
 }
 $("ovGain").addEventListener("input", () => { state.gain = +$("ovGain").value; syncSliders(); });
 $("setBtn").addEventListener("click", () => toggleOverlay());
+$("ovClose").addEventListener("click", () => toggleOverlay(false));
 $("saveLook").addEventListener("click", saveLook);
 $("exportLook").addEventListener("click", exportLook);
 async function loadLibrary() {

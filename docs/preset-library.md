@@ -208,22 +208,26 @@ three-preset built-in list as a safety net; the JSON is the library. User
 looks saved with "Save look" go to `localStorage` under a "Mine" group, and
 "Export" copies the current look as JSON for pasting into the library.
 
-**Thumbnails.** Not live (0.7.3). Each tile's source image is the preset's
-own name set in type, pushed through that look and rendered once, at a fixed
-moment with trails off and no audio; a queue spreads the renders over a few
-frames. So the name is readable in the tile itself, the label below repeats
-it, and nothing runs per frame once the grid is built. Patterns that ignore
-the source (Blobs, Plasma, Waves, Fractal, the oscilloscope) show themselves.
-Text presets render with the current copy, not their own.
+**Thumbnails.** Not live (0.7.3). Every preset is rendered once through its
+look at a fixed moment, with trails off and no audio, from one shared source
+image; a queue spreads the renders over a few frames and the grid re-renders
+when the source changes. The source is whatever is loaded in Video in (the
+current frame, for a video), else `presets/thumb.jpg` if the repo ships one,
+else the plasma field (0.8.0). The name sits lower left inside the tile on a
+black-to-clear fade and shows on hover or when the preset is active. Tiles
+are 2:1, the grid runs 2 to 4 columns with the panel width, and each family
+folds from its heading. Patterns that ignore the source (Blobs, Plasma,
+Waves, Fractal, the oscilloscope) show themselves. Text presets render with
+the current copy, not their own.
 
-**Reference clip.** Not needed once thumbnails stopped being live: the
-name-as-source approach replaced both the live feed and the test card.
+**Reference clip.** Optional: drop `presets/thumb.jpg` into the repo and it
+becomes the default thumbnail source. Keep it small; git keeps every version.
 
-**Set list.** Eight slots on keys 1–8, a strip at the top of the Presets
-section, and an overlay on the stage (key S, or the Output button) that also
-carries Gain so it works in fullscreen. Edited from the tiles: the + badge adds
-a preset to the next free slot and shows its slot number once in. Hard cuts;
-no crossfade yet.
+**Set list.** Eight slots on keys 1–8, shown only as a timeline in the lower
+third of the stage (0.8.0): it appears when + is pressed on a preset, toggles
+with S or the Output button, and carries Gain so it works in fullscreen. The +
+badge adds a preset to the next free slot and shows its slot number once in;
+the × on a chip removes it. Hard cuts; no crossfade yet.
 
 **Open questions, answered for now.** Reference clip: not needed. Thumbnail
 resolution: tile resolution. Set list editing: from the tiles.
