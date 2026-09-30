@@ -377,6 +377,7 @@
         <span class="headctl seg" id="srcSeg">
           <button data-src="mic">Mic</button>
           <button data-src="music">Music</button>
+          <button data-src="tab" title="React to the audio of another browser tab, such as Spotify or Apple Music">Tab</button>
         </span>
       </legend>
       <p class="note" id="srcNote" hidden>Idle — pick a sound source to react to audio.</p>
@@ -549,7 +550,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.7.6";  // the panel floats over the stage, turns to glass when idle and hides when unattended
+const APP_VERSION = "0.7.7";  // Tab source: react to another tab's audio (Spotify, Apple Music web players)
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -1752,10 +1753,50 @@ async function useMic() {
     srcMode = "none"; segSrc();
   }
 }
+// Tab audio: capture another browser tab (Spotify, Apple Music, YouTube in the
+// web player) through the screen-share picker with "Share tab audio" ticked.
+// Streaming services' own players are DRM-protected and cannot feed the
+// analyser directly; this is the route that works. No metadata comes with it.
+async function useTab() {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      micNote("This browser can\u2019t capture tab audio. Chrome can.", true);
+      srcMode = "none"; segSrc();
+      return;
+    }
+    micNote("Pick the tab that is playing and tick \u201cShare tab audio\u201d.");
+    await ensureCtx();
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true, selfBrowserSurface: "exclude", systemAudio: "include" });
+    stream.getVideoTracks().forEach(t => t.stop());       // only the audio is wanted
+    const track = stream.getAudioTracks()[0];
+    if (!track) {
+      micNote("No audio came with that pick. Choose a browser tab and tick \u201cShare tab audio\u201d, then try again.", true);
+      srcMode = "none"; segSrc();
+      return;
+    }
+    disconnectSource();
+    micStream = new MediaStream([track]);                 // the mic plumbing stops it on switch
+    srcNode = actx.createMediaStreamSource(micStream);
+    srcNode.connect(analyser);
+    srcNode.connect(dest);
+    micLabel = track.label || "the shared tab";
+    micNote("Reacting to " + micLabel + ".");
+    micSince = performance.now(); micPeak = 0;
+    track.addEventListener("ended", () => {
+      if (srcMode !== "tab") return;
+      disconnectSource(); srcMode = "none"; segSrc();
+      micNote("Tab sharing stopped.", true);
+    });
+    segSrc();
+  } catch (err) {
+    micNote(err.name === "NotAllowedError" ? "Tab sharing was cancelled." : "Couldn\u2019t capture the tab: " + err.message, true);
+    srcMode = "none"; segSrc();
+  }
+}
 // three seconds of silence from a live input almost always means the wrong
 // device, or a browser macOS has not been allowed to use the mic
 function checkMicSignal(now) {
-  if (srcMode !== "mic" || !micStream || now - micSince < 3000) return;
+  if ((srcMode !== "mic" && srcMode !== "tab") || !micStream || now - micSince < 3000) return;
   if (micPeak < 0.002) micNote("No signal from " + micLabel + ". Check the input level in System Settings \u2192 Sound, "
     + "or pick another input.", true);
   else micNote("Listening to " + micLabel + ".");
@@ -2111,6 +2152,7 @@ let srcMode = "none";
 const segSrc = seg("srcSeg", "src", () => srcMode, v => {
   srcMode = v;
   if (v === "mic") useMic();
+  else if (v === "tab") useTab();
   if (v !== "mic") $("micRow").hidden = true;
   if (v === "music") {
     if (lib.length) playTrack(cur < 0 ? 0 : cur);
