@@ -97,7 +97,7 @@
   fieldset.collapsed > :not(legend) { display: none; }
   fieldset.collapsed { margin-bottom: 14px; }
   fieldset.fixed > legend { cursor: default; min-height: 30px; align-items: center; padding-bottom: 8px; }
-  .headctl { margin-left: auto; display: flex; gap: 6px; letter-spacing: 0; text-transform: none; }
+  .headctl, .headctl.seg { margin-left: auto; display: flex; gap: 6px; letter-spacing: 0; text-transform: none; }
   .headctl button {
     background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); border-radius: 999px;
     padding: 5px 12px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
@@ -550,7 +550,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.7.7";  // Tab source: react to another tab's audio (Spotify, Apple Music web players)
+const APP_VERSION = "0.7.8";  // fixes: palette top colour with Bands on, source buttons on one row
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -1255,7 +1255,8 @@ vec3 screenFx(vec3 col, vec2 uv0, float T) {
 }
 
 vec3 pal(float t) {
-  t = fract(clamp(t, 0.0, 1.0) + u_shift);     // the palette loops, so a shift just rotates it
+  t = clamp(t, 0.0, 1.0);
+  if (u_shift > 0.0) t = fract(t + u_shift);   // the palette loops, so a shift just rotates it
   // Bands posterises onto the non-looping ramp: with as many bands as colours
   // each band is exactly one palette colour. (Band centres on the loop put a
   // two-colour palette's bands on the two blend midpoints: two identical greys.)
