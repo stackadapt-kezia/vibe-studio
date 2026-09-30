@@ -121,6 +121,7 @@
   }
   .seg button:not(.active):hover, .pill:hover { color: var(--text); background: #1b1b21; }
   .pill { width: 100%; margin-top: 8px; color: var(--text); }
+  .pillrow { display: flex; gap: 6px; }
   .pill.on { background: var(--accent); border-color: var(--accent); color: #fff; }
   select, input[type=text] {
     background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px;
@@ -445,7 +446,10 @@
         </optgroup>
       </select>
       <div id="swatches" style="margin-top:10px"></div>
-      <button class="pill" id="addColor">Add color</button>
+      <div class="pillrow">
+        <button class="pill" id="addColor">Add color</button>
+        <button class="pill" id="mixColors" title="Shuffle the order of the colours">Mix order</button>
+      </div>
     </fieldset>
 
     <fieldset>
@@ -524,7 +528,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.7.0";  // preset library: live thumbnails, set list on keys 1-8, save and export looks
+const APP_VERSION = "0.7.1";  // Mix order shuffles the palette
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -912,6 +916,19 @@ $("addColor").addEventListener("click", () => {
   if (state.colors.length >= 8) return;
   state.colors.push("#7FDFFD");
   state.weights.push(100);
+  buildPalette(); renderSwatches(); $("preset").value = "custom";
+});
+$("mixColors").addEventListener("click", () => {
+  const n = state.colors.length;
+  if (n < 2) return;
+  const before = state.colors.join();
+  for (let tries = 0; tries < 8 && state.colors.join() === before; tries++) {
+    for (let i = n - 1; i > 0; i--) {          // Fisher-Yates, colours and weights together
+      const j = Math.floor(Math.random() * (i + 1));
+      [state.colors[i], state.colors[j]] = [state.colors[j], state.colors[i]];
+      [state.weights[i], state.weights[j]] = [state.weights[j], state.weights[i]];
+    }
+  }
   buildPalette(); renderSwatches(); $("preset").value = "custom";
 });
 $("preset").addEventListener("change", e => {
