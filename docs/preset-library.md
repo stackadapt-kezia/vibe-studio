@@ -208,15 +208,16 @@ three-preset built-in list as a safety net; the JSON is the library. User
 looks saved with "Save look" go to `localStorage` under a "Mine" group, and
 "Export" copies the current look as JSON for pasting into the library.
 
-**Thumbnails.** One shared 160×90 framebuffer; two tiles per frame, round
-robin; tiles off screen do not render. Thumbnails render with trails off (no
-per-tile history) and with the current Microtext atlas, so a Microtext preset's
-tile shows whatever copy is currently set.
+**Thumbnails.** Not live (0.7.3). Each tile's source image is the preset's
+own name set in type, pushed through that look and rendered once, at a fixed
+moment with trails off and no audio; a queue spreads the renders over a few
+frames. So the name is readable in the tile itself, the label below repeats
+it, and nothing runs per frame once the grid is built. Patterns that ignore
+the source (Blobs, Plasma, Waves, Fractal, the oscilloscope) show themselves.
+Text presets render with the current copy, not their own.
 
-**Reference clip.** Resolved without shipping media: the reference is a test
-card drawn on a canvas at startup (grey ramp, colour bars, fine rings, a soft
-highlight, a dark disc, a checkerboard, heavy type). It is static; the looks
-supply the motion. Reference is the default grid source.
+**Reference clip.** Not needed once thumbnails stopped being live: the
+name-as-source approach replaced both the live feed and the test card.
 
 **Set list.** Eight slots on keys 1–8, a strip at the top of the Presets
 section, and an overlay on the stage (key S, or the Output button) that also
@@ -224,5 +225,5 @@ carries Gain so it works in fullscreen. Edited from the tiles: the + badge adds
 a preset to the next free slot and shows its slot number once in. Hard cuts;
 no crossfade yet.
 
-**Open questions, answered for now.** Reference clip: generated, not shipped.
-Thumbnail resolution: tile resolution. Set list editing: from the tiles.
+**Open questions, answered for now.** Reference clip: not needed. Thumbnail
+resolution: tile resolution. Set list editing: from the tiles.

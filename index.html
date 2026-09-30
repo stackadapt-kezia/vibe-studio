@@ -266,16 +266,12 @@
   .slot b { color: var(--text); margin-right: 4px; font-family: "Space Grotesk", sans-serif; }
   .slot.filled { border-style: solid; background: var(--panel-2); color: var(--text); }
   .slot.active { border-color: var(--accent); }
-  .libbar { display: flex; gap: 6px; align-items: center; margin-bottom: 10px; }
-  .libbar .seg { display: flex; flex: 1; gap: 4px; }
-  .libbar .seg button, .libbar > button {
-    padding: 5px 10px; font-size: 12px; border-radius: 999px; background: var(--panel-2);
-    border: 1px solid var(--line); color: var(--muted); cursor: pointer; font-family: inherit;
+  .libbar { display: flex; gap: 6px; align-items: center; justify-content: flex-end; margin-bottom: 10px; }
+  .libbar > button {
+    padding: 5px 12px; font-size: 12px; border-radius: 999px; background: var(--panel-2);
+    border: 1px solid var(--line); color: var(--text); cursor: pointer; font-family: inherit;
   }
-  .libbar .seg button { flex: 1; }
-  .libbar > button { color: var(--text); }
-  .libbar .seg button:not(.active):hover, .libbar > button:hover { background: #1b1b21; color: var(--text); }
-  .libbar .seg button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .libbar > button:hover { background: #1b1b21; }
   .setlist-overlay {
     position: absolute; left: 50%; bottom: 44px; transform: translateX(-50%); z-index: 40;
     display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px;
@@ -401,10 +397,6 @@
       <legend>Presets</legend>
       <div class="setstrip" id="setStrip"></div>
       <div class="libbar">
-        <div class="seg" id="gridSrcSeg">
-          <button data-gs="ref">Reference</button>
-          <button data-gs="live">Live</button>
-        </div>
         <button id="saveLook" title="Save the current controls as a look in Mine">Save look</button>
         <button id="exportLook" title="Copy the current look as JSON for presets/library.json">Export</button>
       </div>
@@ -527,7 +519,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.7.2";  // ASCII and Microtext merge into one Text pattern; blank copy is ASCII art
+const APP_VERSION = "0.7.3";  // preset thumbnails are the preset's name through its look, rendered once
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -2067,9 +2059,10 @@ const BUILTIN_PRESETS = [
     palette: { colors: ["#0B0B0D", "#F5B301"] },
     routes: [{ src: "bass", dst: "size", amt: 0.4 }, { src: "beat", dst: "flash", amt: 0.4 }] },
 ];
-const SETLIST_N = 8, TILE_W = 160, TILE_H = 90, TILES_PER_FRAME = 2;
-let libraryPresets = [], userPresets = [], setlist = [], gridSource = "ref", tileCursor = 0;
-const tiles = [];                                   // { preset, canvas, ctx, img, visible, el, badge }
+const SETLIST_N = 8, TILE_W = 160, TILE_H = 90, TILES_PER_FRAME = 3;
+let libraryPresets = [], userPresets = [], setlist = [];
+const tiles = [];                                   // { preset, canvas, ctx, img, el, badge }
+const tileQueue = [];                               // tiles still to render, drained a few per frame
 const tileFB = makeTarget(TILE_W, TILE_H);
 const tileBuf = new Uint8Array(TILE_W * TILE_H * 4);
 const palCache = new Map();
@@ -2112,10 +2105,10 @@ function modsFor(routes) {
   return m;
 }
 // every per-look uniform of the scene shader, for the main pass or a thumbnail
-function setLook(L, m, w, h, pEnd) {
+function setLook(L, m, w, h, pEnd, time = T) {
   const U = n => gl.getUniformLocation(scene, n);
   gl.uniform2f(U("u_res"), w, h);
-  gl.uniform1f(U("u_time"), T);
+  gl.uniform1f(U("u_time"), time);
   gl.uniform1i(U("u_style"), L.style);
   gl.uniform1f(U("u_trails"), Math.min(0.97, L.trails + m("trails") * 0.5));
   gl.uniform1f(U("u_fbZoom"), L.fbZoom + m("push") * 0.02);
@@ -2137,88 +2130,62 @@ function setLook(L, m, w, h, pEnd) {
   gl.uniform1f(U("u_distort"), Math.min(1.5, L.distort + m("distort")));
 }
 
-// Reference source for the grid: a test card drawn at startup, so the library
-// reads the same in a dark room and no image ships in the repo. It carries a
-// grey ramp, colour bars, fine rings, a soft highlight, a dark disc, a
-// checkerboard and heavy type: the things that tell the looks apart.
-const REF_W = 1024, REF_H = 576;
-const refTex = gl.createTexture();
-(() => {
+// Thumbnails: each preset's name, set in type, is the source image pushed
+// through that look, rendered once. Nothing runs per frame once the grid is
+// built; a queue spreads the renders over a few frames so building it never
+// stalls. Patterns that ignore the source (Blobs, Plasma, Waves, Fractal, the
+// oscilloscope) show themselves instead, and the label below carries the name.
+const tileSrcTex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tileSrcTex);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+const TILE_T = 3.0;                                 // one fixed moment for every tile
+const zeroMod = () => 0;
+zeroMod.mod = {};
+function nameCanvas(name) {
   const c = document.createElement("canvas");
-  c.width = REF_W; c.height = REF_H;
+  c.width = 320; c.height = 180;
   const x = c.getContext("2d");
-  const g = x.createLinearGradient(0, 0, REF_W, REF_H);
-  g.addColorStop(0, "#000"); g.addColorStop(1, "#fff");
-  x.fillStyle = g; x.fillRect(0, 0, REF_W, REF_H);
-  ["#fff", "#ff0", "#0ff", "#0f0", "#f0f", "#f00", "#00f", "#000"].forEach((col, i) => {
-    x.fillStyle = col; x.fillRect(i * REF_W / 8, 0, REF_W / 8, 90);
-  });
-  x.lineWidth = 3; x.strokeStyle = "#fff";
-  for (let r = 12; r < 220; r += 12) { x.beginPath(); x.arc(800, 330, r, 0, 7); x.stroke(); }
-  x.lineWidth = 1.5; x.strokeStyle = "#000";
-  for (let r = 6; r < 220; r += 12) { x.beginPath(); x.arc(800, 330, r, 0, 7); x.stroke(); }
-  const rg = x.createRadialGradient(300, 330, 10, 300, 330, 180);
-  rg.addColorStop(0, "#fff"); rg.addColorStop(1, "rgba(255,255,255,0)");
-  x.fillStyle = rg; x.fillRect(100, 150, 400, 360);
-  x.fillStyle = "#111"; x.beginPath(); x.arc(300, 330, 70, 0, 7); x.fill();
-  for (let j = 0; j < 8; j++) for (let i = 0; i < 16; i++) {
-    x.fillStyle = (i + j) % 2 ? "#000" : "#fff"; x.fillRect(40 + i * 12, 460 + j * 12, 12, 12);
-  }
-  x.font = "bold 150px 'Space Grotesk', sans-serif"; x.textBaseline = "alphabetic";
-  x.fillStyle = "#000"; x.fillText("VIBE", 470, 540);
-  x.fillStyle = "#fff"; x.fillText("VIBE", 476, 534);
-  gl.bindTexture(gl.TEXTURE_2D, refTex);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-})();
-
-// Thumbnails: a few tiles per frame, round-robin, into one shared 160x90
-// target, read back into each tile's canvas. Tiles off screen do not render.
-function drawTiles() {
-  if (document.body.classList.contains("hide-ui")) return;
-  const vis = tiles.filter(t => t.visible);
-  if (!vis.length) return;
+  x.fillStyle = "#000"; x.fillRect(0, 0, 320, 180);
+  x.fillStyle = "#fff"; x.textAlign = "center"; x.textBaseline = "middle";
+  let size = 76;
+  do { x.font = "600 " + size + "px 'Space Grotesk', sans-serif"; size -= 4; } while (x.measureText(name).width > 292 && size > 24);
+  x.fillText(name, 160, 94);
+  return c;
+}
+function renderTile(t) {
+  const P = t.preset;
   gl.useProgram(scene);
   gl.bindBuffer(gl.ARRAY_BUFFER, quad);
   gl.vertexAttribPointer(gl.getAttribLocation(scene, "a"), 2, gl.FLOAT, false, 0, 0);
   const U = n => gl.getUniformLocation(scene, n);
   gl.activeTexture(gl.TEXTURE3);
-  if (gridSource === "ref") {
-    gl.bindTexture(gl.TEXTURE_2D, refTex);
-    gl.uniform1f(U("u_hasImg"), 1); gl.uniform1f(U("u_imgAspect"), REF_W / REF_H);
-  } else {
-    gl.bindTexture(gl.TEXTURE_2D, imgTex);
-    gl.uniform1f(U("u_hasImg"), imgSrc ? 1 : 0); gl.uniform1f(U("u_imgAspect"), imgAspect);
-  }
+  gl.bindTexture(gl.TEXTURE_2D, tileSrcTex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, nameCanvas(P.name));
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  gl.uniform1f(U("u_hasImg"), 1);
+  gl.uniform1f(U("u_imgAspect"), 320 / 180);
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, B.tex);             // unused at trails 0, but something must be bound
+  gl.activeTexture(gl.TEXTURE0);
+  const pal = palFor(P);
+  gl.bindTexture(gl.TEXTURE_2D, pal.tex);
+  setLook(Object.assign({}, DEFAULT_LOOK, P.look, { trails: 0 }), zeroMod, TILE_W, TILE_H, pal.palEnd, TILE_T);
   gl.bindFramebuffer(gl.FRAMEBUFFER, tileFB.fb);
   gl.viewport(0, 0, TILE_W, TILE_H);
-  const row = TILE_W * 4;
-  for (let k = 0; k < TILES_PER_FRAME && k < vis.length; k++) {
-    tileCursor = (tileCursor + 1) % vis.length;
-    const t = vis[tileCursor], P = t.preset;
-    gl.activeTexture(gl.TEXTURE0);
-    const pal = palFor(P);
-    gl.bindTexture(gl.TEXTURE_2D, pal.tex);
-    setLook(Object.assign({}, DEFAULT_LOOK, P.look, { trails: 0 }), modsFor(P.routes), TILE_W, TILE_H, pal.palEnd);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    gl.readPixels(0, 0, TILE_W, TILE_H, gl.RGBA, gl.UNSIGNED_BYTE, tileBuf);
-    const dst = t.img.data;
-    for (let y = 0; y < TILE_H; y++) dst.set(tileBuf.subarray(y * row, (y + 1) * row), (TILE_H - 1 - y) * row);
-    t.ctx.putImageData(t.img, 0, 0);
-  }
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.readPixels(0, 0, TILE_W, TILE_H, gl.RGBA, gl.UNSIGNED_BYTE, tileBuf);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  const row = TILE_W * 4, dst = t.img.data;
+  for (let y = 0; y < TILE_H; y++) dst.set(tileBuf.subarray(y * row, (y + 1) * row), (TILE_H - 1 - y) * row);
+  t.ctx.putImageData(t.img, 0, 0);
 }
-const tileObserver = new IntersectionObserver(entries => entries.forEach(e => {
-  const t = tiles.find(t => t.el === e.target);
-  if (t) t.visible = e.isIntersecting;
-}), { threshold: 0.05 });
+function drawTiles() {                              // once per frame: drain the queue a few at a time
+  for (let k = 0; k < TILES_PER_FRAME && tileQueue.length; k++) renderTile(tileQueue.shift());
+}
 
 const allPresets = () => [...libraryPresets, ...userPresets];
 const findPreset = id => allPresets().find(p => p.id === id);
@@ -2233,7 +2200,7 @@ function buildGrid() {
   const host = $("presetGrid");
   host.innerHTML = "";
   tiles.length = 0;
-  tileObserver.disconnect();
+  tileQueue.length = 0;
   const all = allPresets();
   Object.entries(GROUPS).forEach(([g, label]) => {
     const list = all.filter(p => (p.group || "mine") === g);
@@ -2262,8 +2229,9 @@ function buildGrid() {
       el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); applyPreset(p); } });
       wrap.append(el);
       const ctx = cv.getContext("2d");
-      tiles.push({ preset: p, canvas: cv, ctx, img: ctx.createImageData(TILE_W, TILE_H), visible: false, el, badge });
-      tileObserver.observe(el);
+      const t = { preset: p, canvas: cv, ctx, img: ctx.createImageData(TILE_W, TILE_H), el, badge };
+      tiles.push(t);
+      tileQueue.push(t);
     });
     host.append(h, wrap);
   });
@@ -2398,7 +2366,6 @@ $("ovGain").addEventListener("input", () => { state.gain = +$("ovGain").value; s
 $("setBtn").addEventListener("click", () => toggleOverlay());
 $("saveLook").addEventListener("click", saveLook);
 $("exportLook").addEventListener("click", exportLook);
-const segGrid = seg("gridSrcSeg", "gs", () => gridSource, v => { gridSource = v; });
 async function loadLibrary() {
   let list = BUILTIN_PRESETS, from = "built-in";
   try {
