@@ -299,12 +299,16 @@
   .pslot.in { background: var(--accent); border-color: var(--accent); }
   .pdel { top: 5px; font-size: 13px; }
   .libbar { display: flex; gap: 6px; align-items: center; justify-content: flex-end; margin-bottom: 10px; }
+  .fadectl { display: flex; align-items: center; gap: 6px; margin-right: auto; font-size: 12px; color: var(--muted); }
+  .fadectl input[type=range] { width: 70px; accent-color: var(--accent); }
+  .fadectl output { min-width: 28px; font-variant-numeric: tabular-nums; }
   .libbar > button {
     padding: 5px 12px; font-size: 12px; border-radius: 999px; background: var(--panel-2);
     border: 1px solid var(--line); color: var(--text); cursor: pointer; font-family: inherit;
   }
   .libbar > button:hover { background: #1b1b21; }
   /* the set list: a timeline of eight slots in the lower third of the stage */
+  #stage:fullscreen .setlist-overlay, #stage:-webkit-full-screen .setlist-overlay { display: none !important; }
   .setlist-overlay {
     position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%); z-index: 40;
     display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px;
@@ -464,6 +468,10 @@
       <div class="libbar">
         <button id="saveLook" title="Save the current controls as a look in Mine">Save look</button>
         <button id="exportLook" title="Copy the current look as JSON for presets/library.json">Export</button>
+        <label class="fadectl" title="Crossfade between looks. 0 is a hard cut.">Fade
+          <input type="range" id="fadeSec" min="0" max="4" step="0.1" value="0" aria-label="Crossfade seconds">
+          <output id="fadeOut">cut</output>
+        </label>
       </div>
       <div id="presetGrid"></div>
       <p class="note" id="presetNote" hidden></p>
@@ -566,7 +574,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.8.0";  // preset grid: hover labels, 2-4 columns, folding families, image-fed thumbnails; palette first; set list on the stage; faders
+const APP_VERSION = "0.8.1";  // crossfades between looks; the set list hides in presentation mode
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -1422,9 +1430,13 @@ void main() {
 
 const COPY = `
 precision highp float;
-uniform sampler2D u_tex;
+uniform sampler2D u_tex, u_tex2;   // incoming frame, and the outgoing one during a crossfade
 uniform vec2 u_res;
-void main() { gl_FragColor = texture2D(u_tex, gl_FragCoord.xy / u_res); }`;
+uniform float u_mix;               // 1 shows u_tex alone
+void main() {
+  vec2 uv = gl_FragCoord.xy / u_res;
+  gl_FragColor = mix(texture2D(u_tex2, uv), texture2D(u_tex, uv), u_mix);
+}`;
 
 function compile(src, type) {
   const s = gl.createShader(type);
@@ -1543,6 +1555,7 @@ function resize() {
   if (canvas.width === w && canvas.height === h) return;
   canvas.width = w; canvas.height = h;
   A = makeTarget(w, h); B = makeTarget(w, h);
+  endFade();                                 // the outgoing look's targets are the old size
 }
 addEventListener("resize", resize);
 
@@ -2377,6 +2390,7 @@ function syncSliders() {
 }
 // hard cut to a preset
 function applyPreset(P) {
+  if (fadeSec > 0 && activeId !== P.id) startFade(fadeSec);
   const L = P.look;
   LOOK_KEYS.forEach(k => { state[k] = k in L ? L[k] : DEFAULT_LOOK[k]; });
   if ("microText" in L) $("microText").value = L.microText;
@@ -2513,6 +2527,56 @@ async function loadLibrary() {
 let libraryFrom = "";
 loadLibrary();
 
+/* ================= crossfades ================= */
+// A crossfade keeps rendering the outgoing look for its duration, with its own
+// history pair, and the copy pass blends it under the incoming one.
+let fade = null;                                    // { look, routes, pal, X, Y, t0, dur }
+function endFade() {
+  if (!fade) return;
+  [fade.X, fade.Y].forEach(t => { gl.deleteFramebuffer(t.fb); gl.deleteTexture(t.tex); });
+  gl.deleteTexture(fade.pal.tex);
+  fade = null;
+}
+function startFade(dur) {
+  endFade();
+  const look = Object.assign({}, DEFAULT_LOOK, Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]])));
+  const routes = state.routes.map(r => ({ src: r.src, dst: r.dst, amt: r.amt }));
+  const data = new Uint8Array(256 * 4);
+  const palEndOut = computePalette(state.colors, state.weights, data);
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+  const X = makeTarget(A.w, A.h), Y = makeTarget(A.w, A.h);
+  // seed the outgoing history from the current one so its trails carry over
+  gl.bindFramebuffer(gl.FRAMEBUFFER, Y.fb);
+  gl.viewport(0, 0, Y.w, Y.h);
+  gl.useProgram(copy);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  gl.vertexAttribPointer(gl.getAttribLocation(copy, "a"), 2, gl.FLOAT, false, 0, 0);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, B.tex);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, B.tex);
+  gl.uniform1i(gl.getUniformLocation(copy, "u_tex"), 0);
+  gl.uniform1i(gl.getUniformLocation(copy, "u_tex2"), 1);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_mix"), 1);
+  gl.uniform2f(gl.getUniformLocation(copy, "u_res"), Y.w, Y.h);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  fade = { look, routes, pal: { tex, palEnd: palEndOut }, X, Y, t0: performance.now(), dur };
+}
+let fadeSec = 0;
+try { fadeSec = Math.max(0, Math.min(4, +localStorage.getItem("vibe.fade") || 0)); } catch (e) { /* no storage */ }
+$("fadeSec").value = fadeSec;
+const showFade = () => { $("fadeOut").textContent = fadeSec > 0 ? fadeSec.toFixed(1) + "s" : "cut"; };
+showFade();
+$("fadeSec").addEventListener("input", () => {
+  fadeSec = +$("fadeSec").value; showFade();
+  try { localStorage.setItem("vibe.fade", String(fadeSec)); } catch (e) { /* no storage */ }
+});
+
 /* ================= panel glass and auto-hide ================= */
 // Two seconds after the cursor leaves the panel it turns to glass; five
 // seconds without any mouse or key activity it slides away. Any movement
@@ -2647,6 +2711,24 @@ function frame(now) {
   gl.viewport(0, 0, A.w, A.h);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
+  // during a crossfade, the outgoing look renders too, with its own history
+  let mixK = 1;
+  if (fade) {
+    const k = (now - fade.t0) / (fade.dur * 1000);
+    if (k >= 1) endFade();
+    else {
+      mixK = k * k * (3 - 2 * k);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, fade.pal.tex);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, fade.Y.tex);
+      setLook(fade.look, modsFor(fade.routes), fade.X.w, fade.X.h, fade.pal.palEnd);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fade.X.fb);
+      gl.viewport(0, 0, fade.X.w, fade.X.h);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+  }
+
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.viewport(0, 0, canvas.width, canvas.height);
   gl.useProgram(copy);
@@ -2654,11 +2736,16 @@ function frame(now) {
   gl.vertexAttribPointer(gl.getAttribLocation(copy, "a"), 2, gl.FLOAT, false, 0, 0);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, A.tex);
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, fade ? fade.X.tex : A.tex);
   gl.uniform1i(gl.getUniformLocation(copy, "u_tex"), 0);
+  gl.uniform1i(gl.getUniformLocation(copy, "u_tex2"), 1);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_mix"), mixK);
   gl.uniform2f(gl.getUniformLocation(copy, "u_res"), canvas.width, canvas.height);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
   const t = A; A = B; B = t;      // ping-pong: this frame becomes next frame's history
+  if (fade) { const u = fade.X; fade.X = fade.Y; fade.Y = u; }
   drawTiles();
   requestAnimationFrame(frame);
 }
