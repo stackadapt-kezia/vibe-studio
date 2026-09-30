@@ -608,7 +608,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.3";  // Thermal replaces Receipt: a grungy thermal-print filter over the picture; Torn Poster removed
+const APP_VERSION = "0.9.4";  // dust and scratches rebuilt from a film plate: specks, wandering hairs, cracks, grime
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -1268,18 +1268,50 @@ vec3 textureFx(vec3 col, vec2 uv, float T) {
   float a = u_texAmt;
   float ca = u_res.x / u_res.y;
   if (u_tex == 1) {
-    // scratches: hairline scratches, broken into runs, plus dust, drifting like film
+    // dust and scratches, white on the picture like a dirty film plate: specks
+    // at three sizes, long thin scratches that wander and break, short cracks
+    // at odd angles, faint clouds of grime, a vignette; the plate jumps eight
+    // times a second like film. Amount sets how dirty.
     vec2 q = uv * vec2(ca, 1.0);
-    float drift = floor(T * 5.0);
-    float sx = q.x * 160.0 + 3.0 * vnoise(vec2(q.y * 3.0, drift * 0.37));
-    float carries = step(1.0 - 0.06 * a, hash(floor(sx) + drift * 13.1));
-    float thin = 1.0 - smoothstep(0.0, 0.35, abs(fract(sx) - 0.5) * 2.0);
-    float run = step(0.35, vnoise(vec2(floor(sx) * 0.7, q.y * 2.5 + drift)));
-    float scratch = carries * thin * run;
-    vec3 mark = step(0.5, hash(floor(sx) * 3.3)) > 0.5 ? vec3(1.0) : col * 0.15;
-    col = mix(col, mark, scratch);
-    float dust = step(1.0 - 0.002 * a, hash2(floor(q * 240.0) + drift));
-    col = mix(col, vec3(0.92), dust);
+    float fr = floor(T * 8.0);
+    vec2 jit = vec2(hash(fr), hash(fr + 2.0));
+    float w = 0.0;
+    for (int i = 0; i < 3; i++) {
+      float s = 150.0 * pow(2.2, float(i));
+      vec2 g = (q + jit) * s;
+      vec2 c = floor(g);
+      vec2 f = fract(g) - 0.5 - (vec2(hash2(c + 1.1), hash2(c + 2.2)) - 0.5) * 0.6;
+      float on = step(1.0 - 0.02 * a * (0.6 + float(i)), hash2(c + fr));
+      float rad = 0.06 + 0.22 * hash2(c + 5.0);
+      w += on * smoothstep(rad, rad * 0.4, length(f)) * (0.35 + 0.65 * hash2(c + 3.3));
+    }
+    for (int i = 0; i < 2; i++) {
+      float fi = float(i);
+      float n = 22.0 + fi * 16.0;
+      float xs = q.x * n + fi * 3.7 + jit.x * 1.5;
+      float lane = floor(xs);
+      float wander = 0.3 * (vnoise(vec2(q.y * 2.5 + lane, lane * 0.13 + fr * 0.05)) - 0.5) + 0.08 * sin(q.y * 23.0 + lane * 2.0);
+      float d = abs(fract(xs) - 0.5 - wander);
+      float thin = 1.0 - smoothstep(0.0, 0.02 + 0.025 * hash(lane + fi), d);
+      float along = smoothstep(0.4, 0.62, vnoise(vec2(q.y * 2.0 + lane * 5.0, fr * 0.2 + fi)));
+      float on = step(1.0 - 0.12 * a, hash(lane * 1.7 + fi * 9.0 + floor(fr * 0.25)));
+      w += on * thin * along * (0.3 + 0.7 * hash(lane + 7.0));
+    }
+    {
+      vec2 g = (q + jit * 0.5) * 8.0;
+      vec2 c = floor(g);
+      vec2 f = fract(g) - 0.5;
+      float ang = hash2(c + 4.4) * 3.14159;
+      vec2 dir = vec2(cos(ang), sin(ang));
+      float along = dot(f, dir);
+      float across = abs(dot(f, vec2(-dir.y, dir.x)) + 0.04 * sin(along * 50.0 + hash2(c) * 6.0));
+      float len = 0.12 + 0.3 * hash2(c + 6.6);
+      float crack = step(1.0 - 0.4 * a, hash2(c + 8.8)) * (1.0 - smoothstep(0.0, 0.01, across)) * step(abs(along), len);
+      w += crack * (0.5 + 0.5 * hash2(c + 1.0));
+    }
+    w += smoothstep(0.58, 0.88, fbm(q * 2.5 + jit)) * 0.22 * a;
+    col = mix(col, vec3(1.0), clamp(w, 0.0, 1.0) * 0.9);
+    col *= 1.0 - 0.18 * a * smoothstep(0.45, 1.3, length(uv - 0.5) * 1.6);
   } else if (u_tex == 2) {
     // torn: the print is a sheet torn along its top and right edges, over darker
     // paper of the first colour, with a pale fibrous rim along the tear
