@@ -230,6 +230,67 @@
     font-size: 15px; padding: 2px 6px; border-radius: 5px;
   }
   .track button:hover { color: var(--text); background: var(--panel-2); }
+  .pgroup {
+    font: 500 10px/1 "Space Grotesk", sans-serif; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--muted); margin: 10px 0 6px;
+  }
+  .ptiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .ptile {
+    position: relative; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+    background: var(--panel-2); cursor: pointer;
+  }
+  .ptile canvas { display: block; width: 100%; aspect-ratio: 16 / 9; }
+  .ptile:hover { border-color: var(--muted); }
+  .ptile:focus-visible { outline: 1px solid var(--accent); }
+  .ptile.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .pname {
+    display: block; padding: 5px 30px 5px 8px; font-size: 12px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .pslot, .pdel {
+    position: absolute; right: 6px; width: 22px; height: 22px; padding: 0; border-radius: 999px;
+    border: 1px solid var(--line); background: rgba(0, 0, 0, .6); color: var(--muted);
+    font: 600 11px/1 "Space Grotesk", sans-serif; cursor: pointer; display: grid; place-items: center;
+  }
+  .pslot { bottom: 5px; }
+  .pslot:hover, .pdel:hover { color: var(--text); border-color: var(--muted); }
+  .pslot.in { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .pdel { top: 6px; font-size: 13px; }
+  .setstrip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+  .slot {
+    border: 1px dashed var(--line); background: none; color: var(--muted); border-radius: 8px;
+    padding: 6px 6px; font: inherit; font-size: 11px; cursor: pointer; text-align: left;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+  }
+  .slot b { color: var(--text); margin-right: 4px; font-family: "Space Grotesk", sans-serif; }
+  .slot.filled { border-style: solid; background: var(--panel-2); color: var(--text); }
+  .slot.active { border-color: var(--accent); }
+  .libbar { display: flex; gap: 6px; align-items: center; margin-bottom: 10px; }
+  .libbar .seg { display: flex; flex: 1; gap: 4px; }
+  .libbar .seg button, .libbar > button {
+    padding: 5px 10px; font-size: 12px; border-radius: 999px; background: var(--panel-2);
+    border: 1px solid var(--line); color: var(--muted); cursor: pointer; font-family: inherit;
+  }
+  .libbar .seg button { flex: 1; }
+  .libbar > button { color: var(--text); }
+  .libbar .seg button:not(.active):hover, .libbar > button:hover { background: #1b1b21; color: var(--text); }
+  .libbar .seg button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .setlist-overlay {
+    position: absolute; left: 50%; bottom: 44px; transform: translateX(-50%); z-index: 40;
+    display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px;
+    max-width: 90%; padding: 10px 14px; border-radius: 14px;
+    background: rgba(0, 0, 0, .72); border: 1px solid var(--line);
+  }
+  .setlist-overlay .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .chip {
+    border: 1px solid var(--line); background: var(--panel-2); color: var(--text); border-radius: 999px;
+    padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer;
+  }
+  .chip b { font-family: "Space Grotesk", sans-serif; margin-right: 6px; color: var(--muted); }
+  .chip.active { background: var(--accent); border-color: var(--accent); }
+  .chip.active b { color: #fff; }
+  .setlist-overlay label { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; margin-left: 8px; }
+  .setlist-overlay input[type=range] { width: 110px; accent-color: var(--accent); }
   .route { display: flex; align-items: center; gap: 5px; margin-bottom: 6px; }
   .route select { flex: 1 1 0; min-width: 0; width: auto; padding: 5px 4px; font-size: 12px; }
   .route .arrow { color: var(--muted); font-size: 12px; flex: 0 0 auto; }
@@ -336,6 +397,21 @@
     </div>
     <div class="scrolls">
     <fieldset>
+      <legend>Presets</legend>
+      <div class="setstrip" id="setStrip"></div>
+      <div class="libbar">
+        <div class="seg" id="gridSrcSeg">
+          <button data-gs="ref">Reference</button>
+          <button data-gs="live">Live</button>
+        </div>
+        <button id="saveLook" title="Save the current controls as a look in Mine">Save look</button>
+        <button id="exportLook" title="Copy the current look as JSON for presets/library.json">Export</button>
+      </div>
+      <div id="presetGrid"></div>
+      <p class="note" id="presetNote" hidden></p>
+    </fieldset>
+
+    <fieldset>
       <legend>Pattern</legend>
       <div class="seg" id="styleSeg">
         <button data-style="0">Blobs</button>
@@ -430,6 +506,7 @@
       <legend>Output</legend>
       <button class="pill" id="fsBtn">Fullscreen (projector)</button>
       <button class="pill" id="hideBtn">Hide panel — H</button>
+      <button class="pill" id="setBtn">Set list — S</button>
       <button class="pill" id="recBtn">Record performance</button>
       <p class="note" id="outNote">Drag this window to the projector display, then go fullscreen.</p>
     </fieldset>
@@ -439,11 +516,15 @@
   <button class="pill showui" id="showBtn">Show panel</button>
   <main class="stage" id="stage">
     <canvas id="gl"></canvas>
-    <div class="hint" id="hint">F — fullscreen · H — hide panel · Esc — exit</div>
+    <div class="hint" id="hint">F — fullscreen · H — hide panel · 1–8 — set list · S — set list panel · Esc — exit</div>
+    <div class="setlist-overlay" id="setOverlay" hidden>
+      <div class="chips" id="setChips"></div>
+      <label>Gain <input type="range" id="ovGain" min="0.2" max="4" step="0.05" aria-label="Gain"></label>
+    </div>
   </main>
 </div>
 <script>
-const APP_VERSION = "0.6.1";  // palette stop dots follow swatch edits
+const APP_VERSION = "0.7.0";  // preset library: live thumbnails, set list on keys 1-8, save and export looks
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -465,6 +546,8 @@ const state = {
   routes: [],                                   // filled from DEFAULT_ROUTES or storage below
   gain: 1.6, smooth: 0.7,
 };
+let activeId = null;                              // the preset the controls currently match, if any
+function touch() { if (activeId !== null) { activeId = null; renderActive(); } }
 
 const LOOK = [
   ["scale", "Scale", 0.2, 2, 0.01, v => v.toFixed(2)],
@@ -514,7 +597,7 @@ function buildRows(host, spec) {
     num.type = "number"; num.className = "num";
     num.min = min; num.max = max; num.step = step; num.value = state[key];
     num.setAttribute("aria-label", label + " value");
-    el.addEventListener("input", () => { state[key] = +el.value; num.value = el.value; });
+    el.addEventListener("input", () => { state[key] = +el.value; num.value = el.value; touch(); });
     num.addEventListener("input", () => {
       const v = +num.value;
       if (Number.isNaN(v)) return;
@@ -537,6 +620,7 @@ function loadRoutes() {
 }
 function saveRoutes() {
   try { localStorage.setItem("vibe.routes", JSON.stringify(state.routes)); } catch (e) { /* no storage */ }
+  touch();
 }
 function renderRoutes() {
   const host = $("routeRows");
@@ -592,11 +676,12 @@ function stopFractions() {
   for (let i = 0; i < w.length - 1; i++) { acc += w[i]; fr.push(acc / sum); }
   return fr;
 }
-function buildPalette() {
-  const cols = state.colors.map(hexToRgb);
+// bake a colour list and its weights into a 256-entry RGBA ramp; returns where
+// the wrap-around segment (last colour back to the first) begins
+function computePalette(colors, weights, out) {
+  const cols = colors.map(hexToRgb);
   const n = cols.length;
-  if (state.weights.length !== n) state.weights = cols.map(() => 100);
-  const w = state.weights.map(x => Math.max(0.05, +x || 1));
+  const w = weights.map(x => Math.max(0.05, +x || 1));
   const sum = w.reduce((a, b) => a + b, 0);
   const stops = [0];
   for (let i = 0; i < n; i++) stops.push(stops[i] + w[i] / sum);
@@ -608,14 +693,19 @@ function buildPalette() {
     const span = stops[seg + 1] - stops[seg];
     const f = span > 0 ? (t - stops[seg]) / span : 0;
     const a = cols[seg], b = cols[(seg + 1) % n];
-    palData[i * 4] = a[0] + (b[0] - a[0]) * f;
-    palData[i * 4 + 1] = a[1] + (b[1] - a[1]) * f;
-    palData[i * 4 + 2] = a[2] + (b[2] - a[2]) * f;
-    palData[i * 4 + 3] = 255;
+    out[i * 4] = a[0] + (b[0] - a[0]) * f;
+    out[i * 4 + 1] = a[1] + (b[1] - a[1]) * f;
+    out[i * 4 + 2] = a[2] + (b[2] - a[2]) * f;
+    out[i * 4 + 3] = 255;
   }
-  palEnd = stops[n - 1];
+  return stops[n - 1];
+}
+function buildPalette() {
+  if (state.weights.length !== state.colors.length) state.weights = state.colors.map(() => 100);
+  palEnd = computePalette(state.colors, state.weights, palData);
   palDirty = true;
   updatePill();
+  touch();
 }
 let palPillCanvas = null, palPillBox = null;
 function updatePill() {
@@ -847,7 +937,7 @@ function seg(id, attr, get, set) {
   sync();
   return sync;
 }
-seg("styleSeg", "style", () => state.style, v => { state.style = +v; syncControls(); });
+const segStyle = seg("styleSeg", "style", () => state.style, v => { state.style = +v; syncControls(); touch(); });
 
 /* ================= which controls matter for the current mode ================= */
 // Read from the shader: Blobs only counts on Blobs; Warp is unused by Blobs,
@@ -886,8 +976,8 @@ function syncControls() {
     sync();
   });
 })();
-seg("distSeg", "dist", () => state.dist, v => { state.dist = +v; syncControls(); });
-seg("screenSeg", "screen", () => state.screen, v => { state.screen = +v; syncControls(); });
+const segDist = seg("distSeg", "dist", () => state.dist, v => { state.dist = +v; syncControls(); touch(); });
+const segScreen = seg("screenSeg", "screen", () => state.screen, v => { state.screen = +v; syncControls(); touch(); });
 syncControls();
 
 /* ================= resizable panel ================= */
@@ -1936,6 +2026,375 @@ const segSrc = seg("srcSeg", "src", () => srcMode, v => {
   }
 });
 
+/* ================= preset library ================= */
+// A preset is one saved look: the pattern, the Look sliders, Distort, Screen,
+// the palette, the reactivity routes and the Microtext copy. The canonical
+// library is presets/library.json (see docs/preset-library.md); the short
+// built-in list is a safety net for a copy opened from disk, where fetch
+// cannot read the file.
+const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom", "fbSpin", "grain", "bands",
+                   "dist", "distort", "screen", "screenAmt"];
+const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
+const GROUPS = { print: "Print", broadcast: "Broadcast", terminal: "Terminal", damaged: "Damaged", optical: "Optical", mine: "Mine" };
+const BUILTIN_PRESETS = [
+  { id: "newsprint", name: "Newsprint", group: "print",
+    look: { style: 7, scale: 1.1, warp: 0.45, trails: 0, grain: 0.05 },
+    palette: { colors: ["#F4EFE6", "#1B1B1B"] },
+    routes: [{ src: "bass", dst: "size", amt: 0.6 }, { src: "beat", dst: "flash", amt: 0.3 }] },
+  { id: "dead-channel", name: "Dead Channel", group: "broadcast",
+    look: { style: 5, scale: 1, warp: 0.2, dist: 2, distort: 0.35, screen: 3, screenAmt: 0.9, trails: 0.3, grain: 0.3 },
+    palette: "sa-dark",
+    routes: [{ src: "beat", dst: "distort", amt: 0.8 }, { src: "high", dst: "grain", amt: 0.6 }, { src: "bass", dst: "size", amt: 0.3 }] },
+  { id: "departure-board", name: "Departure Board", group: "terminal",
+    look: { style: 14, scale: 1.3, trails: 0, grain: 0, microText: "STACKADAPT ", microFont: "ui-monospace, Menlo, Consolas, monospace" },
+    palette: { colors: ["#0B0B0D", "#F5B301"] },
+    routes: [{ src: "bass", dst: "size", amt: 0.4 }, { src: "beat", dst: "flash", amt: 0.4 }] },
+];
+const SETLIST_N = 8, TILE_W = 160, TILE_H = 90, TILES_PER_FRAME = 2;
+let libraryPresets = [], userPresets = [], setlist = [], gridSource = "ref", tileCursor = 0;
+const tiles = [];                                   // { preset, canvas, ctx, img, visible, el, badge }
+const tileFB = makeTarget(TILE_W, TILE_H);
+const tileBuf = new Uint8Array(TILE_W * TILE_H * 4);
+const palCache = new Map();
+
+const validPreset = p => p && typeof p.id === "string" && typeof p.name === "string"
+  && p.look && typeof p.look === "object" && p.palette && Array.isArray(p.routes);
+function resolvePalette(p) {
+  if (typeof p === "string" && PRESETS[p]) return { colors: [...PRESETS[p]], weights: PRESETS[p].map(() => 100), key: p };
+  const colors = Array.isArray(p.colors) && p.colors.length >= 2 ? p.colors.slice(0, 8) : ["#000000", "#FFFFFF"];
+  const weights = Array.isArray(p.weights) && p.weights.length === colors.length ? p.weights.slice() : colors.map(() => 100);
+  return { colors, weights, key: "custom" };
+}
+// one palette texture per preset, rebuilt if its palette changes
+function palFor(P) {
+  const key = JSON.stringify(P.palette);
+  let c = palCache.get(P.id);
+  if (c && c.key === key) return c;
+  if (c) gl.deleteTexture(c.tex);
+  const pal = resolvePalette(P.palette);
+  const data = new Uint8Array(256 * 4);
+  const end = computePalette(pal.colors, pal.weights, data);
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+  c = { key, tex, palEnd: end };
+  palCache.set(P.id, c);
+  return c;
+}
+// the reactivity routes summed into per-target amounts, from the live bands
+function modsFor(routes) {
+  const lvl = { bass: band.bass, mid: band.mid, high: band.high, beat: beatEnv };
+  const mod = {};
+  for (const r of routes) mod[r.dst] = (mod[r.dst] || 0) + (lvl[r.src] || 0) * r.amt;
+  const m = k => mod[k] || 0;
+  m.mod = mod;
+  return m;
+}
+// every per-look uniform of the scene shader, for the main pass or a thumbnail
+function setLook(L, m, w, h, pEnd) {
+  const U = n => gl.getUniformLocation(scene, n);
+  gl.uniform2f(U("u_res"), w, h);
+  gl.uniform1f(U("u_time"), T);
+  gl.uniform1i(U("u_style"), L.style);
+  gl.uniform1f(U("u_trails"), Math.min(0.97, L.trails + m("trails") * 0.5));
+  gl.uniform1f(U("u_fbZoom"), L.fbZoom + m("push") * 0.02);
+  gl.uniform1f(U("u_fbSpin"), L.fbSpin + m("spin") * 0.02);
+  gl.uniform1f(U("u_bass"), band.bass);
+  gl.uniform1f(U("u_mid"), band.mid);
+  gl.uniform1f(U("u_high"), band.high);
+  gl.uniform1f(U("u_beat"), m("flash"));
+  gl.uniform1f(U("u_scale"), L.scale * (1 + m("size")));
+  gl.uniform1f(U("u_warp"), Math.min(1, L.warp + m("warp") * 0.5));
+  gl.uniform1f(U("u_grain"), Math.min(1.5, L.grain + m("grain")));
+  gl.uniform1f(U("u_shift"), m("colour"));
+  gl.uniform1f(U("u_bands"), L.bands);
+  gl.uniform1f(U("u_palEnd"), pEnd);
+  gl.uniform1f(U("u_blobs"), L.blobs);
+  gl.uniform1i(U("u_dist"), L.dist);
+  gl.uniform1i(U("u_screen"), L.screen);
+  gl.uniform1f(U("u_screenAmt"), L.screenAmt);
+  gl.uniform1f(U("u_distort"), Math.min(1.5, L.distort + m("distort")));
+}
+
+// Reference source for the grid: a test card drawn at startup, so the library
+// reads the same in a dark room and no image ships in the repo. It carries a
+// grey ramp, colour bars, fine rings, a soft highlight, a dark disc, a
+// checkerboard and heavy type: the things that tell the looks apart.
+const REF_W = 1024, REF_H = 576;
+const refTex = gl.createTexture();
+(() => {
+  const c = document.createElement("canvas");
+  c.width = REF_W; c.height = REF_H;
+  const x = c.getContext("2d");
+  const g = x.createLinearGradient(0, 0, REF_W, REF_H);
+  g.addColorStop(0, "#000"); g.addColorStop(1, "#fff");
+  x.fillStyle = g; x.fillRect(0, 0, REF_W, REF_H);
+  ["#fff", "#ff0", "#0ff", "#0f0", "#f0f", "#f00", "#00f", "#000"].forEach((col, i) => {
+    x.fillStyle = col; x.fillRect(i * REF_W / 8, 0, REF_W / 8, 90);
+  });
+  x.lineWidth = 3; x.strokeStyle = "#fff";
+  for (let r = 12; r < 220; r += 12) { x.beginPath(); x.arc(800, 330, r, 0, 7); x.stroke(); }
+  x.lineWidth = 1.5; x.strokeStyle = "#000";
+  for (let r = 6; r < 220; r += 12) { x.beginPath(); x.arc(800, 330, r, 0, 7); x.stroke(); }
+  const rg = x.createRadialGradient(300, 330, 10, 300, 330, 180);
+  rg.addColorStop(0, "#fff"); rg.addColorStop(1, "rgba(255,255,255,0)");
+  x.fillStyle = rg; x.fillRect(100, 150, 400, 360);
+  x.fillStyle = "#111"; x.beginPath(); x.arc(300, 330, 70, 0, 7); x.fill();
+  for (let j = 0; j < 8; j++) for (let i = 0; i < 16; i++) {
+    x.fillStyle = (i + j) % 2 ? "#000" : "#fff"; x.fillRect(40 + i * 12, 460 + j * 12, 12, 12);
+  }
+  x.font = "bold 150px 'Space Grotesk', sans-serif"; x.textBaseline = "alphabetic";
+  x.fillStyle = "#000"; x.fillText("VIBE", 470, 540);
+  x.fillStyle = "#fff"; x.fillText("VIBE", 476, 534);
+  gl.bindTexture(gl.TEXTURE_2D, refTex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+})();
+
+// Thumbnails: a few tiles per frame, round-robin, into one shared 160x90
+// target, read back into each tile's canvas. Tiles off screen do not render.
+function drawTiles() {
+  if (document.body.classList.contains("hide-ui")) return;
+  const vis = tiles.filter(t => t.visible);
+  if (!vis.length) return;
+  gl.useProgram(scene);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  gl.vertexAttribPointer(gl.getAttribLocation(scene, "a"), 2, gl.FLOAT, false, 0, 0);
+  const U = n => gl.getUniformLocation(scene, n);
+  gl.activeTexture(gl.TEXTURE3);
+  if (gridSource === "ref") {
+    gl.bindTexture(gl.TEXTURE_2D, refTex);
+    gl.uniform1f(U("u_hasImg"), 1); gl.uniform1f(U("u_imgAspect"), REF_W / REF_H);
+  } else {
+    gl.bindTexture(gl.TEXTURE_2D, imgTex);
+    gl.uniform1f(U("u_hasImg"), imgSrc ? 1 : 0); gl.uniform1f(U("u_imgAspect"), imgAspect);
+  }
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, B.tex);             // unused at trails 0, but something must be bound
+  gl.bindFramebuffer(gl.FRAMEBUFFER, tileFB.fb);
+  gl.viewport(0, 0, TILE_W, TILE_H);
+  const row = TILE_W * 4;
+  for (let k = 0; k < TILES_PER_FRAME && k < vis.length; k++) {
+    tileCursor = (tileCursor + 1) % vis.length;
+    const t = vis[tileCursor], P = t.preset;
+    gl.activeTexture(gl.TEXTURE0);
+    const pal = palFor(P);
+    gl.bindTexture(gl.TEXTURE_2D, pal.tex);
+    setLook(Object.assign({}, DEFAULT_LOOK, P.look, { trails: 0 }), modsFor(P.routes), TILE_W, TILE_H, pal.palEnd);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.readPixels(0, 0, TILE_W, TILE_H, gl.RGBA, gl.UNSIGNED_BYTE, tileBuf);
+    const dst = t.img.data;
+    for (let y = 0; y < TILE_H; y++) dst.set(tileBuf.subarray(y * row, (y + 1) * row), (TILE_H - 1 - y) * row);
+    t.ctx.putImageData(t.img, 0, 0);
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+const tileObserver = new IntersectionObserver(entries => entries.forEach(e => {
+  const t = tiles.find(t => t.el === e.target);
+  if (t) t.visible = e.isIntersecting;
+}), { threshold: 0.05 });
+
+const allPresets = () => [...libraryPresets, ...userPresets];
+const findPreset = id => allPresets().find(p => p.id === id);
+let presetNoteT = 0;
+function presetNote(msg, warn) {
+  const el = $("presetNote");
+  el.className = warn ? "note warn" : "note"; el.textContent = msg; el.hidden = !msg;
+  clearTimeout(presetNoteT);
+  if (msg && !warn) presetNoteT = setTimeout(() => presetNote(""), 4000);
+}
+function buildGrid() {
+  const host = $("presetGrid");
+  host.innerHTML = "";
+  tiles.length = 0;
+  tileObserver.disconnect();
+  const all = allPresets();
+  Object.entries(GROUPS).forEach(([g, label]) => {
+    const list = all.filter(p => (p.group || "mine") === g);
+    if (!list.length) return;
+    const h = document.createElement("h4"); h.className = "pgroup"; h.textContent = label;
+    const wrap = document.createElement("div"); wrap.className = "ptiles";
+    list.forEach(p => {
+      const el = document.createElement("div");
+      el.className = "ptile"; el.tabIndex = 0; el.setAttribute("role", "button");
+      el.dataset.id = p.id; el.title = p.name;
+      const cv = document.createElement("canvas"); cv.width = TILE_W; cv.height = TILE_H;
+      const name = document.createElement("span"); name.className = "pname"; name.textContent = p.name;
+      const badge = document.createElement("button");
+      badge.className = "pslot"; badge.type = "button";
+      badge.setAttribute("aria-label", "Toggle " + p.name + " in the set list");
+      badge.addEventListener("click", e => { e.stopPropagation(); toggleSet(p.id); });
+      el.append(cv, name, badge);
+      if (p.group === "mine") {
+        const del = document.createElement("button");
+        del.className = "pdel"; del.type = "button"; del.textContent = "×";
+        del.title = "Delete this look"; del.setAttribute("aria-label", "Delete " + p.name);
+        del.addEventListener("click", e => { e.stopPropagation(); deleteUserPreset(p.id); });
+        el.append(del);
+      }
+      el.addEventListener("click", () => applyPreset(p));
+      el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); applyPreset(p); } });
+      wrap.append(el);
+      const ctx = cv.getContext("2d");
+      tiles.push({ preset: p, canvas: cv, ctx, img: ctx.createImageData(TILE_W, TILE_H), visible: false, el, badge });
+      tileObserver.observe(el);
+    });
+    host.append(h, wrap);
+  });
+  renderActive();
+  renderSetlist();
+}
+function syncSliders() {
+  document.querySelectorAll(".row[data-key]").forEach(r => {
+    const k = r.dataset.key;
+    if (!(k in state)) return;
+    const rng = r.querySelector("input[type=range]"), num = r.querySelector(".num");
+    if (rng) rng.value = state[k];
+    if (num) num.value = state[k];
+  });
+}
+// hard cut to a preset
+function applyPreset(P) {
+  const L = P.look;
+  LOOK_KEYS.forEach(k => { state[k] = k in L ? L[k] : DEFAULT_LOOK[k]; });
+  if ("microText" in L) $("microText").value = L.microText;
+  if ("microFont" in L) $("microFont").value = L.microFont;
+  buildGlyphAtlas();
+  const pal = resolvePalette(P.palette);
+  state.colors = [...pal.colors]; state.weights = [...pal.weights];
+  buildPalette(); renderSwatches();
+  $("preset").value = pal.key;
+  state.routes = P.routes.map(r => ({ src: r.src, dst: r.dst, amt: +r.amt })).slice(0, ROUTE_MAX);
+  saveRoutes(); renderRoutes();
+  syncSliders(); segStyle(); segDist(); segScreen(); syncControls();
+  activeId = P.id;                                    // after the rebuilds, which clear it
+  renderActive();
+}
+function renderActive() {
+  document.querySelectorAll(".ptile").forEach(el => el.classList.toggle("active", el.dataset.id === activeId));
+  document.querySelectorAll(".slot, .chip").forEach(el => el.classList.toggle("active", !!activeId && el.dataset.id === activeId));
+}
+// the current controls as a preset object
+function currentLook(id, name, group) {
+  const look = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
+  if (state.style === 14) { look.microText = $("microText").value; look.microFont = $("microFont").value; }
+  return { id, name, group, look, palette: { colors: [...state.colors], weights: state.weights.map(w => Math.round(w)) },
+           routes: state.routes.map(r => ({ src: r.src, dst: r.dst, amt: r.amt })) };
+}
+const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "look";
+function loadUserPresets() {
+  try { const u = JSON.parse(localStorage.getItem("vibe.userPresets") || "[]"); userPresets = Array.isArray(u) ? u.filter(validPreset) : []; }
+  catch (e) { userPresets = []; }
+}
+function saveUserPresets() {
+  try { localStorage.setItem("vibe.userPresets", JSON.stringify(userPresets)); } catch (e) { /* no storage */ }
+}
+function saveLook() {
+  const name = (prompt("Name this look", "") || "").trim();
+  if (!name) return;
+  const id = "mine-" + slug(name) + "-" + Date.now().toString(36);
+  userPresets.push(currentLook(id, name, "mine"));
+  saveUserPresets(); buildGrid();
+  activeId = id; renderActive();
+  presetNote("Saved “" + name + "” to Mine. Export copies it as JSON for presets/library.json.");
+}
+function deleteUserPreset(id) {
+  const i = userPresets.findIndex(p => p.id === id);
+  if (i < 0) return;
+  userPresets.splice(i, 1);
+  saveUserPresets();
+  const s = setlist.indexOf(id);
+  if (s >= 0) { setlist.splice(s, 1); saveSetlist(); }
+  if (activeId === id) activeId = null;
+  buildGrid();
+}
+function exportLook() {
+  const P = findPreset(activeId);
+  const out = currentLook(P ? P.id : "new-look", P ? P.name : "New look", P && P.group !== "mine" ? P.group : "optical");
+  const json = JSON.stringify(out, null, 2);
+  const done = () => presetNote("Copied the current look as JSON. Paste it into presets/library.json and commit.");
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(json).then(done, () => prompt("Copy this JSON", json));
+  else prompt("Copy this JSON", json);
+}
+// the set list: up to eight presets on keys 1-8, in the panel and on the stage
+function loadSetlist() {
+  try { const s = JSON.parse(localStorage.getItem("vibe.setlist") || "[]"); setlist = Array.isArray(s) ? s.filter(x => typeof x === "string").slice(0, SETLIST_N) : []; }
+  catch (e) { setlist = []; }
+}
+function saveSetlist() {
+  try { localStorage.setItem("vibe.setlist", JSON.stringify(setlist)); } catch (e) { /* no storage */ }
+}
+function toggleSet(id) {
+  const i = setlist.indexOf(id);
+  if (i >= 0) setlist.splice(i, 1);
+  else if (setlist.length < SETLIST_N) setlist.push(id);
+  else { presetNote("The set list is full (" + SETLIST_N + "). Remove one first.", true); return; }
+  saveSetlist(); renderSetlist();
+}
+function applySlot(i) {
+  const p = findPreset(setlist[i]);
+  if (p) applyPreset(p);
+}
+function renderSetlist() {
+  setlist = setlist.filter(findPreset);
+  const make = (host, cls) => {
+    host.innerHTML = "";
+    for (let i = 0; i < SETLIST_N; i++) {
+      const p = findPreset(setlist[i]);
+      if (!p && cls === "chip") continue;
+      const b = document.createElement("button");
+      b.type = "button"; b.className = cls + (p ? " filled" : "");
+      if (p) b.dataset.id = p.id;
+      const n = document.createElement("b"); n.textContent = String(i + 1);
+      b.append(n, document.createTextNode(p ? p.name : "—"));
+      b.title = p ? "Key " + (i + 1) + ": " + p.name : "Empty slot. Use + on a preset tile to add it.";
+      b.addEventListener("click", () => applySlot(i));
+      host.append(b);
+    }
+    if (cls === "chip" && !setlist.length) { const e = document.createElement("span"); e.className = "note"; e.textContent = "No set list yet. Use + on preset tiles."; host.append(e); }
+  };
+  make($("setStrip"), "slot");
+  make($("setChips"), "chip");
+  tiles.forEach(t => {
+    const i = setlist.indexOf(t.preset.id);
+    t.badge.textContent = i >= 0 ? String(i + 1) : "+";
+    t.badge.classList.toggle("in", i >= 0);
+    t.badge.title = i >= 0 ? "Remove from the set list" : "Add to the set list";
+  });
+  renderActive();
+}
+function toggleOverlay(force) {
+  const ov = $("setOverlay");
+  ov.hidden = force === undefined ? !ov.hidden : !force;
+  if (!ov.hidden) $("ovGain").value = state.gain;
+}
+$("ovGain").addEventListener("input", () => { state.gain = +$("ovGain").value; syncSliders(); });
+$("setBtn").addEventListener("click", () => toggleOverlay());
+$("saveLook").addEventListener("click", saveLook);
+$("exportLook").addEventListener("click", exportLook);
+const segGrid = seg("gridSrcSeg", "gs", () => gridSource, v => { gridSource = v; });
+async function loadLibrary() {
+  let list = BUILTIN_PRESETS, from = "built-in";
+  try {
+    const r = await fetch("presets/library.json", { cache: "no-cache" });
+    if (r.ok) { const j = await r.json(); if (j && Array.isArray(j.presets)) { list = j.presets; from = "presets/library.json"; } }
+  } catch (e) { /* file:// or offline: the built-in list stands */ }
+  libraryPresets = list.filter(validPreset);
+  libraryFrom = from;
+  loadUserPresets(); loadSetlist(); buildGrid();
+}
+let libraryFrom = "";
+loadLibrary();
+
 /* ================= render loop ================= */
 let T = 0, last = performance.now(), lastMod = {};
 function frame(now) {
@@ -1981,68 +2440,45 @@ function frame(now) {
   $("mMid").style.height = (band.mid * 100) + "%";
   $("mHigh").style.height = (band.high * 100) + "%";
 
-  // sum every route into its target
-  const lvl = { bass: band.bass, mid: band.mid, high: band.high, beat: beatEnv };
-  const mod = {};
-  for (const r of state.routes) mod[r.dst] = (mod[r.dst] || 0) + lvl[r.src] * r.amt;
-  const m = k => mod[k] || 0;
-  lastMod = mod;
+  const m = modsFor(state.routes);
+  lastMod = m.mod;
   T += dt * state.speed * (1 + m("motion"));
 
-  gl.bindFramebuffer(gl.FRAMEBUFFER, A.fb);
-  gl.viewport(0, 0, A.w, A.h);
   gl.useProgram(scene);
   gl.bindBuffer(gl.ARRAY_BUFFER, quad);
   gl.vertexAttribPointer(gl.getAttribLocation(scene, "a"), 2, gl.FLOAT, false, 0, 0);
+  const U = n => gl.getUniformLocation(scene, n);
+  // textures shared by the main pass and the preset thumbnails
+  gl.activeTexture(gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, waveTex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, WAVE_N, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, waveArr);
+  gl.uniform1i(U("u_wave"), 2);
+  gl.activeTexture(gl.TEXTURE3);
+  uploadImage();
+  gl.bindTexture(gl.TEXTURE_2D, imgTex);
+  gl.uniform1i(U("u_img"), 3);
+  gl.uniform1f(U("u_hasImg"), imgSrc ? 1 : 0);
+  gl.uniform1f(U("u_imgAspect"), imgAspect);
+  gl.activeTexture(gl.TEXTURE4);
+  gl.bindTexture(gl.TEXTURE_2D, glyphTex);
+  gl.uniform1i(U("u_glyph"), 4);
+  gl.uniform1f(U("u_glyphN"), glyphN);
+  gl.uniform1f(U("u_textN"), textN);
+  gl.uniform1i(U("u_pal"), 0);
+  gl.uniform1i(U("u_prev"), 1);
 
+  // main pass: the current look into this frame's target, last frame as history
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, palTex);
   if (palDirty) {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, palData);
     palDirty = false;
   }
-  gl.uniform1i(gl.getUniformLocation(scene, "u_pal"), 0);
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, B.tex);
-  gl.uniform1i(gl.getUniformLocation(scene, "u_prev"), 1);
-  gl.activeTexture(gl.TEXTURE2);
-  gl.bindTexture(gl.TEXTURE_2D, waveTex);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, WAVE_N, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, waveArr);
-  gl.uniform1i(gl.getUniformLocation(scene, "u_wave"), 2);
-  gl.activeTexture(gl.TEXTURE3);
-  uploadImage();
-  gl.bindTexture(gl.TEXTURE_2D, imgTex);
-  gl.uniform1i(gl.getUniformLocation(scene, "u_img"), 3);
-  gl.activeTexture(gl.TEXTURE4);
-  gl.bindTexture(gl.TEXTURE_2D, glyphTex);
-  gl.uniform1i(gl.getUniformLocation(scene, "u_glyph"), 4);
-  gl.uniform1f(gl.getUniformLocation(scene, "u_glyphN"), glyphN);
-  gl.uniform1f(gl.getUniformLocation(scene, "u_textN"), textN);
-
-  const U = n => gl.getUniformLocation(scene, n);
-  gl.uniform2f(U("u_res"), A.w, A.h);
-  gl.uniform1f(U("u_time"), T);
-  gl.uniform1i(U("u_style"), state.style);
-  gl.uniform1f(U("u_trails"), Math.min(0.97, state.trails + m("trails") * 0.5));
-  gl.uniform1f(U("u_fbZoom"), state.fbZoom + m("push") * 0.02);
-  gl.uniform1f(U("u_fbSpin"), state.fbSpin + m("spin") * 0.02);
-  gl.uniform1f(U("u_bass"), band.bass);
-  gl.uniform1f(U("u_mid"), band.mid);
-  gl.uniform1f(U("u_high"), band.high);
-  gl.uniform1f(U("u_beat"), m("flash"));
-  gl.uniform1f(U("u_scale"), state.scale * (1 + m("size")));
-  gl.uniform1f(U("u_warp"), Math.min(1, state.warp + m("warp") * 0.5));
-  gl.uniform1f(U("u_grain"), Math.min(1.5, state.grain + m("grain")));
-  gl.uniform1f(U("u_shift"), m("colour"));
-  gl.uniform1f(U("u_bands"), state.bands);
-  gl.uniform1f(U("u_palEnd"), palEnd);
-  gl.uniform1f(U("u_blobs"), state.blobs);
-  gl.uniform1i(U("u_dist"), state.dist);
-  gl.uniform1i(U("u_screen"), state.screen);
-  gl.uniform1f(U("u_screenAmt"), state.screenAmt);
-  gl.uniform1f(U("u_distort"), Math.min(1.5, state.distort + m("distort")));
-  gl.uniform1f(U("u_hasImg"), imgSrc ? 1 : 0);
-  gl.uniform1f(U("u_imgAspect"), imgAspect);
+  setLook(state, m, A.w, A.h, palEnd);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, A.fb);
+  gl.viewport(0, 0, A.w, A.h);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -2057,6 +2493,7 @@ function frame(now) {
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
   const t = A; A = B; B = t;      // ping-pong: this frame becomes next frame's history
+  drawTiles();
   requestAnimationFrame(frame);
 }
 resize();
@@ -2072,6 +2509,8 @@ $("showBtn").addEventListener("click", () => document.body.classList.remove("hid
 addEventListener("keydown", e => {
   if (e.target.matches("input, select, textarea")) return;
   if (e.key === "f") $("fsBtn").click();
+  if (e.key === "s") toggleOverlay();
+  if (/^[1-8]$/.test(e.key)) applySlot(+e.key - 1);
   if (e.key === " ") {
     if (srcMode === "music") { e.preventDefault(); togglePlay(); }
     else if (imgVideo) { e.preventDefault(); toggleVideo(); }

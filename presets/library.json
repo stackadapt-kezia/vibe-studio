@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "presets": [
+    {
+      "id": "newsprint", "name": "Newsprint", "group": "print",
+      "look": { "style": 7, "scale": 1.1, "warp": 0.45, "trails": 0, "grain": 0.05 },
+      "palette": { "colors": ["#F4EFE6", "#1B1B1B"] },
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.6 }, { "src": "beat", "dst": "flash", "amt": 0.3 } ]
+    },
+    {
+      "id": "riso", "name": "Riso", "group": "print",
+      "look": { "style": 7, "scale": 1.4, "warp": 0.2, "trails": 0, "grain": 0.15 },
+      "palette": { "colors": ["#FFF3E0", "#FF4F1F", "#0061FF"] },
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.8 }, { "src": "high", "dst": "grain", "amt": 0.4 } ]
+    },
+    {
+      "id": "screen-print", "name": "Screen print", "group": "print",
+      "look": { "style": 6, "scale": 1.6, "warp": 0, "bands": 3, "trails": 0, "grain": 0.1 },
+      "palette": "sa-light",
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.5 }, { "src": "mid", "dst": "colour", "amt": 0.4 } ]
+    },
+    {
+      "id": "dead-channel", "name": "Dead Channel", "group": "broadcast",
+      "look": { "style": 5, "scale": 1, "warp": 0.2, "dist": 2, "distort": 0.35, "screen": 3, "screenAmt": 0.9, "trails": 0.3, "grain": 0.3 },
+      "palette": "sa-dark",
+      "routes": [ { "src": "beat", "dst": "distort", "amt": 0.8 }, { "src": "high", "dst": "grain", "amt": 0.6 }, { "src": "bass", "dst": "size", "amt": 0.3 } ]
+    },
+    {
+      "id": "late-night", "name": "Late Night", "group": "broadcast",
+      "look": { "style": 0, "scale": 1, "blobs": 6, "screen": 1, "screenAmt": 0.8, "trails": 0.6, "grain": 0.15 },
+      "palette": "sa-dark",
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.9 }, { "src": "mid", "dst": "motion", "amt": 0.7 }, { "src": "beat", "dst": "flash", "amt": 0.5 } ]
+    },
+    {
+      "id": "tube", "name": "Tube", "group": "broadcast",
+      "look": { "style": 1, "scale": 1.2, "warp": 0.5, "dist": 1, "distort": 0.6, "screen": 1, "screenAmt": 0.6, "trails": 0.4 },
+      "palette": "cv27-miami",
+      "routes": [ { "src": "mid", "dst": "colour", "amt": 0.6 }, { "src": "bass", "dst": "size", "amt": 0.5 } ]
+    },
+    {
+      "id": "departure-board", "name": "Departure Board", "group": "terminal",
+      "look": { "style": 14, "scale": 1.3, "trails": 0, "grain": 0, "microText": "STACKADAPT ", "microFont": "ui-monospace, Menlo, Consolas, monospace" },
+      "palette": { "colors": ["#0B0B0D", "#F5B301"] },
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.4 }, { "src": "beat", "dst": "flash", "amt": 0.4 } ]
+    },
+    {
+      "id": "green-screen", "name": "Green Screen", "group": "terminal",
+      "look": { "style": 13, "scale": 1, "trails": 0.2, "screen": 1, "screenAmt": 0.5 },
+      "palette": { "colors": ["#02100A", "#31FF7A"] },
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.5 }, { "src": "beat", "dst": "flash", "amt": 0.3 } ]
+    },
+    {
+      "id": "dither", "name": "Dither", "group": "terminal",
+      "look": { "style": 6, "scale": 1, "warp": 1, "bands": 2, "trails": 0 },
+      "palette": { "colors": ["#101018", "#E8E8F0"] },
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.6 }, { "src": "mid", "dst": "colour", "amt": 0.5 } ]
+    },
+    {
+      "id": "sync-loss", "name": "Sync Loss", "group": "damaged",
+      "look": { "style": 8, "scale": 1.3, "warp": 0.1, "dist": 3, "distort": 0.5, "screen": 3, "screenAmt": 0.5, "trails": 0.5, "grain": 0.2 },
+      "palette": "sa-light",
+      "routes": [ { "src": "beat", "dst": "distort", "amt": 1 }, { "src": "bass", "dst": "size", "amt": 0.8 }, { "src": "high", "dst": "grain", "amt": 0.5 } ]
+    },
+    {
+      "id": "torn", "name": "Torn", "group": "damaged",
+      "look": { "style": 9, "scale": 1.2, "dist": 3, "distort": 0.7, "screen": 2, "screenAmt": 0.4, "trails": 0.6 },
+      "palette": "cv27-miami",
+      "routes": [ { "src": "beat", "dst": "distort", "amt": 0.9 }, { "src": "mid", "dst": "colour", "amt": 0.5 } ]
+    },
+    {
+      "id": "prism", "name": "Prism", "group": "optical",
+      "look": { "style": 8, "scale": 1.4, "warp": 0.25, "trails": 0.3, "grain": 0.05 },
+      "palette": "sa-light",
+      "routes": [ { "src": "bass", "dst": "size", "amt": 1.2 }, { "src": "mid", "dst": "colour", "amt": 0.3 } ]
+    },
+    {
+      "id": "kaleido", "name": "Kaleido", "group": "optical",
+      "look": { "style": 2, "scale": 1, "warp": 0.6, "dist": 4, "distort": 0.8, "trails": 0.5 },
+      "palette": "cv27-miami",
+      "routes": [ { "src": "mid", "dst": "motion", "amt": 1 }, { "src": "bass", "dst": "size", "amt": 0.6 }, { "src": "beat", "dst": "flash", "amt": 0.4 } ]
+    },
+    {
+      "id": "relief", "name": "Relief", "group": "optical",
+      "look": { "style": 10, "scale": 1.5, "warp": 0.15, "trails": 0.2 },
+      "palette": "sa-light",
+      "routes": [ { "src": "bass", "dst": "warp", "amt": 1 }, { "src": "beat", "dst": "flash", "amt": 0.3 } ]
+    },
+    {
+      "id": "scope", "name": "Scope", "group": "optical",
+      "look": { "style": 4, "scale": 1.2, "warp": 0.3, "trails": 0.85, "fbZoom": -0.006, "fbSpin": 0.004, "grain": 0.05 },
+      "palette": "sa-dark",
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.8 }, { "src": "beat", "dst": "flash", "amt": 0.4 } ]
+    }
+  ]
+}
