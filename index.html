@@ -519,7 +519,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.7.3";  // preset thumbnails are the preset's name through its look, rendered once
+const APP_VERSION = "0.7.4";  // Bands lands on the palette's own colours
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -1177,7 +1177,10 @@ vec3 screenFx(vec3 col, vec2 uv0, float T) {
 
 vec3 pal(float t) {
   t = fract(clamp(t, 0.0, 1.0) + u_shift);     // the palette loops, so a shift just rotates it
-  if (u_bands >= 2.0) t = (floor(t * u_bands) + 0.5) / u_bands;
+  // Bands posterises onto the non-looping ramp: with as many bands as colours
+  // each band is exactly one palette colour. (Band centres on the loop put a
+  // two-colour palette's bands on the two blend midpoints: two identical greys.)
+  if (u_bands >= 2.0) t = floor(min(t, 0.9999) * u_bands) / (u_bands - 1.0) * u_palEnd;
   return texture2D(u_pal, vec2(t, 0.5)).rgb;
 }
 
@@ -1232,7 +1235,8 @@ void main() {
     float L = u_bands >= 2.0 ? u_bands : 4.0;
     float th = (bayer4(cell) - 0.5) * u_warp;
     float q = clamp(floor(l * (L - 1.0) + 0.5 + th), 0.0, L - 1.0);
-    v = (q + 0.5) / L;                                 // band centres, so the ramp never wraps
+    v = q / (L - 1.0);                                 // a level fraction; pal() places the bands
+    if (u_bands < 2.0) v *= u_palEnd;                  // Bands off: keep off the wrap-around segment
   } else if (u_style == 7) {
     // halftone: a rotated dot screen. Each dot is sized by the darkness beneath
     // it and coloured up the palette by that darkness, on paper of the first
@@ -1288,7 +1292,8 @@ void main() {
       float f = fract(l * k);
       float w = max(k * length(gr) / (2.0 * u_scale) * 1.5, 0.004);
       ink = smoothstep(w, w * 2.0, min(f, 1.0 - f));
-      v = (floor(l * k) + 0.5) / k * u_palEnd;
+      v = floor(min(l, 0.9999) * k) / (k - 1.0);
+      if (u_bands < 2.0) v *= u_palEnd;
     } else {
       // hatch: pen cross-hatching, more line sets as the field darkens. Where
       // the gradient is strong the first set follows it, rounded to 45 degrees,
