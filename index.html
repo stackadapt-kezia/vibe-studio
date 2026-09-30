@@ -58,6 +58,7 @@
     max-height: 75%; overflow-y: auto;
   }
   .scrolls { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; }
+  .scrolls fieldset + fieldset { border-top: 1px solid var(--line); padding-top: 14px; }
   .resizer {
     position: absolute; top: 0; bottom: 0; left: var(--panelW); z-index: 21; width: 6px;
     cursor: col-resize; border-right: 1px solid var(--line); background: var(--panel);
@@ -269,7 +270,7 @@
   .pgroup:hover { color: var(--text); }
   .pgroup.folded + .ptiles { display: none; }
   /* 2 columns at the default width, up to 4 as the panel widens */
-  .ptiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 6px; }
+  .ptiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(128px, calc(50% - 3px)), 1fr)); gap: 6px; }
   .ptile {
     position: relative; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
     background: var(--panel-2); cursor: pointer;
@@ -590,7 +591,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.8.2";  // Auto plays through the set list with a hold time and a progress bar per chip
+const APP_VERSION = "0.8.3";  // dot and dither presets at Scale 0.2, two-column minimum grid, section separators, reference thumbnail image
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -2188,7 +2189,7 @@ const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
 const GROUPS = { print: "Print", broadcast: "Broadcast", terminal: "Terminal", damaged: "Damaged", optical: "Optical", mine: "Mine" };
 const BUILTIN_PRESETS = [
   { id: "newsprint", name: "Newsprint", group: "print",
-    look: { style: 7, scale: 1.1, warp: 0.45, trails: 0, grain: 0.05 },
+    look: { style: 7, scale: 0.2, warp: 0.45, trails: 0, grain: 0.05 },
     palette: { colors: ["#F4EFE6", "#1B1B1B"] },
     routes: [{ src: "bass", dst: "size", amt: 0.6 }, { src: "beat", dst: "flash", amt: 0.3 }] },
   { id: "dead-channel", name: "Dead Channel", group: "broadcast",
