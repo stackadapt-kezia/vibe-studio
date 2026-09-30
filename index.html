@@ -443,7 +443,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.6.0";  // reactivity routes: send any band to any control
+const APP_VERSION = "0.6.1";  // palette stop dots follow swatch edits
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -627,6 +627,9 @@ function updatePill() {
     x.fillStyle = "rgb(" + palData[i] + "," + palData[i + 1] + "," + palData[i + 2] + ")";
     x.fillRect(0, y, W, 1);
   }
+  // the stop dots take their colour from a CSS variable set when they were
+  // built; editing a swatch rebuilds the palette but not the stops, so resync
+  palPillBox.querySelectorAll(".pal-stop").forEach((el, i) => el.style.setProperty("--c", state.colors[i]));
 }
 function buildStops() {
   if (!palPillBox) return;
