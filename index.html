@@ -629,7 +629,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.10";  // glass blocks without grout, wave face rebuilt as a molten ripple
+const APP_VERSION = "0.9.11";  // Blur slider under Look softens the whole picture
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -645,7 +645,7 @@ const state = {
   weights: [],
   scale: 1, speed: 1, warp: 0.4, blobs: 5,
   trails: 0.45, fbZoom: 0.004, fbSpin: 0.002,
-  grain: 0.08, bands: 0,
+  grain: 0.08, bands: 0, blur: 0,
   dist: 0, distort: 0.5,
   screen: 0, screenAmt: 0.7,
   tex: 0, texAmt: 0.6,
@@ -666,6 +666,7 @@ const LOOK = [
   ["fbZoom", "Push", -0.02, 0.02, 0.001, v => v.toFixed(3)],
   ["fbSpin", "Spin", -0.02, 0.02, 0.001, v => v.toFixed(3)],
   ["grain", "Grain", 0, 1, 0.01, v => v.toFixed(2)],
+  ["blur", "Blur", 0, 1, 0.01, v => v.toFixed(2)],
   ["bands", "Bands", 0, 8, 1, v => (v < 2 ? "Off" : String(v))],
 ];
 // Reactivity routing: each route sends one audio band to one control.
@@ -1761,9 +1762,23 @@ precision highp float;
 uniform sampler2D u_tex, u_tex2;   // incoming frame, and the outgoing one during a crossfade
 uniform vec2 u_res;
 uniform float u_mix;               // 1 shows u_tex alone
+uniform float u_blur;              // softening radius in pixels, 0 = none
+vec4 tap(vec2 uv) { return mix(texture2D(u_tex2, uv), texture2D(u_tex, uv), u_mix); }
 void main() {
   vec2 uv = gl_FragCoord.xy / u_res;
-  gl_FragColor = mix(texture2D(u_tex2, uv), texture2D(u_tex, uv), u_mix);
+  if (u_blur < 0.5) { gl_FragColor = tap(uv); return; }
+  // three rings of taps, rotated per pixel so the sparse pattern reads as
+  // soft grain rather than stepped rings
+  vec2 px = u_blur / u_res;
+  float rot = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) * 6.2832;
+  vec4 s = tap(uv) * 2.0;
+  for (int i = 0; i < 6; i++) {
+    float a = float(i) * 1.0472 + rot;
+    s += tap(uv + vec2(cos(a), sin(a)) * px * 0.35);
+    s += tap(uv + vec2(cos(a + 0.5236), sin(a + 0.5236)) * px * 0.7);
+    s += tap(uv + vec2(cos(a + 0.2618), sin(a + 0.2618)) * px);
+  }
+  gl_FragColor = s / 20.0;
 }`;
 
 function compile(src, type) {
@@ -2594,7 +2609,7 @@ const segSrc = seg("srcSeg", "src", () => srcMode, v => {
 // library is presets/library.json (see docs/preset-library.md); the short
 // built-in list is a safety net for a copy opened from disk, where fetch
 // cannot read the file.
-const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom", "fbSpin", "grain", "bands",
+const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom", "fbSpin", "grain", "bands", "blur",
                    "dist", "distort", "screen", "screenAmt", "tex", "texAmt", "distSize", "screenSize", "texSize",
                    "glass", "glassAngle"];
 const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
@@ -3142,6 +3157,7 @@ function startFade(dur) {
   gl.uniform1i(gl.getUniformLocation(copy, "u_tex"), 0);
   gl.uniform1i(gl.getUniformLocation(copy, "u_tex2"), 1);
   gl.uniform1f(gl.getUniformLocation(copy, "u_mix"), 1);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), 0);   // the history seed copies straight
   gl.uniform2f(gl.getUniformLocation(copy, "u_res"), Y.w, Y.h);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -3325,6 +3341,7 @@ function frame(now) {
   gl.uniform1i(gl.getUniformLocation(copy, "u_tex"), 0);
   gl.uniform1i(gl.getUniformLocation(copy, "u_tex2"), 1);
   gl.uniform1f(gl.getUniformLocation(copy, "u_mix"), mixK);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), state.blur * state.blur * 24.0 * (canvas.height / 1080));
   gl.uniform2f(gl.getUniformLocation(copy, "u_res"), canvas.width, canvas.height);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
