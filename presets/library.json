@@ -9,13 +9,13 @@
     },
     {
       "id": "riso", "name": "Riso", "group": "print",
-      "look": { "style": 7, "scale": 0.2, "warp": 0.2, "trails": 0, "grain": 0.15, "tex": 4, "texAmt": 0.5 },
+      "look": { "style": 7, "scale": 0.2, "warp": 0.2, "trails": 0, "grain": 0.15, "tex": 2, "texAmt": 0.5 },
       "palette": { "colors": ["#FFF3E0", "#FF4F1F", "#0061FF"] },
       "routes": [ { "src": "bass", "dst": "size", "amt": 0.8 }, { "src": "high", "dst": "grain", "amt": 0.4 } ]
     },
     {
       "id": "screen-print", "name": "Screen print", "group": "print",
-      "look": { "style": 5, "scale": 1, "warp": 0, "bands": 3, "trails": 0, "grain": 0.3, "tex": 4, "texAmt": 0.7 },
+      "look": { "style": 5, "scale": 1, "warp": 0, "bands": 3, "trails": 0, "grain": 0.3, "tex": 2, "texAmt": 0.7 },
       "palette": "sa-light",
       "routes": [ { "src": "bass", "dst": "size", "amt": 0.5 }, { "src": "mid", "dst": "colour", "amt": 0.4 } ]
     },
@@ -86,10 +86,16 @@
       "routes": [ { "src": "beat", "dst": "distort", "amt": 0.9 }, { "src": "mid", "dst": "colour", "amt": 0.5 } ]
     },
     {
-      "id": "burnt", "name": "Burnt", "group": "damaged",
-      "look": { "style": 0, "scale": 1, "blobs": 5, "trails": 0.5, "grain": 0.2, "tex": 3, "texAmt": 0.7 },
-      "palette": "sa-dark",
-      "routes": [ { "src": "bass", "dst": "size", "amt": 0.9 }, { "src": "mid", "dst": "motion", "amt": 0.6 }, { "src": "beat", "dst": "flash", "amt": 0.5 } ]
+      "id": "heat-bleed", "name": "Heat bleed", "group": "optical",
+      "look": { "style": 5, "scale": 1, "warp": 0, "dist": 6, "distort": 0.8, "trails": 0.3, "grain": 0.18 },
+      "palette": { "colors": ["#000000", "#5A0A00", "#FF2A00", "#FFD000", "#33FF33", "#00E5FF", "#2A6BFF"] },
+      "routes": [ { "src": "bass", "dst": "distort", "amt": 0.6 }, { "src": "beat", "dst": "flash", "amt": 0.3 } ]
+    },
+    {
+      "id": "fluted", "name": "Fluted", "group": "optical",
+      "look": { "style": 5, "scale": 1.1, "warp": 0, "dist": 7, "distort": 0.85, "trails": 0.2, "grain": 0.06 },
+      "palette": { "colors": ["#0B0410", "#3A1E6E", "#F2531B", "#FFB13B"] },
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.5 }, { "src": "mid", "dst": "colour", "amt": 0.25 } ]
     },
     {
       "id": "prism", "name": "Prism", "group": "optical",
