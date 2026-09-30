@@ -1258,6 +1258,7 @@ vec2 distort(vec2 uv, float T) {
   return uv;
 }
 // family 8: the display the picture is shown on, applied after everything else
+vec3 pal(float t);                 // defined below; the texture layer needs the paper colour
 // the paper the picture is printed on: wear and damage laid over the print
 vec3 textureFx(vec3 col, vec2 uv, float T) {
   float a = u_texAmt;
