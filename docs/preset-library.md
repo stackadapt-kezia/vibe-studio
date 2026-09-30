@@ -223,11 +223,21 @@ the current copy, not their own.
 **Reference clip.** Optional: drop `presets/thumb.jpg` into the repo and it
 becomes the default thumbnail source. Keep it small; git keeps every version.
 
-**Set list.** Eight slots on keys 1–8, shown only as a timeline in the lower
-third of the stage (0.8.0): it appears when + is pressed on a preset, toggles
-with S or the Output button, and carries Gain so it works in fullscreen. The +
-badge adds a preset to the next free slot and shows its slot number once in;
-the × on a chip removes it. Hard cuts; no crossfade yet.
+**The lower third (0.9.2).** The whole library lives in a panel just off the
+bottom of the stage, toggled with S or the Output button and hidden in
+fullscreen: a toolbar (Fade, default Hold, Gain, Auto, Update preset, Revert,
+Save look, Export), the library as horizontal strips by group, and the
+timeline of eight slots on keys 1–8. Drag a tile onto a slot to add it
+(inserting, the rest shift right; a full timeline replaces the slot), drag a
+slot to another to reorder, drag it off to remove. Each slot has its own hold
+time; Auto plays through them with a progress bar on the active slot, using
+the crossfade if Fade is set.
+
+**Update preset.** Apply a preset, tweak the controls, press Update preset:
+the current look is stored as that preset's defaults in this browser (an
+override merged over the shipped look), its tile re-renders, and Export copies
+the merged look for `presets/library.json`. Revert drops the override. A look
+in Mine is rewritten in place.
 
 **Open questions, answered for now.** Reference clip: not needed. Thumbnail
 resolution: tile resolution. Set list editing: from the tiles.
