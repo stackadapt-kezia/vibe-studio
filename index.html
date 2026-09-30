@@ -550,6 +550,18 @@
     </fieldset>
 
     <fieldset>
+      <legend>Texture</legend>
+      <div class="seg" id="texSeg">
+        <button data-tex="0">None</button>
+        <button data-tex="1">Scratches</button>
+        <button data-tex="2">Torn</button>
+        <button data-tex="3">Burn</button>
+        <button data-tex="4">Print dots</button>
+      </div>
+      <div id="texRows" style="margin-top:10px"></div>
+    </fieldset>
+
+    <fieldset>
       <legend>Reactivity</legend>
       <div class="meters">
         <div class="meter"><span>Bass</span><div class="bar"><i id="mBass"></i></div><canvas class="spark" id="wBass" width="120" height="30"></canvas></div>
@@ -591,7 +603,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.8.3";  // dot and dither presets at Scale 0.2, two-column minimum grid, section separators, reference thumbnail image
+const APP_VERSION = "0.9.0";  // Texture layer: scratches, torn paper, burns, print dots; Screen print rebuilt on flat separations
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -610,6 +622,7 @@ const state = {
   grain: 0.08, bands: 0,
   dist: 0, distort: 0.5,
   screen: 0, screenAmt: 0.7,
+  tex: 0, texAmt: 0.6,
   routes: [],                                   // filled from DEFAULT_ROUTES or storage below
   gain: 1.6, smooth: 0.7,
 };
@@ -643,6 +656,9 @@ const DIST_ROWS = [
 ];
 const SCREEN_ROWS = [
   ["screenAmt", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
+];
+const TEX_ROWS = [
+  ["texAmt", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
 ];
 const AUDIO_ROWS = [
   ["gain", "Gain", 0.2, 4, 0.05, v => v.toFixed(2)],
@@ -744,6 +760,7 @@ loadRoutes(); renderRoutes();
 buildFaders($("audioRows"), AUDIO_ROWS);
 buildRows($("distRows"), DIST_ROWS);
 buildRows($("screenRows"), SCREEN_ROWS);
+buildRows($("texRows"), TEX_ROWS);
 
 /* ================= palette ================= */
 const palData = new Uint8Array(256 * 4);
@@ -1048,6 +1065,7 @@ function syncControls() {
   show("warp", !NO_WARP.includes(s));
   show("distort", state.dist !== 0);
   show("screenAmt", state.screen !== 0);
+  show("texAmt", state.tex !== 0);
   $("microRow").hidden = s !== 13;
 }
 
@@ -1075,6 +1093,7 @@ function syncControls() {
 })();
 const segDist = seg("distSeg", "dist", () => state.dist, v => { state.dist = +v; syncControls(); touch(); });
 const segScreen = seg("screenSeg", "screen", () => state.screen, v => { state.screen = +v; syncControls(); touch(); });
+const segTex = seg("texSeg", "tex", () => state.tex, v => { state.tex = +v; syncControls(); touch(); });
 syncControls();
 
 /* ================= resizable panel ================= */
@@ -1124,8 +1143,8 @@ precision highp float;
 #define WAVE_N ${WAVE_N}.0
 uniform vec2 u_res;
 uniform float u_time;
-uniform int u_style, u_dist, u_screen;
-uniform float u_distort, u_screenAmt;
+uniform int u_style, u_dist, u_screen, u_tex;
+uniform float u_distort, u_screenAmt, u_texAmt;
 uniform sampler2D u_pal;
 uniform sampler2D u_prev;
 uniform sampler2D u_wave;
@@ -1167,6 +1186,13 @@ float imgLum(vec2 uv) {
 // 4x4 Bayer ordered-dither threshold in (0, 1) for an integer cell
 float bayer2(vec2 c) { c = mod(c, 2.0); return 2.0 * c.x + 3.0 * c.y - 4.0 * c.x * c.y; }
 float bayer4(vec2 c) { return (4.0 * bayer2(floor(c * 0.5)) + bayer2(c) + 0.5) / 16.0; }
+float vnoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash2(i), hash2(i + vec2(1.0, 0.0)), f.x),
+             mix(hash2(i + vec2(0.0, 1.0)), hash2(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+float fbm(vec2 p) { return 0.5 * vnoise(p) + 0.25 * vnoise(p * 2.03 + 5.2) + 0.125 * vnoise(p * 4.07 + 1.3); }
 float plasma(vec2 q, float T) {
   float s = sin(q.x + T) + sin(q.y * 1.3 - T * 0.7)
           + sin((q.x + q.y) * 0.8 + T * 1.3) + sin(length(q) * 2.2 - T * 1.6);
@@ -1231,6 +1257,63 @@ vec2 distort(vec2 uv, float T) {
   return uv;
 }
 // family 8: the display the picture is shown on, applied after everything else
+// the paper the picture is printed on: wear and damage laid over the print
+vec3 textureFx(vec3 col, vec2 uv, float T) {
+  float a = u_texAmt;
+  float ca = u_res.x / u_res.y;
+  if (u_tex == 1) {
+    // scratches: hairline scratches, broken into runs, plus dust, drifting like film
+    vec2 q = uv * vec2(ca, 1.0);
+    float drift = floor(T * 5.0);
+    float sx = q.x * 160.0 + 3.0 * vnoise(vec2(q.y * 3.0, drift * 0.37));
+    float carries = step(1.0 - 0.06 * a, hash(floor(sx) + drift * 13.1));
+    float thin = 1.0 - smoothstep(0.0, 0.35, abs(fract(sx) - 0.5) * 2.0);
+    float run = step(0.35, vnoise(vec2(floor(sx) * 0.7, q.y * 2.5 + drift)));
+    float scratch = carries * thin * run;
+    vec3 mark = step(0.5, hash(floor(sx) * 3.3)) > 0.5 ? vec3(1.0) : col * 0.15;
+    col = mix(col, mark, scratch);
+    float dust = step(1.0 - 0.002 * a, hash2(floor(q * 240.0) + drift));
+    col = mix(col, vec3(0.92), dust);
+  } else if (u_tex == 2) {
+    // torn: the print is a sheet torn along its top and right edges, over darker
+    // paper of the first colour, with a pale fibrous rim along the tear
+    float e = 0.04 + 0.22 * a;
+    float right = (1.0 - e) + 0.9 * e * (fbm(vec2(uv.y * 5.0, 3.1)) - 0.5) - uv.x;
+    float top = (1.0 - e * 0.7) + 0.7 * e * (fbm(vec2(uv.x * 6.0, 7.7)) - 0.5) - uv.y;
+    float edge = min(right, top) + 0.015 * (vnoise(uv * 90.0) - 0.5);
+    float inside = smoothstep(0.0, 0.006, edge);
+    float rim = smoothstep(0.0, 0.035, edge);
+    vec3 fibre = vec3(0.96, 0.95, 0.92);
+    vec3 under = pal(0.0) * (0.55 + 0.08 * vnoise(uv * 50.0));
+    col = mix(under, mix(fibre, col, rim), inside);
+  } else if (u_tex == 3) {
+    // burn: scorch creeping in from the edges with a black char line and a
+    // flickering ember at the front, burnt through to black
+    float n = fbm(uv * 4.0 + 2.0);
+    float edge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
+    float b = 1.0 - edge * 2.2 + 0.6 * (n - 0.5);
+    float th = 1.25 - 0.9 * a;
+    float through = smoothstep(th + 0.05, th + 0.12, b);
+    float charred = smoothstep(th - 0.10, th + 0.02, b);
+    float ember = smoothstep(th - 0.02, th + 0.05, b) * (1.0 - through) * (0.55 + 0.45 * sin(T * 6.0 + n * 60.0));
+    col = mix(col, vec3(0.22, 0.12, 0.05), charred * 0.85);
+    col += ember * vec3(1.0, 0.38, 0.06) * 0.9;
+    col = mix(col, vec3(0.0), through);
+  } else if (u_tex == 4) {
+    // print dots: a fine rotated dot screen of the print's own darkness laid
+    // over it in ink, plus toner speckle in the shadows
+    float ang = 0.42;
+    mat2 R = mat2(cos(ang), -sin(ang), sin(ang), cos(ang));
+    vec2 q = R * ((uv - 0.5) * vec2(ca, 1.0)) * 170.0;
+    float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
+    float d = length(fract(q) - 0.5);
+    float rad = sqrt(1.0 - lum) * 0.5;
+    float dotk = 1.0 - smoothstep(rad - 0.1, rad + 0.1, d);
+    float toner = step(0.94, hash2(floor(uv * u_res * 0.5) + floor(T * 2.0))) * (1.0 - lum);
+    col = mix(col, col * 0.3, a * (dotk * 0.75 + toner * 0.5));
+  }
+  return col;
+}
 vec3 screenFx(vec3 col, vec2 uv0, float T) {
   float s = u_screenAmt;
   vec2 fc = gl_FragCoord.xy;
@@ -1440,6 +1523,7 @@ void main() {
   float g = hash2(gl_FragCoord.xy + fract(T) * 421.0) - 0.5;
   col += g * u_grain * 0.4;
   col *= 1.0 + u_beat * 0.6;
+  col = textureFx(col, uv0, T);
   col = screenFx(col, uv0, T);
 
   gl_FragColor = vec4(col, 1.0);
@@ -2184,7 +2268,7 @@ const segSrc = seg("srcSeg", "src", () => srcMode, v => {
 // built-in list is a safety net for a copy opened from disk, where fetch
 // cannot read the file.
 const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom", "fbSpin", "grain", "bands",
-                   "dist", "distort", "screen", "screenAmt"];
+                   "dist", "distort", "screen", "screenAmt", "tex", "texAmt"];
 const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
 const GROUPS = { print: "Print", broadcast: "Broadcast", terminal: "Terminal", damaged: "Damaged", optical: "Optical", mine: "Mine" };
 const BUILTIN_PRESETS = [
@@ -2269,6 +2353,8 @@ function setLook(L, m, w, h, pEnd, time = T) {
   gl.uniform1i(U("u_dist"), L.dist);
   gl.uniform1i(U("u_screen"), L.screen);
   gl.uniform1f(U("u_screenAmt"), L.screenAmt);
+  gl.uniform1i(U("u_tex"), L.tex);
+  gl.uniform1f(U("u_texAmt"), L.texAmt);
   gl.uniform1f(U("u_distort"), Math.min(1.5, L.distort + m("distort")));
 }
 
