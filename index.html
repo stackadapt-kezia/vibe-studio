@@ -621,7 +621,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.6";  // Bleed and Fluted glass distortions; Torn and Burn textures removed
+const APP_VERSION = "0.9.7";  // Scale and Warp say what they do per pattern; Distort, Screen and Texture get a Size slider
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -641,6 +641,7 @@ const state = {
   dist: 0, distort: 0.5,
   screen: 0, screenAmt: 0.7,
   tex: 0, texAmt: 0.6,
+  distSize: 1, screenSize: 1, texSize: 1,
   routes: [],                                   // filled from DEFAULT_ROUTES or storage below
   gain: 1.6, smooth: 0.7,
 };
@@ -671,13 +672,20 @@ const DEFAULT_ROUTES = [
 const ROUTE_MAX = 8;
 const DIST_ROWS = [
   ["distort", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
+  ["distSize", "Size", 0.25, 4, 0.05, v => v.toFixed(2)],
 ];
 const SCREEN_ROWS = [
   ["screenAmt", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
+  ["screenSize", "Size", 0.25, 4, 0.05, v => v.toFixed(2)],
 ];
 const TEX_ROWS = [
   ["texAmt", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
+  ["texSize", "Size", 0.25, 4, 0.05, v => v.toFixed(2)],
 ];
+// what Scale and Warp mean in each pattern, so the Look rows say so
+const SCALE_LABELS = { 0: "Blob size", 1: "Zoom", 2: "Zoom", 3: "Zoom", 4: "Amplitude", 5: "Contrast", 6: "Block size",
+  7: "Dot pitch", 8: "Offset", 9: "Detail", 10: "Detail", 11: "Detail", 12: "Line pitch", 13: "Cell size", 14: "Grain", 15: "Cell size" };
+const WARP_LABELS = { 1: "Warp", 2: "Warp", 4: "Trace", 5: "Cycle", 6: "Dither", 7: "Angle", 8: "Direction", 10: "Light", 12: "Angle", 14: "Smear", 15: "Dither" };
 const AUDIO_ROWS = [
   ["gain", "Gain", 0.2, 4, 0.05, v => v.toFixed(2)],
   ["smooth", "Smoothing", 0, 0.95, 0.05, v => v.toFixed(2)],
@@ -1084,6 +1092,12 @@ function syncControls() {
   show("distort", state.dist !== 0);
   show("screenAmt", state.screen !== 0);
   show("texAmt", state.tex !== 0);
+  show("texSize", state.tex !== 0);
+  show("screenSize", state.screen !== 0);
+  show("distSize", [2, 3, 6, 7].includes(state.dist));   // the kinds with a pitch or a reach
+  const label = (key, text) => { const l = document.querySelector('.row[data-key="' + key + '"] label'); if (l) l.textContent = text; };
+  label("scale", SCALE_LABELS[s] || "Scale");
+  label("warp", WARP_LABELS[s] || "Warp");
   $("microRow").hidden = s !== 13;
   $("shapeRow").hidden = s !== 15;
 }
@@ -1164,6 +1178,7 @@ uniform vec2 u_res;
 uniform float u_time;
 uniform int u_style, u_dist, u_screen, u_tex;
 uniform float u_distort, u_screenAmt, u_texAmt;
+uniform float u_distSize, u_screenSize, u_texSize;   // pitch or reach of each layer, 1 = as designed
 uniform sampler2D u_pal;
 uniform sampler2D u_prev;
 uniform sampler2D u_wave;
@@ -1204,7 +1219,7 @@ vec2 imgUV(vec2 uv) {
 float imgLum(vec2 uv) {
   const vec3 W = vec3(0.2126, 0.7152, 0.0722);
   if (u_dist == 6) {                                 // bleed: dilate and soften the picture's brightness
-    float r = 0.07 * u_distort;
+    float r = 0.07 * u_distort * u_distSize;
     vec2 asp = vec2(u_res.y / u_res.x, 1.0);
     float c = dot(texture2D(u_img, imgUV(uv)).rgb, W);
     float m1 = 0.0, m2 = 0.0, m3 = 0.0, sum = c;
@@ -1276,10 +1291,10 @@ vec2 distort(vec2 uv, float T) {
     uv = 0.5 + d * mix(1.0, 1.0 - 0.5 * r * r, a);
   } else if (u_dist == 2) {
     // wavy scanlines: every row slides sideways on two sines
-    uv.x += a * (0.05 * sin(uv.y * 70.0 + T * 4.0) + 0.02 * sin(uv.y * 9.0 - T * 1.5));
+    uv.x += a * (0.05 * sin(uv.y * 70.0 / u_distSize + T * 4.0) + 0.02 * sin(uv.y * 9.0 - T * 1.5));
   } else if (u_dist == 3) {
     // band shift: some rows jump sideways, re-rolled twice a second
-    float row = floor(uv.y * 18.0), roll = floor(T * 2.0);
+    float row = floor(uv.y * 18.0 / u_distSize), roll = floor(T * 2.0);
     float on = step(0.55, hash(row + roll * 5.1));
     uv.x += a * 0.3 * (hash(row * 3.7 + roll * 11.3) - 0.5) * on;
   } else if (u_dist == 4) {
@@ -1303,7 +1318,7 @@ vec2 distort(vec2 uv, float T) {
     // cylindrical lens that squeezes its slice of the picture into a streak,
     // the image softens across the rib, and the colour stage shades the rib
     // edges and adds a highlight.
-    float n = 54.0;
+    float n = 54.0 / u_distSize;
     float c = (floor(uv.x * n) + 0.5) / n;
     float rx = (uv.x - c) * n * 2.0;
     fluteRx = rx;
@@ -1315,7 +1330,7 @@ vec2 distort(vec2 uv, float T) {
     // VHS tape damage: the odd row tears sideways, the whole frame wobbles a
     // touch, and the tracking band at the bottom smears
     float s = u_screenAmt;
-    float row = floor(uv.y * u_res.y / 3.0);
+    float row = floor(uv.y * u_res.y / (3.0 * u_screenSize));
     float tear = step(0.96, hash(row * 1.3 + floor(T * 8.0) * 7.7));
     uv.x += tear * (hash(row + floor(T * 30.0)) - 0.5) * 0.06 * s;
     uv.x += 0.002 * s * sin(uv.y * 40.0 + T * 6.0);
@@ -1339,7 +1354,7 @@ vec3 textureFx(vec3 col, vec2 uv, float T) {
     vec2 jit = vec2(hash(fr), hash(fr + 2.0));
     float w = 0.0;
     for (int i = 0; i < 3; i++) {
-      float s = 150.0 * pow(2.2, float(i));
+      float s = 150.0 * pow(2.2, float(i)) / u_texSize;
       vec2 g = (q + jit) * s;
       vec2 c = floor(g);
       vec2 f = fract(g) - 0.5 - (vec2(hash2(c + 1.1), hash2(c + 2.2)) - 0.5) * 0.6;
@@ -1349,7 +1364,7 @@ vec3 textureFx(vec3 col, vec2 uv, float T) {
     }
     for (int i = 0; i < 2; i++) {
       float fi = float(i);
-      float n = 22.0 + fi * 16.0;
+      float n = (22.0 + fi * 16.0) / u_texSize;
       float xs = q.x * n + fi * 3.7 + jit.x * 1.5;
       float lane = floor(xs);
       float wander = 0.3 * (vnoise(vec2(q.y * 2.5 + lane, lane * 0.13 + fr * 0.05)) - 0.5) + 0.08 * sin(q.y * 23.0 + lane * 2.0);
@@ -1360,7 +1375,7 @@ vec3 textureFx(vec3 col, vec2 uv, float T) {
       w += on * thin * along * (0.12 + 0.4 * hash(lane + 7.0));
     }
     {
-      vec2 g = (q + jit * 0.5) * 8.0;
+      vec2 g = (q + jit * 0.5) * 8.0 / u_texSize;
       vec2 c = floor(g);
       vec2 f = fract(g) - 0.5;
       float ang = hash2(c + 4.4) * 3.14159;
@@ -1381,12 +1396,12 @@ vec3 textureFx(vec3 col, vec2 uv, float T) {
     // over it in ink, plus toner speckle in the shadows
     float ang = 0.42;
     mat2 R = mat2(cos(ang), -sin(ang), sin(ang), cos(ang));
-    vec2 q = R * ((uv - 0.5) * vec2(ca, 1.0)) * 170.0;
+    vec2 q = R * ((uv - 0.5) * vec2(ca, 1.0)) * 170.0 / u_texSize;
     float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
     float d = length(fract(q) - 0.5);
     float rad = sqrt(1.0 - lum) * 0.5;
     float dotk = 1.0 - smoothstep(rad - 0.1, rad + 0.1, d);
-    float toner = step(0.94, hash2(floor(uv * u_res * 0.5) + floor(T * 2.0))) * (1.0 - lum);
+    float toner = step(0.94, hash2(floor(uv * u_res * 0.5 / u_texSize) + floor(T * 2.0))) * (1.0 - lum);
     col = mix(col, col * 0.3, a * (dotk * 0.75 + toner * 0.5));
   }
   return col;
@@ -1396,16 +1411,16 @@ vec3 screenFx(vec3 col, vec2 uv0, float T) {
   vec2 fc = gl_FragCoord.xy;
   if (u_screen == 1) {
     // CRT: phosphor stripes, a 4px scanline, a soft vignette and a flicker
-    float px = mod(fc.x, 3.0);
+    float px = mod(fc.x, 3.0 * u_screenSize) / u_screenSize;
     vec3 m = px < 1.0 ? vec3(1.0, 0.55, 0.55) : px < 2.0 ? vec3(0.55, 1.0, 0.55) : vec3(0.55, 0.55, 1.0);
     col *= mix(vec3(1.0), m * 1.3, s);
-    float sl = 0.5 + 0.5 * sin(fc.y * 1.5708);
+    float sl = 0.5 + 0.5 * sin(fc.y * 1.5708 / u_screenSize);
     col *= mix(1.0, 0.7 + 0.3 * sl, s);
     col *= 1.0 - s * 0.6 * pow(length((uv0 - 0.5) * vec2(1.2, 1.4)), 3.0);
     col *= 1.0 + s * 0.05 * (hash(floor(T * 24.0)) - 0.5);
   } else if (u_screen == 2) {
     // LCD: a 4px cell with three colour sub-cells and a dark gap around each
-    vec2 c = mod(fc, 4.0);
+    vec2 c = mod(fc, 4.0 * u_screenSize) / u_screenSize;
     float sub = floor(c.x);
     vec3 m = sub < 1.0 ? vec3(1.0, 0.45, 0.45) : sub < 2.0 ? vec3(0.45, 1.0, 0.45) : vec3(0.45, 0.45, 1.0);
     float gap = max(step(3.0, c.x), step(3.0, c.y));
@@ -1417,7 +1432,7 @@ vec3 screenFx(vec3 col, vec2 uv0, float T) {
     col = mix(col, vec3(g), s * 0.25);
     float n = hash2(fc + fract(T) * 977.0);
     col += s * 0.12 * (n - 0.5);
-    float line = step(0.997, hash(floor(fc.y * 0.5) + floor(T * 20.0) * 3.1));
+    float line = step(0.997, hash(floor(fc.y * 0.5 / u_screenSize) + floor(T * 20.0) * 3.1));
     col += s * line * 0.5 * hash(fc.x + T);
     col *= 1.0 - s * 0.12 * smoothstep(0.12, 0.0, abs(fract(uv0.y + T * 0.07) - 0.5));
   }
@@ -2488,7 +2503,7 @@ const segSrc = seg("srcSeg", "src", () => srcMode, v => {
 // built-in list is a safety net for a copy opened from disk, where fetch
 // cannot read the file.
 const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom", "fbSpin", "grain", "bands",
-                   "dist", "distort", "screen", "screenAmt", "tex", "texAmt"];
+                   "dist", "distort", "screen", "screenAmt", "tex", "texAmt", "distSize", "screenSize", "texSize"];
 const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
 const GROUPS = { print: "Print", broadcast: "Broadcast", terminal: "Terminal", damaged: "Damaged", optical: "Optical", mine: "Mine" };
 const BUILTIN_PRESETS = [
@@ -2575,6 +2590,9 @@ function setLook(L, m, w, h, pEnd, time = T) {
   gl.uniform1f(U("u_screenAmt"), L.screenAmt);
   gl.uniform1i(U("u_tex"), L.tex);
   gl.uniform1f(U("u_texAmt"), L.texAmt);
+  gl.uniform1f(U("u_distSize"), L.distSize);
+  gl.uniform1f(U("u_screenSize"), L.screenSize);
+  gl.uniform1f(U("u_texSize"), L.texSize);
   gl.uniform1f(U("u_distort"), Math.min(1.5, L.distort + m("distort")));
 }
 
