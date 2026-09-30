@@ -428,8 +428,7 @@
         <button data-style="10">Relief</button>
         <button data-style="11">Contour</button>
         <button data-style="12">Hatch</button>
-        <button data-style="13">ASCII</button>
-        <button data-style="14">Microtext</button>
+        <button data-style="13">Text</button>
       </div>
     </fieldset>
 
@@ -456,7 +455,7 @@
       <legend>Look</legend>
       <div class="row" id="microRow" hidden>
         <label for="microText">Copy</label>
-        <input type="text" id="microText" value="STACKADAPT VIBE " maxlength="32" spellcheck="false" aria-label="Microtext copy">
+        <input type="text" id="microText" value="HELLO WORLD " maxlength="32" spellcheck="false" placeholder="Blank for ASCII art" aria-label="Text copy">
         <select id="microFont" aria-label="Microtext font">
           <option value='"Space Grotesk", sans-serif'>Space Grotesk</option>
           <option value='"Source Sans 3", sans-serif'>Source Sans</option>
@@ -528,7 +527,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.7.1";  // Mix order shuffles the palette
+const APP_VERSION = "0.7.2";  // ASCII and Microtext merge into one Text pattern; blank copy is ASCII art
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -960,7 +959,7 @@ const segStyle = seg("styleSeg", "style", () => state.style, v => { state.style 
 // Read from the shader: Blobs only counts on Blobs; Warp is unused by Blobs,
 // Fractal, Edges, Contour, ASCII and Microtext; the Distort and Screen amounts
 // (and Beat -> Distort) only matter once a kind is chosen.
-const NO_WARP = [0, 3, 9, 11, 13, 14];
+const NO_WARP = [0, 3, 9, 11, 13];
 function syncControls() {
   const s = state.style;
   const show = (key, on) => document.querySelectorAll('.row[data-key="' + key + '"]').forEach(r => { r.hidden = !on; });
@@ -968,7 +967,7 @@ function syncControls() {
   show("warp", !NO_WARP.includes(s));
   show("distort", state.dist !== 0);
   show("screenAmt", state.screen !== 0);
-  $("microRow").hidden = s !== 14;
+  $("microRow").hidden = s !== 13;
 }
 
 /* ================= collapsible sections ================= */
@@ -1316,19 +1315,20 @@ void main() {
       ink = h;
       v = u_palEnd;
     }
-  } else if (u_style == 13 || u_style == 14) {
-    // family 9: one glyph per cell from a 32-glyph atlas. ASCII picks the
-    // glyph by darkness; Microtext spells brand copy across the rows and
-    // weights it by darkness. Scale sets the cell size.
+  } else if (u_style == 13) {
+    // family 9: one glyph per cell from the atlas. With copy set, the copy is
+    // spelled across the rows and its ink weighted by darkness; with no copy
+    // the glyph is picked by darkness, as ASCII art. Scale sets the cell size.
     float ca = u_res.x / u_res.y;
     float n = 48.0 / u_scale;
     vec2 g = uv * vec2(ca, 1.0) * n;
     vec2 ci = floor(g), cf = fract(g);
     vec2 cuv = (ci + 0.5) / n / vec2(ca, 1.0);
     float l = fld(cuv, T);
-    float idx = u_style == 13 ? floor((1.0 - l) * 15.99) : 16.0 + mod(ci.x + ci.y * 5.0, u_textN);
+    bool ascii = u_textN < 0.5;
+    float idx = ascii ? floor((1.0 - l) * 15.99) : 16.0 + mod(ci.x + ci.y * 5.0, u_textN);
     float cov = texture2D(u_glyph, vec2((idx + 0.04 + cf.x * 0.92) / u_glyphN, cf.y)).r;
-    ink = u_style == 13 ? cov : cov * smoothstep(0.0, 0.7, 1.0 - l);
+    ink = ascii ? cov : cov * smoothstep(0.0, 0.7, 1.0 - l);
     v = (1.0 - l) * u_palEnd;
   } else {
     vec2 z = p * 1.7 / u_scale;
@@ -1433,7 +1433,7 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 let glyphN = 32, textN = 16;
 function buildGlyphAtlas() {
-  const text = $("microText").value || " ";
+  const text = $("microText").value;         // may be empty: then the atlas is the density glyphs alone
   const font = $("microFont").value;
   textN = text.length;
   glyphN = DENSITY.length + textN;
@@ -2063,7 +2063,7 @@ const BUILTIN_PRESETS = [
     palette: "sa-dark",
     routes: [{ src: "beat", dst: "distort", amt: 0.8 }, { src: "high", dst: "grain", amt: 0.6 }, { src: "bass", dst: "size", amt: 0.3 }] },
   { id: "departure-board", name: "Departure Board", group: "terminal",
-    look: { style: 14, scale: 1.3, trails: 0, grain: 0, microText: "STACKADAPT ", microFont: "ui-monospace, Menlo, Consolas, monospace" },
+    look: { style: 13, scale: 1.3, trails: 0, grain: 0, microText: "STACKADAPT ", microFont: "ui-monospace, Menlo, Consolas, monospace" },
     palette: { colors: ["#0B0B0D", "#F5B301"] },
     routes: [{ src: "bass", dst: "size", amt: 0.4 }, { src: "beat", dst: "flash", amt: 0.4 }] },
 ];
@@ -2303,7 +2303,7 @@ function renderActive() {
 // the current controls as a preset object
 function currentLook(id, name, group) {
   const look = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
-  if (state.style === 14) { look.microText = $("microText").value; look.microFont = $("microFont").value; }
+  if (state.style === 13) { look.microText = $("microText").value; look.microFont = $("microFont").value; }
   return { id, name, group, look, palette: { colors: [...state.colors], weights: state.weights.map(w => Math.round(w)) },
            routes: state.routes.map(r => ({ src: r.src, dst: r.dst, amt: r.amt })) };
 }
