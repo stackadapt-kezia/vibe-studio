@@ -163,12 +163,27 @@
   }
   .swatch button:hover { color: var(--text); background: var(--panel-2); }
   .sep { height: 1px; background: var(--line); margin: 12px 0 0; }
-  .meters { display: flex; gap: 6px; align-items: flex-end; height: 34px; margin: 20px 0 12px; }
-  .meter { flex: 1; background: var(--panel-2); border-radius: 4px; position: relative; height: 100%; }
+  .meters { display: flex; gap: 6px; margin: 20px 0 12px; }
+  .meter { flex: 1; position: relative; min-width: 0; }
+  .meter .bar { height: 26px; background: var(--panel-2); border-radius: 4px; position: relative; overflow: hidden; }
   .meter i {
     position: absolute; left: 0; right: 0; bottom: 0; border-radius: 4px;
     background: var(--accent); height: 0%; display: block;
   }
+  .spark { display: block; width: 100%; height: 30px; margin-top: 4px; background: var(--panel-2); border-radius: 4px; }
+  .knobs { display: flex; gap: 18px; justify-content: center; margin: 4px 0 10px; }
+  .knobcell { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 70px; }
+  .knobcell label { font-size: 12px; color: var(--muted); }
+  .knobcell output { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .knob { width: 44px; height: 44px; cursor: ns-resize; touch-action: none; user-select: none; border-radius: 50%; }
+  .knob svg { width: 100%; height: 100%; display: block; }
+  .knob circle { fill: none; stroke-width: 4; stroke-linecap: round; }
+  .knob .track { stroke: var(--line); }
+  .knob .val { stroke: var(--accent); }
+  .knob:hover .track { stroke: #33333b; }
+  .knob:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+  .route .knob { width: 28px; height: 28px; flex: 0 0 28px; }
+  .route .knob circle { stroke-width: 5; }
   .meter span {
     position: absolute; top: -16px; left: 0; font-size: 10px; color: var(--muted);
     letter-spacing: .1em; text-transform: uppercase;
@@ -485,11 +500,11 @@
     <fieldset>
       <legend>Reactivity</legend>
       <div class="meters">
-        <div class="meter"><span>Bass</span><i id="mBass"></i></div>
-        <div class="meter"><span>Mid</span><i id="mMid"></i></div>
-        <div class="meter"><span>High</span><i id="mHigh"></i></div>
+        <div class="meter"><span>Bass</span><div class="bar"><i id="mBass"></i></div><canvas class="spark" id="wBass" width="120" height="30"></canvas></div>
+        <div class="meter"><span>Mid</span><div class="bar"><i id="mMid"></i></div><canvas class="spark" id="wMid" width="120" height="30"></canvas></div>
+        <div class="meter"><span>High</span><div class="bar"><i id="mHigh"></i></div><canvas class="spark" id="wHigh" width="120" height="30"></canvas></div>
       </div>
-      <div id="audioRows"></div>
+      <div class="knobs" id="audioRows"></div>
       <div id="routeRows"></div>
       <div class="libline">
         <span class="note">Each row sends one band to one control.</span>
@@ -519,7 +534,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.7.4";  // Bands lands on the palette's own colours
+const APP_VERSION = "0.7.5";  // Reactivity: knobs, and a waveform under each band
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -577,6 +592,57 @@ const AUDIO_ROWS = [
   ["smooth", "Smoothing", 0, 0.95, 0.05, v => v.toFixed(2)],
 ];
 
+// a rotary knob: drag up or down, scroll, or use the arrow keys
+const KNOB_C = 2 * Math.PI * 16, KNOB_ARC = KNOB_C * 0.75;
+function makeKnob(min, max, step, value, label, onchange) {
+  const el = document.createElement("div");
+  el.className = "knob"; el.tabIndex = 0;
+  el.setAttribute("role", "slider"); el.setAttribute("aria-label", label);
+  el.setAttribute("aria-valuemin", String(min)); el.setAttribute("aria-valuemax", String(max));
+  el.innerHTML = '<svg viewBox="0 0 40 40" aria-hidden="true">'
+    + '<circle class="track" cx="20" cy="20" r="16" transform="rotate(135 20 20)" stroke-dasharray="' + KNOB_ARC + ' ' + KNOB_C + '"/>'
+    + '<circle class="val" cx="20" cy="20" r="16" transform="rotate(135 20 20)" stroke-dasharray="0 ' + KNOB_C + '"/></svg>';
+  const arc = el.querySelector(".val");
+  const digits = Math.max(0, Math.ceil(-Math.log10(step)));
+  let v = value;
+  const set = (nv, fire) => {
+    v = Math.min(max, Math.max(min, +(Math.round(nv / step) * step).toFixed(digits)));
+    arc.setAttribute("stroke-dasharray", ((v - min) / (max - min) * KNOB_ARC) + " " + KNOB_C);
+    el.setAttribute("aria-valuenow", String(v));
+    if (fire) onchange(v);
+  };
+  set(value, false);
+  el.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    el.setPointerCapture(e.pointerId);
+    const y0 = e.clientY, v0 = v;
+    const move = ev => set(v0 + (y0 - ev.clientY) / 140 * (max - min) * (ev.shiftKey ? 0.2 : 1), true);
+    const up = () => { el.removeEventListener("pointermove", move); el.removeEventListener("pointerup", up); el.removeEventListener("pointercancel", up); };
+    el.addEventListener("pointermove", move); el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+  });
+  el.addEventListener("wheel", e => { e.preventDefault(); set(v - Math.sign(e.deltaY) * step * 2, true); }, { passive: false });
+  el.addEventListener("keydown", e => {
+    const d = (e.key === "ArrowUp" || e.key === "ArrowRight") ? 1 : (e.key === "ArrowDown" || e.key === "ArrowLeft") ? -1 : 0;
+    if (!d) return;
+    e.preventDefault();
+    set(v + d * step * (e.shiftKey ? 10 : 1), true);
+  });
+  return { el, set: nv => set(nv, false), get: () => v };
+}
+const knobs = {};                                   // key -> { set, out, fmt } for syncing from state
+function buildKnobs(host, spec) {
+  spec.forEach(([key, label, min, max, step, fmt]) => {
+    const cell = document.createElement("div");
+    cell.className = "knobcell";
+    const out = document.createElement("output");
+    out.textContent = fmt(state[key]);
+    const k = makeKnob(min, max, step, state[key], label, v => { state[key] = v; out.textContent = fmt(v); touch(); });
+    const lb = document.createElement("label"); lb.textContent = label;
+    cell.append(k.el, lb, out);
+    host.append(cell);
+    knobs[key] = { set: k.set, out, fmt };
+  });
+}
 function buildRows(host, spec) {
   spec.forEach(([key, label, min, max, step]) => {
     const row = document.createElement("div");
@@ -633,11 +699,8 @@ function renderRoutes() {
     const src = pick(SOURCES, r.src, "Source band", v => { r.src = v; saveRoutes(); });
     const arrow = document.createElement("span"); arrow.textContent = "\u2192"; arrow.className = "arrow";
     const dst = pick(TARGETS, r.dst, "Target control", v => { r.dst = v; saveRoutes(); });
-    const amt = document.createElement("input");
-    amt.type = "range"; amt.min = 0; amt.max = 2; amt.step = 0.05; amt.value = r.amt;
-    amt.setAttribute("aria-label", "Amount");
     const out = document.createElement("output"); out.textContent = (+r.amt).toFixed(2);
-    amt.addEventListener("input", () => { r.amt = +amt.value; out.textContent = r.amt.toFixed(2); saveRoutes(); });
+    const amt = makeKnob(0, 2, 0.05, +r.amt, "Amount", v => { r.amt = v; out.textContent = v.toFixed(2); saveRoutes(); }).el;
     const del = document.createElement("button");
     del.textContent = "\u00d7"; del.title = "Remove route"; del.setAttribute("aria-label", "Remove route");
     del.addEventListener("click", () => { state.routes.splice(i, 1); saveRoutes(); renderRoutes(); });
@@ -652,7 +715,7 @@ $("addRoute").addEventListener("click", () => {
   saveRoutes(); renderRoutes();
 });
 loadRoutes(); renderRoutes();
-buildRows($("audioRows"), AUDIO_ROWS);
+buildKnobs($("audioRows"), AUDIO_ROWS);
 buildRows($("distRows"), DIST_ROWS);
 buildRows($("screenRows"), SCREEN_ROWS);
 
@@ -2244,6 +2307,7 @@ function buildGrid() {
   renderSetlist();
 }
 function syncSliders() {
+  Object.entries(knobs).forEach(([k, kn]) => { kn.set(state[k]); kn.out.textContent = kn.fmt(state[k]); });
   document.querySelectorAll(".row[data-key]").forEach(r => {
     const k = r.dataset.key;
     if (!(k in state)) return;
@@ -2384,6 +2448,32 @@ async function loadLibrary() {
 let libraryFrom = "";
 loadLibrary();
 
+/* ================= band waveforms ================= */
+// a scrolling history of each band's level under its meter; drawn only while
+// the Reactivity section is on screen
+const sparks = ["bass", "mid", "high"].map(k => {
+  const cv = $("w" + k[0].toUpperCase() + k.slice(1));
+  return { key: k, cv, ctx: cv.getContext("2d"), hist: new Float32Array(cv.width) };
+});
+function drawSparks() {
+  if (!sparks[0].cv.offsetParent) return;
+  const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#3d84ff";
+  for (const s of sparks) {
+    s.hist.copyWithin(0, 1);
+    s.hist[s.hist.length - 1] = band[s.key];
+    const { ctx, cv, hist } = s, W = cv.width, H = cv.height;
+    ctx.clearRect(0, 0, W, H);
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let i = 0; i < W; i++) ctx.lineTo(i, H - 2 - hist[i] * (H - 4));
+    ctx.lineTo(W, H);
+    ctx.fillStyle = accent + "33"; ctx.fill();
+    ctx.beginPath();
+    for (let i = 0; i < W; i++) ctx[i ? "lineTo" : "moveTo"](i, H - 2 - hist[i] * (H - 4));
+    ctx.strokeStyle = accent; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+}
+
 /* ================= render loop ================= */
 let T = 0, last = performance.now(), lastMod = {};
 function frame(now) {
@@ -2428,6 +2518,7 @@ function frame(now) {
   $("mBass").style.height = (band.bass * 100) + "%";
   $("mMid").style.height = (band.mid * 100) + "%";
   $("mHigh").style.height = (band.high * 100) + "%";
+  drawSparks();
 
   const m = modsFor(state.routes);
   lastMod = m.mod;
