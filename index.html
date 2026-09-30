@@ -326,6 +326,18 @@
   .chip.empty { border-style: dashed; color: var(--muted); cursor: default; padding-right: 14px; }
   .chip.active { background: var(--accent); border-color: var(--accent); }
   .chip.active b { color: #fff; }
+  .chip { position: relative; overflow: hidden; }
+  .chip .prog {
+    position: absolute; left: 0; bottom: 0; height: 3px; width: 0%; background: var(--accent);
+    transition: width .2s linear;
+  }
+  .chip.active .prog { background: #fff; }
+  .ovrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .ovauto {
+    border: 1px solid var(--line); background: var(--panel-2); color: var(--text); border-radius: 999px;
+    padding: 5px 12px; font: inherit; font-size: 12px; cursor: pointer;
+  }
+  .ovauto[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
   .chip .rm {
     border: 0; background: none; color: inherit; opacity: .55; cursor: pointer; padding: 0 2px;
     font: inherit; font-size: 14px; line-height: 1;
@@ -568,13 +580,17 @@
     <div class="hint" id="hint">F — fullscreen · H — hide panel · 1–8 — set list · S — set list panel · Esc — exit</div>
     <div class="setlist-overlay" id="setOverlay" hidden>
       <div class="chips" id="setChips"></div>
-      <label>Gain <input type="range" id="ovGain" min="0.2" max="4" step="0.05" aria-label="Gain"></label>
+      <div class="ovrow">
+        <button class="ovauto" id="ovAuto" type="button" aria-pressed="false" title="Play through the set list, holding each look for the time below">▶ Auto</button>
+        <label>Hold <input type="range" id="ovHold" min="5" max="180" step="5" aria-label="Seconds each look holds"> <output id="ovHoldOut">30s</output></label>
+        <label>Gain <input type="range" id="ovGain" min="0.2" max="4" step="0.05" aria-label="Gain"></label>
+      </div>
       <button class="ovclose" id="ovClose" type="button" aria-label="Hide the set list">×</button>
     </div>
   </main>
 </div>
 <script>
-const APP_VERSION = "0.8.1";  // crossfades between looks; the set list hides in presentation mode
+const APP_VERSION = "0.8.2";  // Auto plays through the set list with a hold time and a progress bar per chip
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -2469,8 +2485,43 @@ function toggleSet(id) {
 }
 function applySlot(i) {
   const p = findPreset(setlist[i]);
-  if (p) applyPreset(p);
+  if (!p) return;
+  applyPreset(p);
+  autoIdx = i; slotStart = performance.now();      // the hold clock restarts on any switch to a slot
+  renderProgress();
 }
+// Auto: play through the set list, holding each look for holdSec, then hop to
+// the next in line. Switching to a look outside the set list pauses it.
+let autoRun = false, autoIdx = -1, slotStart = 0, holdSec = 30;
+try { holdSec = Math.max(5, Math.min(180, +localStorage.getItem("vibe.hold") || 30)); } catch (e) { /* no storage */ }
+function setAuto(on) {
+  autoRun = on && setlist.length > 0;
+  $("ovAuto").setAttribute("aria-pressed", String(autoRun));
+  $("ovAuto").textContent = autoRun ? "⏸ Auto" : "▶ Auto";
+  if (autoRun && (autoIdx < 0 || setlist[autoIdx] !== activeId)) applySlot(0);
+  renderProgress();
+}
+function renderProgress() {
+  const chips = document.querySelectorAll("#setChips .chip");
+  chips.forEach((c, i) => {
+    const pr = c.querySelector(".prog");
+    if (!pr) return;
+    pr.style.width = (autoRun && i === autoIdx) ? (Math.min(1, (performance.now() - slotStart) / (holdSec * 1000)) * 100) + "%" : "0%";
+  });
+}
+function tickAuto(now) {
+  if (!autoRun) return;
+  if (!setlist.length || setlist[autoIdx] !== activeId) { setAuto(false); return; }   // someone switched away
+  if (now - slotStart >= holdSec * 1000) applySlot((autoIdx + 1) % setlist.length);
+  else if (!$("setOverlay").hidden && (now % 250) < 20) renderProgress();
+}
+$("ovAuto").addEventListener("click", () => setAuto(!autoRun));
+$("ovHold").value = holdSec;
+$("ovHoldOut").textContent = holdSec + "s";
+$("ovHold").addEventListener("input", () => {
+  holdSec = +$("ovHold").value; $("ovHoldOut").textContent = holdSec + "s";
+  try { localStorage.setItem("vibe.hold", String(holdSec)); } catch (e) { /* no storage */ }
+});
 function renderSetlist() {
   setlist = setlist.filter(findPreset);
   const host = $("setChips");
@@ -2484,6 +2535,7 @@ function renderSetlist() {
     const n = document.createElement("b"); n.textContent = String(i + 1);
     const name = document.createElement("span"); name.textContent = p ? p.name : "—";
     b.append(n, name);
+    if (p) { const pr = document.createElement("i"); pr.className = "prog"; b.append(pr); }
     b.title = p ? "Key " + (i + 1) + ": " + p.name : "Empty slot. Use + on a preset to add it.";
     if (p) {
       b.addEventListener("click", () => applySlot(i));
@@ -2746,6 +2798,7 @@ function frame(now) {
 
   const t = A; A = B; B = t;      // ping-pong: this frame becomes next frame's history
   if (fade) { const u = fade.X; fade.X = fade.Y; fade.Y = u; }
+  tickAuto(now);
   drawTiles();
   requestAnimationFrame(frame);
 }
