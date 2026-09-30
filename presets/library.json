@@ -20,16 +20,10 @@
       "routes": [ { "src": "bass", "dst": "size", "amt": 0.5 }, { "src": "mid", "dst": "colour", "amt": 0.4 } ]
     },
     {
-      "id": "receipt", "name": "Receipt", "group": "print",
-      "look": { "style": 14, "scale": 1, "warp": 0.6, "trails": 0, "grain": 0.12, "tex": 1, "texAmt": 0.25 },
-      "palette": { "colors": ["#F3EFE4", "#2A2A2A"] },
-      "routes": [ { "src": "bass", "dst": "size", "amt": 0.3 }, { "src": "beat", "dst": "flash", "amt": 0.25 } ]
-    },
-    {
-      "id": "torn-poster", "name": "Torn Poster", "group": "print",
-      "look": { "style": 5, "scale": 1.2, "warp": 0, "bands": 4, "trails": 0, "grain": 0.2, "tex": 2, "texAmt": 0.8 },
-      "palette": "cv27-miami",
-      "routes": [ { "src": "bass", "dst": "size", "amt": 0.4 }, { "src": "beat", "dst": "flash", "amt": 0.3 } ]
+      "id": "thermal", "name": "Thermal", "group": "print",
+      "look": { "style": 14, "scale": 1, "warp": 0.6, "trails": 0, "grain": 0.1, "tex": 1, "texAmt": 0.35 },
+      "palette": { "colors": ["#F3EFE4", "#111111"] },
+      "routes": [ { "src": "bass", "dst": "warp", "amt": 0.6 }, { "src": "beat", "dst": "flash", "amt": 0.25 } ]
     },
     {
       "id": "dead-channel", "name": "Dead Channel", "group": "broadcast",
