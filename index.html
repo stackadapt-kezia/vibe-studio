@@ -453,8 +453,15 @@
 
     <fieldset class="fixed">
       <legend>Video in
-        <span class="headctl"><button id="imgBtn">Load image or video</button></span>
+        <span class="headctl">
+          <button id="camBtn" title="Use a live camera or capture card as the picture">Camera</button>
+          <button id="imgBtn">Load image or video</button>
+        </span>
       </legend>
+      <div class="row" id="camRow" hidden>
+        <label for="camSel">Camera</label>
+        <select id="camSel" aria-label="Camera device"></select>
+      </div>
       <input type="file" id="imgFile" accept="image/*,video/*" hidden>
       <div class="row vid" id="vidRow" hidden>
         <button id="vidPlay" aria-label="Play or pause the video">Pause</button>
@@ -629,7 +636,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.11";  // Blur slider under Look softens the whole picture
+const APP_VERSION = "0.9.12";  // Camera button under Video in: a live camera or capture card feeds the image patterns
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -2005,10 +2012,17 @@ addEventListener("resize", resize);
 /* ================= image in ================= */
 const IMG_MAX = 2048;                 // longest side uploaded to the GPU
 let imgSrc = null, imgVideo = null, imgAspect = 1, imgDirty = false, imgName = "";
+let imgStream = null;                 // live camera stream while the camera is the source
+function stopCamera() {
+  if (imgStream) { imgStream.getTracks().forEach(t => t.stop()); imgStream = null; }
+}
 function setImageSource(el, w, h, name) {
   if (imgVideo && imgVideo !== el) { imgVideo.pause(); imgVideo = null; }
+  if (imgStream && imgVideo !== el) stopCamera();
   imgSrc = el; imgAspect = w / h; imgDirty = true; imgName = name;
-  $("vidRow").hidden = !imgVideo;
+  $("vidRow").hidden = !imgVideo || !!imgStream;      // a live feed has nothing to scrub
+  $("camBtn").classList.toggle("active", !!imgStream);
+  $("camBtn").textContent = imgStream ? "Stop camera" : "Camera";
   syncVideoUI();
   if (typeof requeueTiles === "function") setTimeout(requeueTiles, 50);   // thumbnails follow the source
   $("imgNote").className = "note";
@@ -2053,7 +2067,7 @@ const fmtTime = s => Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padSt
 let scrubbing = false, lastShownTime = -1;
 function syncVideoUI() {
   const v = imgVideo;
-  if (!v) return;
+  if (!v || imgStream) return;
   $("vidPlay").textContent = v.paused ? "Play" : "Pause";
   const t = Math.floor(v.currentTime * 10);
   if (t === lastShownTime) return;
@@ -2062,7 +2076,7 @@ function syncVideoUI() {
   $("vidTime").textContent = fmtTime(v.currentTime);
 }
 function toggleVideo() {
-  if (!imgVideo) return;
+  if (!imgVideo || imgStream) return;
   if (imgVideo.paused) imgVideo.play().catch(() => {}); else imgVideo.pause();
   syncVideoUI();
 }
@@ -2084,6 +2098,90 @@ function uploadImage() {
   imgDirty = false;
 }
 $("imgBtn").addEventListener("click", () => $("imgFile").click());
+
+/* live camera: a webcam, phone camera or USB capture card, drawn into the same
+   texture as a video file. The permission prompt needs a click, so it only
+   starts from the button. */
+let camId = null;
+try { camId = localStorage.getItem("vibe.camId"); } catch (e) { /* no storage */ }
+const camNote = (msg, warn) => {
+  $("imgNote").className = warn ? "note warn" : "note";
+  $("imgNote").textContent = msg;
+};
+async function listCams() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+  const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput");
+  const sel = $("camSel");
+  sel.innerHTML = "";
+  devs.forEach((d, i) => {
+    const o = document.createElement("option");
+    o.value = d.deviceId;
+    o.textContent = d.label || ("Camera " + (i + 1));
+    sel.append(o);
+  });
+  const live = imgStream && imgStream.getVideoTracks()[0].getSettings().deviceId;
+  if (live && [...sel.options].some(o => o.value === live)) sel.value = live;
+  $("camRow").hidden = devs.length < 2 || !imgStream;
+}
+async function useCamera() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext) {
+    camNote("The browser won\u2019t allow camera access on this page. Camera input needs the deployed https:// address "
+      + "\u2014 a file:// copy opened from disk can\u2019t ask for permission.", true);
+    return;
+  }
+  try {
+    camNote("Asking for camera permission\u2026");
+    const base = { width: { ideal: 1280 }, height: { ideal: 720 } };
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: camId ? { ...base, deviceId: { exact: camId } } : base, audio: false });
+    } catch (err) {
+      if (!camId || err.name === "NotAllowedError") throw err;
+      camId = null;                                   // the remembered camera is gone: use the default
+      try { localStorage.removeItem("vibe.camId"); } catch (e) { /* no storage */ }
+      stream = await navigator.mediaDevices.getUserMedia({ video: base, audio: false });
+    }
+    const v = document.createElement("video");
+    v.muted = true; v.playsInline = true; v.srcObject = stream;
+    await new Promise((ok, fail) => {
+      v.addEventListener("loadeddata", ok, { once: true });
+      v.play().catch(fail);
+    });
+    const track = stream.getVideoTracks()[0];
+    const label = track.label || "camera";
+    const old = imgStream;
+    imgStream = stream;                               // set first so setImageSource keeps it
+    if (old) old.getTracks().forEach(t => t.stop());
+    if (imgVideo) imgVideo.pause();                   // a video file that was playing
+    imgVideo = v;
+    setImageSource(v, v.videoWidth, v.videoHeight, label);
+    track.addEventListener("ended", () => {
+      if (imgStream !== stream) return;
+      imgStream = null; imgVideo = null; imgSrc = null;
+      setImageSource(null, 1, 1, "");
+      camNote("The camera stopped or was disconnected.", true);
+      $("camRow").hidden = true;
+    });
+    listCams();
+  } catch (err) {
+    camNote(err.name === "NotAllowedError"
+      ? "Camera permission was denied \u2014 allow it in the browser\u2019s site settings, then tap Camera again."
+      : "Camera unavailable: " + err.message, true);
+  }
+}
+$("camBtn").addEventListener("click", () => {
+  if (!imgStream) { useCamera(); return; }
+  stopCamera();
+  imgVideo = null; imgSrc = null;
+  setImageSource(null, 1, 1, "");
+  $("camRow").hidden = true;
+  camNote("Camera stopped \u2014 image patterns use a plasma field. Drop a file on the stage to load one.");
+});
+$("camSel").addEventListener("change", () => {
+  camId = $("camSel").value;
+  try { localStorage.setItem("vibe.camId", camId); } catch (e) { /* no storage */ }
+  useCamera();
+});
 $("imgFile").addEventListener("change", e => {
   const f = e.target.files[0];
   if (f) useImage(f);
