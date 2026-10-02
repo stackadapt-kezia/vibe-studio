@@ -630,7 +630,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.12";  // Echo screen mode: the video-feedback trail, sixteen stepped copies fanning behind the motion
+const APP_VERSION = "0.9.13";  // Echo gets Spread, Decay, Angle and Drift, and an Echo reactivity target
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -652,6 +652,7 @@ const state = {
   tex: 0, texAmt: 0.6,
   distSize: 1, screenSize: 1, texSize: 1,
   glass: 0, glassAngle: 0,
+  echoSpread: 1, echoDecay: 0.93, echoAngle: 0, echoDrift: 0.5,
   routes: [],                                   // filled from DEFAULT_ROUTES or storage below
   gain: 1.6, smooth: 0.7,
 };
@@ -674,7 +675,7 @@ const LOOK = [
 const SOURCES = { bass: "Bass", mid: "Mids", high: "Highs", beat: "Beat" };
 const TARGETS = {
   size: "Size", motion: "Motion", colour: "Colour", grain: "Grain", flash: "Flash",
-  distort: "Distort", warp: "Warp", trails: "Trails", push: "Push", spin: "Spin",
+  distort: "Distort", warp: "Warp", trails: "Trails", push: "Push", spin: "Spin", echo: "Echo",
 };
 const DEFAULT_ROUTES = [
   ["bass", "size", 0.9], ["mid", "motion", 0.7], ["high", "grain", 0.5],
@@ -689,6 +690,10 @@ const DIST_ROWS = [
 const SCREEN_ROWS = [
   ["screenAmt", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
   ["screenSize", "Size", 0.25, 4, 0.05, v => v.toFixed(2)],
+  ["echoSpread", "Spread", 0, 3, 0.05, v => v.toFixed(2)],
+  ["echoDecay", "Decay", 0.6, 0.99, 0.01, v => v.toFixed(2)],
+  ["echoAngle", "Angle", 0, 360, 1, v => v + "\u00b0"],
+  ["echoDrift", "Drift", 0, 1, 0.01, v => v.toFixed(2)],
 ];
 const TEX_ROWS = [
   ["texAmt", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
@@ -1106,12 +1111,14 @@ function syncControls() {
   show("texAmt", state.tex !== 0);
   show("texSize", state.tex !== 0);
   show("screenSize", state.screen !== 0);
+  ["echoSpread", "echoDecay", "echoAngle", "echoDrift"].forEach(k => show(k, state.screen === 4));
   show("distSize", [2, 3, 6, 7].includes(state.dist));   // the kinds with a pitch or a reach
   show("glassAngle", state.dist === 7);
   $("glassSeg").hidden = state.dist !== 7;
   const label = (key, text) => { const l = document.querySelector('.row[data-key="' + key + '"] label'); if (l) l.textContent = text; };
   label("scale", SCALE_LABELS[s] || "Scale");
   label("warp", WARP_LABELS[s] || "Warp");
+  label("screenSize", state.screen === 4 ? "Spacing" : "Size");
   $("microRow").hidden = s !== 13;
   $("shapeRow").hidden = s !== 15;
 }
@@ -1772,6 +1779,7 @@ uniform float u_blur;              // softening radius in pixels, 0 = none
 // has moved on, so the still stage stays clean.
 uniform sampler2D u_ring, u_rpal;
 uniform float u_echo, u_ringHead, u_ringStep, u_etime;
+uniform float u_eSpread, u_eDecay, u_eAngle;   // step per copy, fade per copy, direction (radians)
 vec4 tap(vec2 uv) { return mix(texture2D(u_tex2, uv), texture2D(u_tex, uv), u_mix); }
 vec3 ghost(vec2 uv, float i) {
   float s = mod(u_ringHead - 1.0 - i * u_ringStep + 64.0, 16.0);
@@ -1780,16 +1788,15 @@ vec3 ghost(vec2 uv, float i) {
 }
 vec3 echo(vec3 col, vec2 uv) {
   vec3 live = col;
-  float ang = u_etime * 0.25;
-  vec2 dir = vec2(cos(ang), sin(ang) * (u_res.x / u_res.y));
+  vec2 dir = vec2(cos(u_eAngle), sin(u_eAngle) * (u_res.x / u_res.y));
   for (int k = 15; k >= 1; k--) {
     float i = float(k);
-    vec2 guv = (uv - 0.5) * (1.0 - 0.004 * i) + 0.5 - dir * 0.0045 * i;   // older: further along, slightly smaller
+    vec2 guv = (uv - 0.5) * (1.0 - 0.004 * i * u_eSpread) + 0.5 - dir * 0.0045 * i * u_eSpread;   // older: further along, slightly smaller
     vec3 g = ghost(guv, i);
     vec3 tint = texture2D(u_rpal, vec2(fract(i / 32.0 + u_etime * 0.03), 0.5)).rgb;
-    g = mix(g, g * 0.8 + tint * 0.3, 0.12 * u_echo);
+    g = mix(g, g * 0.8 + tint * 0.3, 0.12 * min(u_echo, 1.0));
     float key = smoothstep(0.08, 0.3, length(g - live));
-    float fade = u_echo * pow(0.93, i - 1.0);
+    float fade = min(u_echo, 1.0) * pow(u_eDecay, i - 1.0);
     col = mix(col, g, fade * key);
   }
   return col;
@@ -2034,7 +2041,7 @@ function resize() {
   ring = makeTarget(Math.max(4, w & ~3), Math.max(4, h & ~3));
   ringHead = 0;
 }
-let ring = null, ringHead = 0, ringTick = 0;
+let ring = null, ringHead = 0, ringTick = 0, echoAngleT = 0;
 // copy a frame into ring slot j (a 4x4 atlas of quarter-size captures)
 function captureRing(srcTex, j) {
   const sw = ring.w / 4, sh = ring.h / 4, ox = (j % 4) * sw, oy = Math.floor(j / 4) * sh;
@@ -2666,7 +2673,7 @@ const segSrc = seg("srcSeg", "src", () => srcMode, v => {
 // cannot read the file.
 const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom", "fbSpin", "grain", "bands", "blur",
                    "dist", "distort", "screen", "screenAmt", "tex", "texAmt", "distSize", "screenSize", "texSize",
-                   "glass", "glassAngle"];
+                   "glass", "glassAngle", "echoSpread", "echoDecay", "echoAngle", "echoDrift"];
 const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
 const GROUPS = { print: "Print", broadcast: "Broadcast", terminal: "Terminal", damaged: "Damaged", optical: "Optical", mine: "Mine" };
 const BUILTIN_PRESETS = [
@@ -3386,12 +3393,16 @@ function frame(now) {
     }
   }
 
-  // echo: capture the clean frame into the ring every few frames (Size sets how many)
-  const echoOn = state.screen === 4;
+  // echo: capture the clean frame into the ring every few frames (Spacing sets
+  // how many). A reactivity route to Echo adds to the strength, and wakes the
+  // trail even when the Screen kind is something else.
+  const echoAmt = Math.min(1, (state.screen === 4 ? state.screenAmt : 0) + m("echo"));
+  const echoOn = echoAmt > 0.01;
   if (echoOn) {
-    const every = Math.max(1, Math.round(state.screenSize * 2));
+    const every = Math.max(1, Math.round((state.screen === 4 ? state.screenSize : 1) * 2));
     if (ringTick++ % every === 0) { captureRing(A.tex, ringHead); ringHead = (ringHead + 1) % 16; }
   }
+  echoAngleT += dt * state.echoDrift * 0.5;
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.viewport(0, 0, canvas.width, canvas.height);
@@ -3412,7 +3423,10 @@ function frame(now) {
   gl.uniform1i(gl.getUniformLocation(copy, "u_rpal"), 3);
   gl.uniform1f(gl.getUniformLocation(copy, "u_mix"), mixK);
   gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), state.blur * state.blur * 24.0 * (canvas.height / 1080));
-  gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), echoOn ? state.screenAmt : 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), echoOn ? echoAmt : 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_eSpread"), state.echoSpread * (1 + m("echo") * 0.6));
+  gl.uniform1f(gl.getUniformLocation(copy, "u_eDecay"), Math.min(0.99, state.echoDecay + m("echo") * 0.04));
+  gl.uniform1f(gl.getUniformLocation(copy, "u_eAngle"), state.echoAngle * Math.PI / 180 + echoAngleT);
   gl.uniform1f(gl.getUniformLocation(copy, "u_ringHead"), ringHead);
   gl.uniform1f(gl.getUniformLocation(copy, "u_ringStep"), 1);
   gl.uniform1f(gl.getUniformLocation(copy, "u_etime"), T);
