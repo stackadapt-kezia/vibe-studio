@@ -709,7 +709,8 @@
         <button class="ovbtn" id="revertPreset" type="button" title="Drop the stored defaults for this preset">Revert</button>
         <button class="ovbtn" id="saveLook" type="button" title="Save the current controls as a new look in Mine">Save look</button>
         <button class="ovbtn" id="restoreHidden" type="button" title="Bring back library looks you deleted" hidden>Restore</button>
-        <button class="ovbtn" id="exportLook" type="button" title="Copy the current look as JSON for presets/library.json">Export</button>
+        <button class="ovbtn" id="exportLook" type="button" title="Copy the current look as one JSON entry">Export look</button>
+        <button class="ovbtn" id="exportLib" type="button" title="Download the whole library as it is on this device, saved looks and edits included, as presets/library.json">Export library</button>
         <button class="ovclose" id="ovClose" type="button" aria-label="Hide the presets">×</button>
       </div>
       <div class="ovlib" id="presetGrid"></div>
@@ -719,12 +720,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.19";  // camera device picker, remembered per browser
+const APP_VERSION = "0.9.20";  // Export library: the whole library as a drop-in presets/library.json
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.20", "Export library downloads the whole library as this device shows it, saved looks, tweaks and arrangement included, as a drop-in presets/library.json. Export look still copies one look."],
   ["0.9.19", "A camera picker appears under Video in when more than one camera is attached, and the choice is remembered."],
   ["0.9.18", "Video in has Media, Camera and Tab. Camera puts a webcam on the stage and, in Chrome with FaceDetector on, counts the faces it sees: Face presence, near, crowd and spread are new reactivity sources. Nothing is identified or stored. Gain and Smooth sit beside the meters with their labels on the Bass line."],
   ["0.9.17", "The library is yours to arrange: drag a tile to another spot or group, remove any look (Restore brings shipped ones back), and press + in a group to save the current look there. Gain and Smoothing stand beside the band meters. The panel\u2019s drag edge is a hairline that vanishes with the glass."],
@@ -3454,6 +3456,43 @@ function exportLook() {
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(json).then(done, () => prompt("Copy this JSON", json));
   else prompt("Copy this JSON", json);
 }
+// Export library: the whole library as this device shows it, in the exact
+// shape of presets/library.json: shipped looks with their stored tweaks and
+// group moves, hidden ones left out, saved looks included, in the arranged
+// order. Downloads as library.json and copies to the clipboard; drop it over
+// presets/library.json and commit, and every device gets it.
+function libraryJSON() {
+  const presets = [];
+  Object.keys(GROUPS).forEach(g => groupList(g).forEach(p => {
+    presets.push({ id: p.id, name: p.name, group: g, look: p.look, palette: p.palette, routes: p.routes });
+  }));
+  // one line per look's fields, like the file in the repo
+  const line = o => JSON.stringify(o).replace(/,/g, ", ").replace(/:/g, ": ").replace(/\{/g, "{ ").replace(/\}/g, " }").replace(/\[/g, "[ ").replace(/\]/g, " ]");
+  const body = presets.map(p =>
+    "    {\n" +
+    "      \"id\": " + JSON.stringify(p.id) + ", \"name\": " + JSON.stringify(p.name) + ", \"group\": " + JSON.stringify(p.group) + ",\n" +
+    "      \"look\": " + line(p.look) + ",\n" +
+    "      \"palette\": " + (typeof p.palette === "string" ? JSON.stringify(p.palette) : line(p.palette)) + ",\n" +
+    "      \"routes\": " + line(p.routes) + "\n" +
+    "    }").join(",\n");
+  return "{\n  \"version\": 1,\n  \"presets\": [\n" + body + "\n  ]\n}\n";
+}
+function exportLibrary() {
+  const json = libraryJSON();
+  const n = (json.match(/"id": /g) || []).length;
+  try {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+    a.download = "library.json";
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  } catch (e) { /* no download: the clipboard copy still happens */ }
+  const done = () => presetNote("Downloaded library.json with " + n + " looks and copied it too. Replace presets/library.json with it and commit; every device gets it on reload.");
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(json).then(done, done);
+  else done();
+  return json;
+}
+$("exportLib").addEventListener("click", exportLibrary);
 // the set list: up to eight presets on keys 1-8, in the panel and on the stage
 // the timeline: up to eight { id, hold } slots on keys 1-8
 function loadSetlist() {

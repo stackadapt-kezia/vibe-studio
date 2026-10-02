@@ -251,3 +251,12 @@ hidden (Restore in the toolbar brings them all back); the shipped JSON is never
 changed by the UI. Edits live in `localStorage`: hidden ids, a per-group order,
 and a `group` on a preset's override. Export still produces the merged look to
 commit.
+
+**Export library (0.9.20).** Everything saved in the app lives in the browser
+that saved it, by design: the shipped JSON is the only thing every device
+shares. Export library is the promotion path for all of it at once: it
+downloads `library.json` (and copies it) in the exact shape of the repo file,
+with shipped looks carrying their stored tweaks and group moves, hidden looks
+left out, saved looks included under their groups, in the arranged order.
+Replace `presets/library.json` with it and commit; every device gets the
+library on reload. Export look still copies a single entry.
