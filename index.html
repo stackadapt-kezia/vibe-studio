@@ -385,15 +385,13 @@
     padding: 5px 12px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
   }
   .libline button:hover { background: #1b1b21; }
-  .vid { margin: 10px 0 0; }
   .player { margin-top: 2px; }
   .tracks:empty { display: none; }
-  .vid button {
-    flex: 0 0 auto; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
-    padding: 5px 12px; border-radius: 999px; font: inherit; font-size: 12px; cursor: pointer; min-width: 62px;
-  }
-  .vid button:hover { background: #1b1b21; }
-  .vid span { flex: 0 0 44px; text-align: right; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .vplayer { margin-top: 10px; }
+  .vthumb { object-fit: cover; }
+  #vidPlay.playing .ic-play, #vidPlay:not(.playing) .ic-pause { display: none; }
+  .vplayer.still .transport #vidPlay, .vplayer.still .scrub, .vplayer.live .scrub { display: none; }
+  .vplayer.still, .vplayer.live { grid-template-areas: "cover text transport"; }
   .note.warn { color: #ffb37a; }
   .hint {
     position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
@@ -453,13 +451,28 @@
 
     <fieldset class="fixed">
       <legend>Video in
-        <span class="headctl"><button id="imgBtn">Load image or video</button></span>
+        <span class="headctl seg" id="vidSeg">
+          <button data-vsrc="image">Image</button>
+          <button data-vsrc="video">Video</button>
+          <button data-vsrc="tab" title="Show another browser tab or window on the stage">Tab</button>
+        </span>
       </legend>
-      <input type="file" id="imgFile" accept="image/*,video/*" hidden>
-      <div class="row vid" id="vidRow" hidden>
-        <button id="vidPlay" aria-label="Play or pause the video">Pause</button>
-        <input type="range" id="vidScrub" min="0" max="1000" value="0" step="1" aria-label="Video position">
-        <span id="vidTime">0:00</span>
+      <input type="file" id="imgFile" accept="image/*" hidden>
+      <input type="file" id="vidFile" accept="video/*" hidden>
+      <div class="player vplayer" id="vplayer" hidden>
+        <canvas class="cover vthumb" id="vThumb" width="112" height="112" aria-hidden="true"></canvas>
+        <div class="np-text">
+          <div class="np-title" id="vTitle">Nothing loaded</div>
+          <div class="np-sub" id="vSub"></div>
+        </div>
+        <div class="transport">
+          <button id="vidPlay" class="big" aria-label="Play or pause the video"><svg class="ic-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><svg class="ic-pause" viewBox="0 0 24 24"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg></button>
+          <button id="vidClear" aria-label="Clear the stage" title="Clear"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" fill="none"/></svg></button>
+        </div>
+        <div class="row scrub" id="vidScrubRow">
+          <input type="range" id="vidScrub" min="0" max="1000" value="0" step="1" aria-label="Video position">
+          <span id="vidTime">0:00 / 0:00</span>
+        </div>
       </div>
       <p class="note" id="imgNote">Nothing loaded — image patterns use a plasma field. Drop a file on the stage to load one.</p>
     </fieldset>
@@ -630,7 +643,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.13";  // Echo gets Spread, Decay, Angle and Drift, and an Echo reactivity target
+const APP_VERSION = "0.9.14";  // Video in: Image, Video and Tab sources with a stage card; the music player shows only on Music
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -2066,15 +2079,48 @@ addEventListener("resize", resize);
 
 /* ================= image in ================= */
 const IMG_MAX = 2048;                 // longest side uploaded to the GPU
-let imgSrc = null, imgVideo = null, imgAspect = 1, imgDirty = false, imgName = "";
-function setImageSource(el, w, h, name) {
+let imgSrc = null, imgVideo = null, imgAspect = 1, imgDirty = false, imgName = "", imgKind = "none", tabStream = null;
+let vidMode = "none";                                     // the Video in source button that is lit
+// the stage card: thumbnail, name and size, play/pause and scrub for a video,
+// a stop for a shared tab, a clear for everything
+function setImageSource(el, w, h, name, kind) {
   if (imgVideo && imgVideo !== el) { imgVideo.pause(); imgVideo = null; }
-  imgSrc = el; imgAspect = w / h; imgDirty = true; imgName = name;
-  $("vidRow").hidden = !imgVideo;
+  if (tabStream && kind !== "tab") { tabStream.getTracks().forEach(t => t.stop()); tabStream = null; }
+  imgSrc = el; imgAspect = w / h; imgDirty = true; imgName = name; imgKind = kind;
+  vidMode = kind; segVid();
+  const card = $("vplayer");
+  card.hidden = false;
+  card.classList.toggle("still", kind === "image");
+  card.classList.toggle("live", kind === "tab");
+  $("vTitle").textContent = name;
+  $("vSub").textContent = (kind === "image" ? "Image" : kind === "tab" ? "Live tab" : "Video") + " \u00b7 " + w + "\u00d7" + h;
+  lastShownTime = -1;
+  drawVideoThumb();
   syncVideoUI();
   if (typeof requeueTiles === "function") setTimeout(requeueTiles, 50);   // thumbnails follow the source
-  $("imgNote").className = "note";
-  $("imgNote").textContent = "Using " + name + " (" + w + "\u00d7" + h + ").";
+  $("imgNote").hidden = true;
+}
+function clearImageSource() {
+  if (imgVideo) { imgVideo.pause(); imgVideo = null; }
+  if (tabStream) { tabStream.getTracks().forEach(t => t.stop()); tabStream = null; }
+  imgSrc = null; imgKind = "none"; vidMode = "none"; segVid();
+  $("vplayer").hidden = true;
+  $("imgNote").hidden = false; $("imgNote").className = "note";
+  $("imgNote").textContent = "Nothing loaded \u2014 image patterns use a plasma field. Drop a file on the stage to load one.";
+  if (typeof requeueTiles === "function") setTimeout(requeueTiles, 50);
+}
+let thumbTick = 0;
+function drawVideoThumb() {
+  if (!imgSrc) return;
+  const c = $("vThumb"), x = c.getContext("2d");
+  x.fillStyle = "#000"; x.fillRect(0, 0, c.width, c.height);
+  // cover-fit the source into the square
+  const sw = imgAspect >= 1 ? c.height * imgAspect : c.width, sh = imgAspect >= 1 ? c.height : c.width / imgAspect;
+  try { x.drawImage(imgSrc, (c.width - sw) / 2, (c.height - sh) / 2, sw, sh); } catch (e) { /* frame not ready */ }
+}
+function imgError(msg) {
+  $("imgNote").hidden = false; $("imgNote").className = "note warn"; $("imgNote").textContent = msg;
+  vidMode = imgKind; segVid();
 }
 function useImage(file) {
   const url = URL.createObjectURL(file);
@@ -2083,12 +2129,9 @@ function useImage(file) {
     v.src = url; v.muted = true; v.loop = true; v.playsInline = true;
     v.addEventListener("loadeddata", () => {
       imgVideo = v;
-      setImageSource(v, v.videoWidth, v.videoHeight, file.name);
+      setImageSource(v, v.videoWidth, v.videoHeight, file.name, "video");
     }, { once: true });
-    v.play().catch(err => {
-      $("imgNote").className = "note warn";
-      $("imgNote").textContent = "Couldn\u2019t play " + file.name + ": " + err.message;
-    });
+    v.play().catch(err => imgError("Couldn\u2019t play " + file.name + ": " + err.message));
     return;
   }
   const im = new Image();
@@ -2100,35 +2143,51 @@ function useImage(file) {
     c.width = Math.max(1, Math.round(im.width * s));
     c.height = Math.max(1, Math.round(im.height * s));
     c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
-    setImageSource(c, im.width, im.height, file.name);
+    setImageSource(c, im.width, im.height, file.name, "image");
   };
-  im.onerror = () => {
-    URL.revokeObjectURL(url);
-    $("imgNote").className = "note warn";
-    $("imgNote").textContent = "Couldn\u2019t read " + file.name + " as an image.";
-  };
+  im.onerror = () => { URL.revokeObjectURL(url); imgError("Couldn\u2019t read " + file.name + " as an image."); };
   im.src = url;
 }
-/* video playback: a play/pause pill, a scrubber and a clock, only shown
-   while a video is the image source */
-const fmtTime = s => Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0");
+// show another tab or window on the stage, through the screen-share picker
+async function useTabVideo() {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) { imgError("This browser can\u2019t capture a tab. Chrome can."); return; }
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: false, selfBrowserSurface: "exclude" });
+    const track = stream.getVideoTracks()[0];
+    const v = document.createElement("video");
+    v.srcObject = stream; v.muted = true; v.playsInline = true;
+    v.addEventListener("loadeddata", () => {
+      imgVideo = v; tabStream = stream;
+      setImageSource(v, v.videoWidth, v.videoHeight, track.label || "Shared tab", "tab");
+    }, { once: true });
+    track.addEventListener("ended", () => { if (imgKind === "tab") clearImageSource(); });
+    await v.play();
+  } catch (err) {
+    imgError(err.name === "NotAllowedError" ? "Tab sharing was cancelled." : "Couldn\u2019t capture the tab: " + err.message);
+  }
+}
+/* video playback: play/pause, a scrubber and a clock, only for a file video */
+const fmtTime = s => isFinite(s) ? Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0") : "0:00";
 let scrubbing = false, lastShownTime = -1;
 function syncVideoUI() {
   const v = imgVideo;
   if (!v) return;
-  $("vidPlay").textContent = v.paused ? "Play" : "Pause";
+  $("vidPlay").classList.toggle("playing", !v.paused);
+  if (imgKind === "tab" && (thumbTick++ % 30) === 0) drawVideoThumb();
   const t = Math.floor(v.currentTime * 10);
   if (t === lastShownTime) return;
   lastShownTime = t;
   if (!scrubbing && v.duration) $("vidScrub").value = String(Math.round(v.currentTime / v.duration * 1000));
-  $("vidTime").textContent = fmtTime(v.currentTime);
+  $("vidTime").textContent = fmtTime(v.currentTime) + " / " + fmtTime(v.duration);
+  if ((thumbTick++ % 10) === 0 && imgKind === "video") drawVideoThumb();
 }
 function toggleVideo() {
-  if (!imgVideo) return;
+  if (!imgVideo || imgKind !== "video") return;
   if (imgVideo.paused) imgVideo.play().catch(() => {}); else imgVideo.pause();
   syncVideoUI();
 }
 $("vidPlay").addEventListener("click", toggleVideo);
+$("vidClear").addEventListener("click", clearImageSource);
 $("vidScrub").addEventListener("pointerdown", () => { scrubbing = true; });
 $("vidScrub").addEventListener("input", () => {
   if (imgVideo && imgVideo.duration) imgVideo.currentTime = +$("vidScrub").value / 1000 * imgVideo.duration;
@@ -2145,12 +2204,16 @@ function uploadImage() {
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
   imgDirty = false;
 }
-$("imgBtn").addEventListener("click", () => $("imgFile").click());
-$("imgFile").addEventListener("change", e => {
-  const f = e.target.files[0];
-  if (f) useImage(f);
-  e.target.value = "";
+// the Video in buttons: Image and Video open a picker, Tab opens the share
+// picker; the lit button is whatever is on the stage
+const segVid = seg("vidSeg", "vsrc", () => vidMode, v => {
+  if (v === "image") { vidMode = imgKind; segVid(); $("imgFile").click(); }
+  else if (v === "video") { vidMode = imgKind; segVid(); $("vidFile").click(); }
+  else if (v === "tab") { vidMode = imgKind; segVid(); useTabVideo(); }
 });
+const pickFile = e => { const f = e.target.files[0]; if (f) useImage(f); e.target.value = ""; };
+$("imgFile").addEventListener("change", pickFile);
+$("vidFile").addEventListener("change", pickFile);
 // drop an image, video or audio file anywhere on the stage
 const stageEl = $("stage");
 stageEl.addEventListener("dragover", e => { e.preventDefault(); stageEl.classList.add("drop"); });
@@ -2578,7 +2641,7 @@ function renderNowPlaying() {
 function renderLibrary() {
   const host = $("trackList");
   host.innerHTML = "";
-  $("player").hidden = !lib.length;
+  $("player").hidden = srcMode !== "music";
   lib.forEach((t, i) => {
     const li = document.createElement("li");
     li.className = "track" + (i === cur ? " now" : "");
@@ -2605,6 +2668,7 @@ function renderLibrary() {
 }
 let scrubT = false, lastT = -1;
 function syncPlayerUI() {
+  $("player").hidden = srcMode !== "music";          // the music card belongs to the Music source
   if (!audioEl) { $("tPlay").classList.remove("playing"); return; }
   const c = Math.floor(audioEl.currentTime * 10);
   if (c === lastT) return;
@@ -2659,6 +2723,7 @@ const segSrc = seg("srcSeg", "src", () => srcMode, v => {
   if (v === "mic") useMic();
   else if (v === "tab") useTab();
   if (v !== "mic") $("micRow").hidden = true;
+  $("player").hidden = v !== "music";
   if (v === "music") {
     if (lib.length) playTrack(cur < 0 ? 0 : cur);
     else { disconnectSource(); srcMode = "none"; segSrc(); $("songFiles").click(); }
