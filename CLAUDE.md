@@ -26,8 +26,11 @@ resource. Frontend code is modern ES (`const`/`let`, arrow functions,
 ## Versioning
 
 `APP_VERSION` near the top of the script is the user-visible version, shown
-in the header. Any user-visible change bumps it in the same edit and updates
-the comment on that line to say what changed.
+in the header. Any user-visible change bumps it in the same edit, updates the
+comment on that line, and adds a `CHANGELOG` entry at the top of the array
+just below. The changelog is a product surface: the version button in the
+header opens it. Write entries in plain language about what changed for the
+operator, not commit-message prose.
 
 ## Verifying changes
 
