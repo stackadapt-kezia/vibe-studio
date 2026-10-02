@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "presets": [
+    {
+      "id": "newsprint", "name": "Newsprint", "group": "print",
+      "look": { "style": 7, "scale": 0.2, "warp": 0.45, "trails": 0, "grain": 0.05, "tex": 1, "texAmt": 0.4 },
+      "palette": { "colors": [ "#F4EFE6", "#1B1B1B" ] },
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.6 }, { "src": "beat", "dst": "flash", "amt": 0.3 } ]
+    },
+    {
+      "id": "mine-miami-print-mur7jfaq", "name": "Miami Print", "group": "print",
+      "look": { "style": 7, "scale": 0.2, "speed": 1, "warp": 0.2, "blobs": 5, "trails": 0, "fbZoom": 0.004, "fbSpin": 0.002, "grain": 0.15, "bands": 0, "blur": 0, "dist": 1, "distort": 0.5, "screen": 0, "screenAmt": 0.7, "tex": 2, "texAmt": 0.41, "distSize": 1, "screenSize": 1, "texSize": 0.5, "glass": 0, "glassAngle": 0, "echoSpread": 1, "echoDecay": 0.93, "echoAngle": 0, "echoDrift": 0.5 },
+      "palette": { "colors": [ "#FF9BF9", "#006C67", "#FD6D73", "#0061FF", "#EE5FE6", "#FBBE49", "#06BDE0" ], "weights": [ 100, 100, 100, 100, 100, 100, 100 ] },
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.8 }, { "src": "high", "dst": "grain", "amt": 0.4 } ]
+    },
+    {
+      "id": "dead-channel", "name": "Dead Channel", "group": "broadcast",
+      "look": { "style": 5, "scale": 1, "warp": 0.2, "dist": 2, "distort": 0.35, "screen": 3, "screenAmt": 0.9, "trails": 0.3, "grain": 0.3 },
+      "palette": "sa-dark",
+      "routes": [ { "src": "beat", "dst": "distort", "amt": 0.8 }, { "src": "high", "dst": "grain", "amt": 0.6 }, { "src": "bass", "dst": "size", "amt": 0.3 } ]
+    },
+    {
+      "id": "late-night", "name": "Late Night", "group": "broadcast",
+      "look": { "style": 0, "scale": 1, "blobs": 6, "screen": 1, "screenAmt": 0.8, "trails": 0.6, "grain": 0.15 },
+      "palette": "sa-dark",
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.9 }, { "src": "mid", "dst": "motion", "amt": 0.7 }, { "src": "beat", "dst": "flash", "amt": 0.5 } ]
+    },
+    {
+      "id": "tube", "name": "Tube", "group": "broadcast",
+      "look": { "style": 1, "scale": 1.2, "warp": 0.5, "dist": 1, "distort": 0.6, "screen": 1, "screenAmt": 0.6, "trails": 0.4 },
+      "palette": "cv27-miami",
+      "routes": [ { "src": "mid", "dst": "colour", "amt": 0.6 }, { "src": "bass", "dst": "size", "amt": 0.5 } ]
+    },
+    {
+      "id": "sync-loss", "name": "Sync Loss", "group": "broadcast",
+      "look": { "style": 8, "scale": 1.3, "speed": 1, "warp": 0.1, "blobs": 5, "trails": 0.5, "fbZoom": 0.004, "fbSpin": 0.002, "grain": 0.2, "bands": 0, "blur": 0, "dist": 3, "distort": 0.5, "screen": 3, "screenAmt": 0.5, "tex": 0, "texAmt": 0.6, "distSize": 1, "screenSize": 1, "texSize": 1, "glass": 0, "glassAngle": 0, "echoSpread": 1, "echoDecay": 0.93, "echoAngle": 0, "echoDrift": 0.5 },
+      "palette": { "colors": [ "#0061FF", "#7FDFFD", "#000000", "#EE5714" ], "weights": [ 100, 100, 100, 100 ] },
+      "routes": [ { "src": "beat", "dst": "distort", "amt": 1 }, { "src": "bass", "dst": "size", "amt": 0.8 }, { "src": "high", "dst": "grain", "amt": 0.5 } ]
+    },
+    {
+      "id": "departure-board", "name": "Departure Board", "group": "terminal",
+      "look": { "style": 13, "scale": 1.3, "trails": 0, "grain": 0, "microText": "STACKADAPT ", "microFont": "ui-monospace,  Menlo,  Consolas,  monospace" },
+      "palette": { "colors": [ "#0B0B0D", "#F5B301" ] },
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.4 }, { "src": "beat", "dst": "flash", "amt": 0.4 } ]
+    },
+    {
+      "id": "green-screen", "name": "Green Screen", "group": "terminal",
+      "look": { "style": 13, "scale": 0.52, "speed": 1, "warp": 0.4, "blobs": 5, "trails": 0.2, "fbZoom": 0.004, "fbSpin": 0.002, "grain": 0.08, "bands": 0, "blur": 0, "dist": 0, "distort": 0.5, "screen": 1, "screenAmt": 0.34, "tex": 0, "texAmt": 0.6, "distSize": 1, "screenSize": 1, "texSize": 1, "glass": 0, "glassAngle": 0, "echoSpread": 1, "echoDecay": 0.93, "echoAngle": 0, "echoDrift": 0.5, "microText": "", "microFont": "ui-monospace,  Menlo,  Consolas,  monospace" },
+      "palette": { "colors": [ "#03d100", "#02100A" ], "weights": [ 100, 100 ] },
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.5 }, { "src": "beat", "dst": "flash", "amt": 0.3 } ]
+    },
+    {
+      "id": "one-bit", "name": "1-bit", "group": "terminal",
+      "look": { "style": 6, "scale": 0.2, "warp": 1, "bands": 2, "trails": 0, "grain": 0 },
+      "palette": { "colors": [ "#000000", "#FFFFFF" ] },
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.5 }, { "src": "beat", "dst": "flash", "amt": 0.2 } ]
+    },
+    {
+      "id": "heat-bleed", "name": "Heat bleed", "group": "optical",
+      "look": { "style": 5, "scale": 1, "warp": 0, "dist": 6, "distort": 0.8, "trails": 0.3, "grain": 0.18 },
+      "palette": { "colors": [ "#000000", "#5A0A00", "#FF2A00", "#FFD000", "#33FF33", "#00E5FF", "#2A6BFF" ] },
+      "routes": [ { "src": "bass", "dst": "distort", "amt": 0.6 }, { "src": "beat", "dst": "flash", "amt": 0.3 } ]
+    },
+    {
+      "id": "fluted", "name": "Fluted glass", "group": "optical",
+      "look": { "style": 5, "scale": 1.1, "warp": 0, "dist": 7, "distort": 0.85, "glass": 0, "trails": 0.2, "grain": 0.06 },
+      "palette": { "colors": [ "#0B0410", "#3A1E6E", "#F2531B", "#FFB13B" ] },
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.5 }, { "src": "mid", "dst": "colour", "amt": 0.25 } ]
+    },
+    {
+      "id": "glass-blocks", "name": "Glass blocks", "group": "optical",
+      "look": { "style": 5, "scale": 1.42, "speed": 1, "warp": 0, "blobs": 5, "trails": 0.15, "fbZoom": 0.004, "fbSpin": 0.002, "grain": 0.05, "bands": 0, "blur": 0, "dist": 7, "distort": 0.7, "screen": 0, "screenAmt": 0.7, "tex": 0, "texAmt": 0.6, "distSize": 0.25, "screenSize": 1, "texSize": 1, "glass": 1, "glassAngle": 0, "echoSpread": 1, "echoDecay": 0.93, "echoAngle": 0, "echoDrift": 0.5 },
+      "palette": { "colors": [ "#7FDFFD", "#0061FF", "#000000", "#EE5714" ], "weights": [ 100, 100, 100, 100 ] },
+      "routes": [ { "src": "bass", "dst": "distort", "amt": 0.4 }, { "src": "beat", "dst": "flash", "amt": 0.3 } ]
+    },
+    {
+      "id": "ridgeline", "name": "Ridgeline", "group": "optical",
+      "look": { "style": 11, "scale": 0.35, "warp": 0.6, "trails": 0.25, "grain": 0.05 },
+      "palette": { "colors": [ "#050008", "#6A2BFF", "#C7B2FF", "#FFFFFF" ] },
+      "routes": [ { "src": "bass", "dst": "warp", "amt": 0.8 }, { "src": "beat", "dst": "flash", "amt": 0.3 } ]
+    },
+    {
+      "id": "mine-watermelon-mur742cn", "name": "Watermelon", "group": "mine",
+      "look": { "style": 5, "scale": 1, "speed": 1, "warp": 0, "blobs": 5, "trails": 0.3, "fbZoom": 0.004, "fbSpin": 0.002, "grain": 0.18, "bands": 0, "blur": 0, "dist": 6, "distort": 0.8, "screen": 1, "screenAmt": 0.7, "tex": 0, "texAmt": 0.6, "distSize": 1, "screenSize": 1, "texSize": 1, "glass": 5, "glassAngle": 0, "echoSpread": 1, "echoDecay": 0.93, "echoAngle": 0, "echoDrift": 0.5 },
+      "palette": { "colors": [ "#2A6BFF", "#000000", "#5A0A00", "#33FF33", "#FF2A00", "#00E5FF", "#FFD000" ], "weights": [ 84, 81, 121, 114, 111, 89, 100 ] },
+      "routes": [ { "src": "bass", "dst": "distort", "amt": 0.6 }, { "src": "beat", "dst": "flash", "amt": 0.3 } ]
+    },
+    {
+      "id": "mine-negative-shapes-mur79ci7", "name": "Negative Shapes", "group": "mine",
+      "look": { "style": 15, "scale": 0.26, "speed": 1, "warp": 0, "blobs": 5, "trails": 0.49, "fbZoom": 0.004, "fbSpin": -0.005, "grain": 0, "bands": 0, "blur": 0, "dist": 0, "distort": 0.5, "screen": 0, "screenAmt": 0.7, "tex": 0, "texAmt": 0.6, "distSize": 1, "screenSize": 1, "texSize": 1, "glass": 0, "glassAngle": 0, "echoSpread": 1, "echoDecay": 0.93, "echoAngle": 0, "echoDrift": 0.5 },
+      "palette": { "colors": [ "#0061FF", "#7FDFFD", "#000000", "#ffffff" ], "weights": [ 100, 98, 100, 102 ] },
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.6 }, { "src": "mid", "dst": "colour", "amt": 0.3 } ]
+    },
+    {
+      "id": "mine-stackadapt-grunge-mur7ervc", "name": "StackAdapt Grunge", "group": "mine",
+      "look": { "style": 14, "scale": 0.2, "speed": 0.42, "warp": 0.45, "blobs": 5, "trails": 0, "fbZoom": -0.006, "fbSpin": -0.001, "grain": 0.6, "bands": 0, "blur": 0.2, "dist": 0, "distort": 0.5, "screen": 0, "screenAmt": 0.7, "tex": 1, "texAmt": 0.25, "distSize": 1, "screenSize": 1, "texSize": 0.4, "glass": 0, "glassAngle": 0, "echoSpread": 1, "echoDecay": 0.93, "echoAngle": 0, "echoDrift": 0.5 },
+      "palette": { "colors": [ "#F3EFE4", "#0061ff" ], "weights": [ 216, 69 ] },
+      "routes": [ { "src": "bass", "dst": "warp", "amt": 1 }, { "src": "beat", "dst": "motion", "amt": 0.55 }, { "src": "mid", "dst": "spin", "amt": 0.85 } ]
+    },
+    {
+      "id": "scope", "name": "Scope", "group": "mine",
+      "look": { "style": 4, "scale": 2, "speed": 1.28, "warp": 0.88, "blobs": 5, "trails": 0.46, "fbZoom": -0.006, "fbSpin": -0.003, "grain": 0.32, "bands": 1, "blur": 0.15, "dist": 1, "distort": 0.5, "screen": 2, "screenAmt": 0.25, "tex": 0, "texAmt": 0.6, "distSize": 1, "screenSize": 1, "texSize": 1, "glass": 0, "glassAngle": 0, "echoSpread": 1, "echoDecay": 0.93, "echoAngle": 0, "echoDrift": 0.5 },
+      "palette": { "colors": [ "#000000", "#0061FF", "#7FDFFD", "#ffffff", "#EE5714" ], "weights": [ 85, 86, 62, 75, 91 ] },
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.8 }, { "src": "beat", "dst": "flash", "amt": 0.4 }, { "src": "high", "dst": "colour", "amt": 0.05 } ]
+    }
+  ]
+}
