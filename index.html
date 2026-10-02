@@ -32,6 +32,13 @@
     border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; cursor: pointer;
   }
   .ver:hover { color: var(--text); border-color: var(--muted); }
+  .pubbody { padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .pubbody label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  .pubbody input { width: 100%; }
+  .pubbody code { font-size: 12px; color: var(--text); }
+  .pubbody .note { margin: 0; }
+  .pubrow { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+  .pubdlg .ovbtn:disabled { opacity: .5; cursor: default; }
   .changelog {
     background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 14px;
     padding: 0; width: min(560px, 92vw); max-height: 80vh;
@@ -336,14 +343,15 @@
     opacity: 0; transition: opacity .15s;
   }
   .ptile:hover .pname, .ptile:focus-visible .pname, .ptile.active .pname { opacity: 1; }
-  .pdel {
+  .pedit { right: auto; left: 4px; font-size: 11px; }
+  .pdel, .pedit {
     position: absolute; right: 4px; top: 4px; width: 20px; height: 20px; padding: 0; border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, .35); background: rgba(0, 0, 0, .55); color: #fff;
     font: 600 13px/1 "Space Grotesk", sans-serif; cursor: pointer; display: grid; place-items: center;
     opacity: 0; transition: opacity .15s;
   }
-  .ptile:hover .pdel { opacity: 1; }
-  .pdel:hover { border-color: #fff; }
+  .ptile:hover .pdel, .ptile:hover .pedit { opacity: 1; }
+  .pdel:hover, .pedit:hover { border-color: #fff; }
   .dragghost {
     position: fixed; z-index: 100; pointer-events: none; width: 104px; height: 52px; border-radius: 8px;
     opacity: .9; box-shadow: 0 6px 18px rgba(0, 0, 0, .6); border: 1px solid var(--accent);
@@ -456,6 +464,35 @@
   <span class="title">Vibe studio</span>
   <button class="ver" id="ver" type="button" title="What changed in each version"></button>
 </header>
+<dialog id="pubDlg" class="changelog pubdlg">
+  <div class="clhead">
+    <span class="title">Publish to GitHub</span>
+    <button class="ovclose" id="pubClose" type="button" aria-label="Close">\u00d7</button>
+  </div>
+  <div class="pubbody">
+    <p class="note">Publishing commits this device\u2019s library to the repo as <code>presets/library.json</code>. It needs a GitHub fine-grained token with <b>Contents: read and write</b> on this one repository. The token stays in this browser only.</p>
+    <label>Token <input type="password" id="pubToken" autocomplete="off" spellcheck="false" placeholder="github_pat_\u2026"></label>
+    <label>Repository <input type="text" id="pubRepo" spellcheck="false" placeholder="owner/name"></label>
+    <label>Branch <input type="text" id="pubBranch" spellcheck="false" placeholder="main"></label>
+    <div class="pubrow">
+      <button class="ovbtn" id="pubForget" type="button" title="Remove the token from this browser">Forget token</button>
+      <span class="ovsp"></span>
+      <button class="ovbtn" id="pubGo" type="button">Save and publish</button>
+    </div>
+    <p class="note" id="pubNote" hidden></p>
+  </div>
+</dialog>
+<dialog id="editDlg" class="changelog pubdlg">
+  <div class="clhead">
+    <span class="title">Edit look</span>
+    <button class="ovclose" id="editClose" type="button" aria-label="Close">\u00d7</button>
+  </div>
+  <div class="pubbody">
+    <label>Name <input type="text" id="editName" maxlength="40" spellcheck="false"></label>
+    <label>Group <select id="editGroup"></select></label>
+    <div class="pubrow"><span class="ovsp"></span><button class="ovbtn" id="editSave" type="button">Save</button></div>
+  </div>
+</dialog>
 <dialog id="changelog" class="changelog">
   <div class="clhead">
     <span class="title">What’s new</span>
@@ -711,6 +748,7 @@
         <button class="ovbtn" id="restoreHidden" type="button" title="Bring back library looks you deleted" hidden>Restore</button>
         <button class="ovbtn" id="exportLook" type="button" title="Copy the current look as one JSON entry">Export look</button>
         <button class="ovbtn" id="exportLib" type="button" title="Download the whole library as it is on this device, saved looks and edits included, as presets/library.json">Export library</button>
+        <button class="ovbtn" id="publishLib" type="button" title="Commit this device\u2019s library to GitHub as presets/library.json, so every device gets it">Publish</button>
         <button class="ovclose" id="ovClose" type="button" aria-label="Hide the presets">×</button>
       </div>
       <div class="ovlib" id="presetGrid"></div>
@@ -720,12 +758,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.20";  // Export library: the whole library as a drop-in presets/library.json
+const APP_VERSION = "0.9.21";  // Publish: commit the library to GitHub from the app; rename and regroup presets
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.21", "A pencil on each preset tile renames it or moves it to another group. Publish commits this device\u2019s library straight to GitHub as presets/library.json, with a token kept in this browser, so every device gets it on reload. After a publish the local copies fold into the shipped library instead of showing twice."],
   ["0.9.20", "Export library downloads the whole library as this device shows it, saved looks, tweaks and arrangement included, as a drop-in presets/library.json. Export look still copies one look."],
   ["0.9.19", "A camera picker appears under Video in when more than one camera is attached, and the choice is remembered."],
   ["0.9.18", "Video in has Media, Camera and Tab. Camera puts a webcam on the stage and, in Chrome with FaceDetector on, counts the faces it sees: Face presence, near, crowd and spread are new reactivity sources. Nothing is identified or stored. Gain and Smooth sit beside the meters with their labels on the Bass line."],
@@ -3360,7 +3399,11 @@ function buildGrid() {
       del.title = userPresets.some(u => u.id === p.id) ? "Delete this look" : "Remove this look from the library (Restore brings it back)";
       del.setAttribute("aria-label", "Remove " + p.name);
       del.addEventListener("click", e => { e.stopPropagation(); deletePreset(p.id); });
-      el.append(del);
+      const ed = document.createElement("button");
+      ed.className = "pedit"; ed.type = "button"; ed.textContent = "\u270e";
+      ed.title = "Rename or move to another group"; ed.setAttribute("aria-label", "Edit " + p.name);
+      ed.addEventListener("click", e => { e.stopPropagation(); openEdit(p.id); });
+      el.append(del, ed);
       attachDrag(el, { id: p.id, from: "lib", onClick: () => applyPreset(p) });
       el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); applyPreset(p); } });
       wrap.append(el);
@@ -3493,6 +3536,73 @@ function exportLibrary() {
   return json;
 }
 $("exportLib").addEventListener("click", exportLibrary);
+
+// Publish: commit this device's library to GitHub through the contents API,
+// with a fine-grained token kept in this browser. After a publish the shipped
+// library equals this device's, so local saved looks and edits are folded into
+// it rather than shown twice.
+const PUB_DEFAULT_REPO = "stackadapt-kezia/vibe-studio", PUB_PATH = "presets/library.json";
+let pub = { token: "", repo: PUB_DEFAULT_REPO, branch: "main" };
+try { pub = Object.assign(pub, JSON.parse(localStorage.getItem("vibe.publish") || "{}")); } catch (e) { /* no storage */ }
+const pubNote = (msg, warn) => { const el = $("pubNote"); el.className = warn ? "note warn" : "note"; el.textContent = msg; el.hidden = !msg; };
+function openPublish() {
+  $("pubToken").value = pub.token || "";
+  $("pubRepo").value = pub.repo || PUB_DEFAULT_REPO;
+  $("pubBranch").value = pub.branch || "main";
+  pubNote("");
+  $("pubDlg").showModal();
+}
+function savePub() {
+  pub = { token: $("pubToken").value.trim(), repo: ($("pubRepo").value.trim() || PUB_DEFAULT_REPO).replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, ""), branch: $("pubBranch").value.trim() || "main" };
+  try { localStorage.setItem("vibe.publish", JSON.stringify(pub)); } catch (e) { /* no storage */ }
+}
+const b64utf8 = s => { const bytes = new TextEncoder().encode(s); let bin = ""; bytes.forEach(b => { bin += String.fromCharCode(b); }); return btoa(bin); };
+async function ghFetch(url, opts = {}) {
+  const r = await fetch(url, Object.assign({}, opts, { headers: Object.assign({ Authorization: "Bearer " + pub.token, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" }, opts.headers || {}) }));
+  if (r.status === 401) throw new Error("GitHub rejected the token. Check it has Contents: read and write on " + pub.repo + ".");
+  if (r.status === 404) throw new Error("Not found: " + pub.repo + " on branch " + pub.branch + ". Check the repository and branch.");
+  if (!r.ok && r.status !== 409 && r.status !== 422) throw new Error("GitHub answered " + r.status + ".");
+  return r;
+}
+async function publishLibrary() {
+  if (!pub.token) { openPublish(); return; }
+  const json = libraryJSON();
+  const n = (json.match(/"id": /g) || []).length;
+  const base = "https://api.github.com/repos/" + pub.repo + "/contents/" + PUB_PATH;
+  $("publishLib").disabled = true;
+  presetNote("Publishing " + n + " looks to " + pub.repo + "\u2026");
+  try {
+    let sha = null;
+    const cur = await ghFetch(base + "?ref=" + encodeURIComponent(pub.branch));
+    if (cur.ok) { const j = await cur.json(); sha = j.sha; if (j.content && b64utf8(json) === j.content.replace(/\n/g, "")) { presetNote("GitHub already has this exact library. Nothing to publish."); $("publishLib").disabled = false; return; } }
+    const body = { message: "Publish library from the app: " + n + " looks\n\nCo-Authored-By: Vibe studio <noreply@stackadapt.com>", content: b64utf8(json), branch: pub.branch };
+    if (sha) body.sha = sha;
+    const put = await ghFetch(base, { method: "PUT", body: JSON.stringify(body) });
+    if (put.status === 409 || put.status === 422) throw new Error("GitHub had a newer library than this device knew about. Reload and publish again.");
+    const res = await put.json();
+    // the shipped library now equals this device's: fold the local copies in
+    libraryOriginal = JSON.parse(json).presets.filter(validPreset);
+    userPresets = []; saveUserPresets();
+    overrides = {}; saveOverrides();
+    hiddenPresets = []; presetOrder = {}; saveLibraryEdits();
+    rebuildLibrary();
+    const short = res && res.commit && res.commit.sha ? res.commit.sha.slice(0, 7) : "";
+    presetNote("Published " + n + " looks to " + pub.repo + (short ? " (" + short + ")" : "") + ". Other devices get it on reload; the hosted page updates within a minute.");
+  } catch (err) {
+    presetNote("Publish failed: " + err.message, true);
+  }
+  $("publishLib").disabled = false;
+}
+$("publishLib").addEventListener("click", publishLibrary);
+$("pubClose").addEventListener("click", () => $("pubDlg").close());
+$("pubDlg").addEventListener("click", e => { if (e.target === $("pubDlg")) $("pubDlg").close(); });
+$("pubForget").addEventListener("click", () => { $("pubToken").value = ""; savePub(); pubNote("Token removed from this browser."); });
+$("pubGo").addEventListener("click", () => {
+  savePub();
+  if (!pub.token) { pubNote("Paste a token first.", true); return; }
+  $("pubDlg").close();
+  publishLibrary();
+});
 // the set list: up to eight presets on keys 1-8, in the panel and on the stage
 // the timeline: up to eight { id, hold } slots on keys 1-8
 function loadSetlist() {
@@ -3668,6 +3778,40 @@ function deletePreset(id) {
   if (activeId === id) activeId = null;
   saveLibraryEdits(); rebuildLibrary();
 }
+// rename a look or change its group; shipped looks keep the change as an override
+let editId = null;
+function openEdit(id) {
+  const p = findPreset(id);
+  if (!p) return;
+  editId = id;
+  $("editName").value = p.name;
+  const sel = $("editGroup");
+  sel.innerHTML = "";
+  Object.entries(GROUPS).forEach(([k, label]) => { const o = document.createElement("option"); o.value = k; o.textContent = label; sel.append(o); });
+  sel.value = p.group || "mine";
+  $("editDlg").showModal();
+  $("editName").select();
+}
+function saveEdit() {
+  const p = findPreset(editId);
+  const name = $("editName").value.trim(), g = $("editGroup").value;
+  if (!p || !name) return;
+  const u = userPresets.find(x => x.id === editId);
+  if (u) { u.name = name; saveUserPresets(); }
+  else {
+    const base = libraryOriginal.find(x => x.id === editId);
+    overrides[editId] = Object.assign({ look: base.look, palette: base.palette, routes: base.routes }, overrides[editId] || {}, { name });
+    saveOverrides();
+  }
+  $("editDlg").close();
+  if (g !== (p.group || "mine")) moveToGroup(editId, g, null); else rebuildLibrary();
+  renderSetlist();
+  presetNote("Saved \u201c" + name + "\u201d in " + GROUPS[g] + ".");
+}
+$("editSave").addEventListener("click", saveEdit);
+$("editName").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); saveEdit(); } });
+$("editClose").addEventListener("click", () => $("editDlg").close());
+$("editDlg").addEventListener("click", e => { if (e.target === $("editDlg")) $("editDlg").close(); });
 function restoreHidden() {
   hiddenPresets = [];
   saveLibraryEdits(); rebuildLibrary();
@@ -3696,7 +3840,7 @@ function saveOverrides() {
 function rebuildLibrary() {
   libraryPresets = libraryOriginal.filter(p => !hiddenPresets.includes(p.id)).map(p => {
     const o = overrides[p.id];
-    return o ? Object.assign({}, p, { look: o.look, palette: o.palette, routes: o.routes }, o.group ? { group: o.group } : {}) : p;
+    return o ? Object.assign({}, p, { look: o.look, palette: o.palette, routes: o.routes }, o.group ? { group: o.group } : {}, o.name ? { name: o.name } : {}) : p;
   });
   $("restoreHidden").hidden = !hiddenPresets.length;
   buildGrid();

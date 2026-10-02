@@ -260,3 +260,21 @@ with shipped looks carrying their stored tweaks and group moves, hidden looks
 left out, saved looks included under their groups, in the arranged order.
 Replace `presets/library.json` with it and commit; every device gets the
 library on reload. Export look still copies a single entry.
+
+**Publish (0.9.21).** The promotion path without the upload step: Publish in
+the lower third commits this device's library to the repo as
+`presets/library.json` through the GitHub contents API, using a fine-grained
+personal access token with Contents: read and write on this one repository.
+The token lives only in the browser that entered it (Forget token removes it),
+so it belongs on devices the operator controls; Export library remains the
+fallback everywhere else. A publish is an ordinary commit on the branch, so it
+can be reviewed or reverted, and GitHub Pages redeploys from it. After a
+successful publish the local saved looks and edits are folded into the
+shipped library on that device, since the two are now identical. If GitHub
+holds a newer library than the device loaded, the publish is refused and the
+operator reloads first.
+
+**Rename and regroup (0.9.21).** A pencil on each tile opens a small dialog
+to rename the look or move it to another group. Saved looks change in place;
+shipped looks keep the new name as part of their override, so Export library
+and Publish carry it.
