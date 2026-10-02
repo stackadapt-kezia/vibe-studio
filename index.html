@@ -558,6 +558,7 @@
         <button data-screen="1">CRT</button>
         <button data-screen="2">LCD</button>
         <button data-screen="3">VHS</button>
+        <button data-screen="4">Echo</button>
       </div>
       <div id="screenRows" style="margin-top:10px"></div>
     </fieldset>
@@ -629,7 +630,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.11";  // Blur slider under Look softens the whole picture
+const APP_VERSION = "0.9.12";  // Echo screen mode: the video-feedback trail, sixteen stepped copies fanning behind the motion
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -1760,13 +1761,42 @@ void main() {
 const COPY = `
 precision highp float;
 uniform sampler2D u_tex, u_tex2;   // incoming frame, and the outgoing one during a crossfade
-uniform vec2 u_res;
+uniform vec2 u_res, u_off;         // target size, and the viewport origin when drawing into an atlas slot
 uniform float u_mix;               // 1 shows u_tex alone
 uniform float u_blur;              // softening radius in pixels, 0 = none
+// Echo: the 1978 video-feedback trail. A ring of the last sixteen frames (a
+// 4x4 atlas of quarter-size captures) is laid under the live frame, oldest
+// first; each older copy is shifted a little further along a slowly turning
+// direction and zoomed a touch, so motion fans out into a stepped train that
+// decays slowly, with a faint hue drift. Copies are keyed to where the frame
+// has moved on, so the still stage stays clean.
+uniform sampler2D u_ring, u_rpal;
+uniform float u_echo, u_ringHead, u_ringStep, u_etime;
 vec4 tap(vec2 uv) { return mix(texture2D(u_tex2, uv), texture2D(u_tex, uv), u_mix); }
+vec3 ghost(vec2 uv, float i) {
+  float s = mod(u_ringHead - 1.0 - i * u_ringStep + 64.0, 16.0);
+  vec2 cell = vec2(mod(s, 4.0), floor(s / 4.0));
+  return texture2D(u_ring, (cell + clamp(uv, 0.002, 0.998)) / 4.0).rgb;
+}
+vec3 echo(vec3 col, vec2 uv) {
+  vec3 live = col;
+  float ang = u_etime * 0.25;
+  vec2 dir = vec2(cos(ang), sin(ang) * (u_res.x / u_res.y));
+  for (int k = 15; k >= 1; k--) {
+    float i = float(k);
+    vec2 guv = (uv - 0.5) * (1.0 - 0.004 * i) + 0.5 - dir * 0.0045 * i;   // older: further along, slightly smaller
+    vec3 g = ghost(guv, i);
+    vec3 tint = texture2D(u_rpal, vec2(fract(i / 32.0 + u_etime * 0.03), 0.5)).rgb;
+    g = mix(g, g * 0.8 + tint * 0.3, 0.12 * u_echo);
+    float key = smoothstep(0.08, 0.3, length(g - live));
+    float fade = u_echo * pow(0.93, i - 1.0);
+    col = mix(col, g, fade * key);
+  }
+  return col;
+}
 void main() {
-  vec2 uv = gl_FragCoord.xy / u_res;
-  if (u_blur < 0.5) { gl_FragColor = tap(uv); return; }
+  vec2 uv = (gl_FragCoord.xy - u_off) / u_res;
+  if (u_blur < 0.5) { vec4 c = tap(uv); gl_FragColor = u_echo > 0.0 ? vec4(echo(c.rgb, uv), c.a) : c; return; }
   // three rings of taps, rotated per pixel so the sparse pattern reads as
   // soft grain rather than stepped rings
   vec2 px = u_blur / u_res;
@@ -1778,7 +1808,8 @@ void main() {
     s += tap(uv + vec2(cos(a + 0.5236), sin(a + 0.5236)) * px * 0.7);
     s += tap(uv + vec2(cos(a + 0.2618), sin(a + 0.2618)) * px);
   }
-  gl_FragColor = s / 20.0;
+  s /= 20.0;
+  gl_FragColor = u_echo > 0.0 ? vec4(echo(s.rgb, uv), s.a) : s;
 }`;
 
 function compile(src, type) {
@@ -1999,6 +2030,30 @@ function resize() {
   canvas.width = w; canvas.height = h;
   A = makeTarget(w, h); B = makeTarget(w, h);
   endFade();                                 // the outgoing look's targets are the old size
+  if (ring) { gl.deleteFramebuffer(ring.fb); gl.deleteTexture(ring.tex); }
+  ring = makeTarget(Math.max(4, w & ~3), Math.max(4, h & ~3));
+  ringHead = 0;
+}
+let ring = null, ringHead = 0, ringTick = 0;
+// copy a frame into ring slot j (a 4x4 atlas of quarter-size captures)
+function captureRing(srcTex, j) {
+  const sw = ring.w / 4, sh = ring.h / 4, ox = (j % 4) * sw, oy = Math.floor(j / 4) * sh;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, ring.fb);
+  gl.viewport(ox, oy, sw, sh);
+  gl.useProgram(copy);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  gl.vertexAttribPointer(gl.getAttribLocation(copy, "a"), 2, gl.FLOAT, false, 0, 0);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, srcTex);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, srcTex);
+  gl.uniform1i(gl.getUniformLocation(copy, "u_tex"), 0);
+  gl.uniform1i(gl.getUniformLocation(copy, "u_tex2"), 1);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_mix"), 1);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), 0);
+  gl.uniform2f(gl.getUniformLocation(copy, "u_off"), ox, oy);
+  gl.uniform2f(gl.getUniformLocation(copy, "u_res"), sw, sh);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 addEventListener("resize", resize);
 
@@ -3158,6 +3213,8 @@ function startFade(dur) {
   gl.uniform1i(gl.getUniformLocation(copy, "u_tex2"), 1);
   gl.uniform1f(gl.getUniformLocation(copy, "u_mix"), 1);
   gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), 0);   // the history seed copies straight
+  gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), 0);
+  gl.uniform2f(gl.getUniformLocation(copy, "u_off"), 0, 0);
   gl.uniform2f(gl.getUniformLocation(copy, "u_res"), Y.w, Y.h);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -3329,6 +3386,13 @@ function frame(now) {
     }
   }
 
+  // echo: capture the clean frame into the ring every few frames (Size sets how many)
+  const echoOn = state.screen === 4;
+  if (echoOn) {
+    const every = Math.max(1, Math.round(state.screenSize * 2));
+    if (ringTick++ % every === 0) { captureRing(A.tex, ringHead); ringHead = (ringHead + 1) % 16; }
+  }
+
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.viewport(0, 0, canvas.width, canvas.height);
   gl.useProgram(copy);
@@ -3338,10 +3402,21 @@ function frame(now) {
   gl.bindTexture(gl.TEXTURE_2D, A.tex);
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, fade ? fade.X.tex : A.tex);
+  gl.activeTexture(gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, ring.tex);
+  gl.activeTexture(gl.TEXTURE3);
+  gl.bindTexture(gl.TEXTURE_2D, palTex);
   gl.uniform1i(gl.getUniformLocation(copy, "u_tex"), 0);
   gl.uniform1i(gl.getUniformLocation(copy, "u_tex2"), 1);
+  gl.uniform1i(gl.getUniformLocation(copy, "u_ring"), 2);
+  gl.uniform1i(gl.getUniformLocation(copy, "u_rpal"), 3);
   gl.uniform1f(gl.getUniformLocation(copy, "u_mix"), mixK);
   gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), state.blur * state.blur * 24.0 * (canvas.height / 1080));
+  gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), echoOn ? state.screenAmt : 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_ringHead"), ringHead);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_ringStep"), 1);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_etime"), T);
+  gl.uniform2f(gl.getUniformLocation(copy, "u_off"), 0, 0);
   gl.uniform2f(gl.getUniformLocation(copy, "u_res"), canvas.width, canvas.height);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
