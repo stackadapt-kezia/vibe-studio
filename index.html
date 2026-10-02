@@ -758,12 +758,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.21";  // Publish: commit the library to GitHub from the app; rename and regroup presets
+const APP_VERSION = "0.9.22";  // fold local copies of shipped looks into the library, no duplicates
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.22", "A look that was saved on this device and has since been committed to the library no longer shows twice; the shipped copy is kept."],
   ["0.9.21", "A pencil on each preset tile renames it or moves it to another group. Publish commits this device\u2019s library straight to GitHub as presets/library.json, with a token kept in this browser, so every device gets it on reload. After a publish the local copies fold into the shipped library instead of showing twice."],
   ["0.9.20", "Export library downloads the whole library as this device shows it, saved looks, tweaks and arrangement included, as a drop-in presets/library.json. Export look still copies one look."],
   ["0.9.19", "A camera picker appears under Video in when more than one camera is attached, and the choice is remembered."],
@@ -3838,6 +3839,11 @@ function saveOverrides() {
   try { localStorage.setItem("vibe.presetOverrides", JSON.stringify(overrides)); } catch (e) { /* no storage */ }
 }
 function rebuildLibrary() {
+  // a saved look whose id now ships in the library is the same look: the
+  // shipped copy wins and the local one goes, so nothing shows twice
+  const before = userPresets.length;
+  userPresets = userPresets.filter(u => !libraryOriginal.some(p => p.id === u.id));
+  if (userPresets.length !== before) saveUserPresets();
   libraryPresets = libraryOriginal.filter(p => !hiddenPresets.includes(p.id)).map(p => {
     const o = overrides[p.id];
     return o ? Object.assign({}, p, { look: o.look, palette: o.palette, routes: o.routes }, o.group ? { group: o.group } : {}, o.name ? { name: o.name } : {}) : p;
