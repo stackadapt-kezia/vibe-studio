@@ -3506,8 +3506,10 @@ function exportLook() {
 // order. Downloads as library.json and copies to the clipboard; drop it over
 // presets/library.json and commit, and every device gets it.
 function libraryJSON() {
-  const presets = [];
+  const presets = [], seen = new Set();
   Object.keys(GROUPS).forEach(g => groupList(g).forEach(p => {
+    if (seen.has(p.id)) return;                       // a local copy of a shipped look: one entry only
+    seen.add(p.id);
     presets.push({ id: p.id, name: p.name, group: g, look: p.look, palette: p.palette, routes: p.routes });
   }));
   // one line per look's fields, like the file in the repo
