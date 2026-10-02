@@ -19,6 +19,11 @@ resource. Frontend code is modern ES (`const`/`let`, arrow functions,
   pattern, the Distort layer, or the Screen layer.
 - `docs/preset-library.md` — preset data model, library grid, and set list.
   Read before touching presets, thumbnails, or the look-switching UI.
+- `docs/face-detection.md` — face detection schema: detection not recognition,
+  nothing stored, normalised boxes, derived scalars and events, smoothing with
+  asymmetric arrive/lose thresholds, fixed-size shader uniforms, and face values
+  as a modulation source beside the audio bands. Read before adding a camera
+  source or any face-driven control.
 - `presets/library.json` — the canonical preset library. The short
   `BUILTIN_PRESETS` list in `index.html` is only a fallback for copies opened
   from disk; edit the JSON, not the fallback.

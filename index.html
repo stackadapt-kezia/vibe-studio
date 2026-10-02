@@ -68,11 +68,15 @@
   .scrolls { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; }
   .scrolls fieldset + fieldset { border-top: 1px solid var(--line); padding-top: 14px; }
   .resizer {
-    position: absolute; top: 0; bottom: 0; left: var(--panelW); z-index: 21; width: 6px;
-    cursor: col-resize; border-right: 1px solid var(--line); background: var(--panel);
-    transition: opacity .35s ease;
+    position: absolute; top: 0; bottom: 0; left: var(--panelW); z-index: 21; width: 8px;
+    cursor: col-resize; background: transparent; transition: opacity .35s ease;
   }
-  .resizer:hover, .resizer.on { background: var(--accent); }
+  .resizer::after {
+    content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 1px;
+    background: var(--line); transition: background .2s, width .2s, opacity .3s;
+  }
+  .resizer:hover::after, .resizer.on::after { background: var(--accent); width: 2px; }
+  body.panel-glass .resizer:not(:hover)::after { opacity: 0; }
   body.resizing { cursor: col-resize; user-select: none; }
   .stage {
     flex: 1; min-width: 0; position: relative; background: #000;
@@ -224,14 +228,16 @@
     background: var(--accent); height: 0%; display: block;
   }
   .spark { display: block; width: 100%; height: 30px; margin-top: 4px; background: var(--panel-2); border-radius: 4px; }
-  .faders { display: flex; gap: 28px; justify-content: center; margin: 6px 0 12px; }
-  .fader { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  /* Gain and Smoothing stand beside the band meters, as tall as meter plus waveform */
+  .faders { display: flex; gap: 10px; flex: 0 0 auto; margin-left: 6px; }
+  .fader { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 34px; }
   .fader input[type=range] {
-    writing-mode: vertical-lr; direction: rtl; width: 24px; height: 96px; margin: 0;
+    writing-mode: vertical-lr; direction: rtl; width: 22px; height: 60px; margin: 0;
     accent-color: var(--accent);
   }
-  .fader label { font-size: 12px; color: var(--muted); }
-  .fader output { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .fader label { font-size: 9px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .fader output { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .meters .fader { margin-top: 16px; }
   .meter span {
     position: absolute; top: -16px; left: 0; font-size: 10px; color: var(--muted);
     letter-spacing: .1em; text-transform: uppercase;
@@ -307,6 +313,13 @@
     background: var(--panel-2); cursor: grab; width: 104px; flex: 0 0 104px; touch-action: none; user-select: none;
   }
   .ptile:active { cursor: grabbing; }
+  .ptile.padd {
+    display: grid; place-items: center; height: 52px; border-style: dashed; background: none;
+    color: var(--muted); font-size: 20px; cursor: pointer;
+  }
+  .ptile.padd:hover { color: var(--text); border-color: var(--muted); }
+  .ptile.over { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .ovgroup.over .pgroup { color: var(--accent); }
   .ptile canvas { display: block; width: 100%; aspect-ratio: 2 / 1; }
   .ptile:hover { border-color: var(--muted); }
   .ptile:focus-visible { outline: 1px solid var(--accent); }
@@ -640,8 +653,8 @@
         <div class="meter"><span>Bass</span><div class="bar"><i id="mBass"></i></div><canvas class="spark" id="wBass" width="120" height="30"></canvas></div>
         <div class="meter"><span>Mid</span><div class="bar"><i id="mMid"></i></div><canvas class="spark" id="wMid" width="120" height="30"></canvas></div>
         <div class="meter"><span>High</span><div class="bar"><i id="mHigh"></i></div><canvas class="spark" id="wHigh" width="120" height="30"></canvas></div>
+        <div class="faders" id="audioRows"></div>
       </div>
-      <div class="faders" id="audioRows"></div>
       <div id="routeRows"></div>
       <div class="libline">
         <span class="note">Each row sends one band to one control.</span>
@@ -688,6 +701,7 @@
         <button class="ovbtn" id="updatePreset" type="button" title="Store the current controls as this preset's defaults in this browser. Export to commit them.">Update preset</button>
         <button class="ovbtn" id="revertPreset" type="button" title="Drop the stored defaults for this preset">Revert</button>
         <button class="ovbtn" id="saveLook" type="button" title="Save the current controls as a new look in Mine">Save look</button>
+        <button class="ovbtn" id="restoreHidden" type="button" title="Bring back library looks you deleted" hidden>Restore</button>
         <button class="ovbtn" id="exportLook" type="button" title="Copy the current look as JSON for presets/library.json">Export</button>
         <button class="ovclose" id="ovClose" type="button" aria-label="Hide the presets">×</button>
       </div>
@@ -698,12 +712,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.16";  // full-width lower third when the panel is away, changelog behind the version, colour library
+const APP_VERSION = "0.9.17";  // editable preset library (move, remove, add per group), faders beside the meters, hairline resizer
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.17", "The library is yours to arrange: drag a tile to another spot or group, remove any look (Restore brings shipped ones back), and press + in a group to save the current look there. Gain and Smoothing stand beside the band meters. The panel\u2019s drag edge is a hairline that vanishes with the glass."],
   ["0.9.16", "The lower third stretches across the whole stage when the sidebar is tucked away. The Pattern studio link is gone. Click the version number for this list. Palette gains a colour library: save the current swatches as a named set and bring it back from tiles or a list."],
   ["0.9.15", "Transition types next to Fade: Dissolve, Luma fade, Flash, Burn and Dip to black."],
   ["0.9.14", "Video in matches Sound in with Image, Video and Tab sources, and a stage card showing what is loaded with play, scrub and clear. The music player only shows while Music is the source."],
@@ -3141,17 +3156,23 @@ function attachDrag(el, info) {
     drag.ghost.style.top = (e.clientY - 26) + "px";
     const idx = slotIndexAt(e.clientX, e.clientY);
     document.querySelectorAll(".tslot").forEach((s, i) => s.classList.toggle("over", i === idx));
+    const lt = idx < 0 && drag.from === "lib" ? libTargetAt(e.clientX, e.clientY) : null;
+    document.querySelectorAll(".ptile.over, .ovgroup.over").forEach(el => el.classList.remove("over"));
+    if (lt && lt.el && lt.beforeId !== drag.id) lt.el.classList.add("over");
   });
   const end = e => {
     if (!drag || drag.el !== el) return;
     const d = drag;
     drag = null;
-    document.querySelectorAll(".tslot.over").forEach(s => s.classList.remove("over"));
+    document.querySelectorAll(".tslot.over, .ptile.over, .ovgroup.over").forEach(s => s.classList.remove("over"));
     if (!d.ghost) { if (e.type === "pointerup" && d.onClick) d.onClick(); return; }
     d.ghost.remove();
     if (e.type !== "pointerup") return;
     const idx = slotIndexAt(e.clientX, e.clientY);
-    if (d.from === "lib") { if (idx >= 0) placeInSet(d.id, idx); }
+    if (d.from === "lib") {
+      if (idx >= 0) placeInSet(d.id, idx);
+      else { const lt = libTargetAt(e.clientX, e.clientY); if (lt && lt.beforeId !== d.id) moveToGroup(d.id, lt.group, lt.beforeId); }
+    }
     else if (idx >= 0) moveSlot(d.index, idx);
     else removeSlot(d.index);
   };
@@ -3171,27 +3192,24 @@ function buildGrid() {
   host.innerHTML = "";
   tiles.length = 0;
   tileQueue.length = 0;
-  const all = allPresets();
   Object.entries(GROUPS).forEach(([g, label]) => {
-    const list = all.filter(p => (p.group || "mine") === g);
-    if (!list.length) return;
-    const grp = document.createElement("div"); grp.className = "ovgroup";
+    const list = groupList(g);
+    const grp = document.createElement("div"); grp.className = "ovgroup"; grp.dataset.group = g;
     const h = document.createElement("h4"); h.className = "pgroup"; h.textContent = label;
     const wrap = document.createElement("div"); wrap.className = "ptiles";
     list.forEach(p => {
       const el = document.createElement("div");
       el.className = "ptile"; el.tabIndex = 0; el.setAttribute("role", "button");
-      el.dataset.id = p.id; el.title = p.name + " \u2014 click to apply, drag onto the timeline";
+      el.dataset.id = p.id; el.title = p.name + " \u2014 click to apply; drag onto the timeline, or to another spot or group";
       const cv = document.createElement("canvas"); cv.width = TILE_W; cv.height = TILE_H;
       const name = document.createElement("span"); name.className = "pname"; name.textContent = p.name;
       el.append(cv, name);
-      if (p.group === "mine") {
-        const del = document.createElement("button");
-        del.className = "pdel"; del.type = "button"; del.textContent = "\u00d7";
-        del.title = "Delete this look"; del.setAttribute("aria-label", "Delete " + p.name);
-        del.addEventListener("click", e => { e.stopPropagation(); deleteUserPreset(p.id); });
-        el.append(del);
-      }
+      const del = document.createElement("button");
+      del.className = "pdel"; del.type = "button"; del.textContent = "\u00d7";
+      del.title = userPresets.some(u => u.id === p.id) ? "Delete this look" : "Remove this look from the library (Restore brings it back)";
+      del.setAttribute("aria-label", "Remove " + p.name);
+      del.addEventListener("click", e => { e.stopPropagation(); deletePreset(p.id); });
+      el.append(del);
       attachDrag(el, { id: p.id, from: "lib", onClick: () => applyPreset(p) });
       el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); applyPreset(p); } });
       wrap.append(el);
@@ -3200,6 +3218,12 @@ function buildGrid() {
       tiles.push(t);
       tileQueue.push(t);
     });
+    const add = document.createElement("div");
+    add.className = "ptile padd"; add.tabIndex = 0; add.setAttribute("role", "button"); add.textContent = "+";
+    add.title = "Save the current look here, in " + label;
+    add.addEventListener("click", () => saveLook(g));
+    add.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); saveLook(g); } });
+    wrap.append(add);
     grp.append(h, wrap);
     host.append(grp);
   });
@@ -3253,14 +3277,15 @@ function loadUserPresets() {
 function saveUserPresets() {
   try { localStorage.setItem("vibe.userPresets", JSON.stringify(userPresets)); } catch (e) { /* no storage */ }
 }
-function saveLook() {
+function saveLook(group) {
+  const g = typeof group === "string" && GROUPS[group] ? group : "mine";
   const name = (prompt("Name this look", "") || "").trim();
   if (!name) return;
   const id = "mine-" + slug(name) + "-" + Date.now().toString(36);
-  userPresets.push(currentLook(id, name, "mine"));
+  userPresets.push(currentLook(id, name, g));
   saveUserPresets(); buildGrid();
   activeId = id; renderActive();
-  presetNote("Saved “" + name + "” to Mine. Export copies it as JSON for presets/library.json.");
+  presetNote("Saved \u201c" + name + "\u201d to " + GROUPS[g] + ". Export copies it as JSON for presets/library.json.");
 }
 function deleteUserPreset(id) {
   const i = userPresets.findIndex(p => p.id === id);
@@ -3403,12 +3428,76 @@ function toggleOverlay(force) {
 $("ovGain").addEventListener("input", () => { state.gain = +$("ovGain").value; syncSliders(); });
 $("setBtn").addEventListener("click", () => toggleOverlay());
 $("ovClose").addEventListener("click", () => toggleOverlay(false));
-$("saveLook").addEventListener("click", saveLook);
+$("saveLook").addEventListener("click", () => saveLook("mine"));
 $("exportLook").addEventListener("click", exportLook);
 // Update preset stores the current controls as a library preset's defaults in
 // this browser (an override merged over the shipped look); Revert drops it.
 // Export copies the merged look so it can be committed to library.json.
-let lastPresetId = null, libraryOriginal = [], overrides = {};
+let lastPresetId = null, libraryOriginal = [], overrides = {}, hiddenPresets = [], presetOrder = {};
+// Library edits (deleting a shipped look, moving it to another group, the
+// order inside a group) are kept in this browser, so the shipped JSON stays clean.
+function loadLibraryEdits() {
+  try { hiddenPresets = (JSON.parse(localStorage.getItem("vibe.hiddenPresets") || "[]") || []).filter(x => typeof x === "string"); } catch (e) { hiddenPresets = []; }
+  try { presetOrder = JSON.parse(localStorage.getItem("vibe.presetOrder") || "{}") || {}; } catch (e) { presetOrder = {}; }
+}
+function saveLibraryEdits() {
+  try { localStorage.setItem("vibe.hiddenPresets", JSON.stringify(hiddenPresets)); localStorage.setItem("vibe.presetOrder", JSON.stringify(presetOrder)); } catch (e) { /* no storage */ }
+}
+// the presets of one group in their saved order, new ones at the end
+function groupList(g) {
+  const list = allPresets().filter(p => (p.group || "mine") === g);
+  const order = presetOrder[g] || [];
+  return list.sort((a, b) => {
+    const ia = order.indexOf(a.id), ib = order.indexOf(b.id);
+    return (ia < 0 ? 1e9 : ia) - (ib < 0 ? 1e9 : ib);
+  });
+}
+function setGroup(id, g) {
+  const u = userPresets.find(p => p.id === id);
+  if (u) { u.group = g; saveUserPresets(); return; }
+  const base = libraryOriginal.find(p => p.id === id);
+  if (!base) return;
+  overrides[id] = Object.assign({ look: base.look, palette: base.palette, routes: base.routes }, overrides[id] || {}, { group: g });
+  saveOverrides();
+}
+// drop a tile onto a group: before the tile under the pointer, or at the end
+function moveToGroup(id, g, beforeId) {
+  const from = findPreset(id);
+  if (!from) return;
+  if ((from.group || "mine") !== g) setGroup(id, g);
+  Object.keys(presetOrder).forEach(k => { presetOrder[k] = (presetOrder[k] || []).filter(x => x !== id); });
+  const order = groupList(g).map(p => p.id).filter(x => x !== id);
+  const at = beforeId ? order.indexOf(beforeId) : -1;
+  if (at >= 0) order.splice(at, 0, id); else order.push(id);
+  presetOrder[g] = order;
+  saveLibraryEdits(); rebuildLibrary();
+}
+function deletePreset(id) {
+  if (userPresets.some(p => p.id === id)) { deleteUserPreset(id); return; }
+  if (!hiddenPresets.includes(id)) hiddenPresets.push(id);
+  const s = setlist.findIndex(x => x.id === id);
+  if (s >= 0) { setlist.splice(s, 1); saveSetlist(); }
+  if (activeId === id) activeId = null;
+  saveLibraryEdits(); rebuildLibrary();
+}
+function restoreHidden() {
+  hiddenPresets = [];
+  saveLibraryEdits(); rebuildLibrary();
+  presetNote("Hidden library looks are back.");
+}
+// which library tile or group is under the pointer, for drags between tiles
+function libTargetAt(x, y) {
+  for (const el of document.querySelectorAll(".ptile:not(.padd)")) {
+    const r = el.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return { group: el.closest(".ovgroup").dataset.group, beforeId: el.dataset.id, el };
+  }
+  for (const el of document.querySelectorAll(".ovgroup")) {
+    const r = el.getBoundingClientRect();
+    if (x >= r.left - 8 && x <= r.right + 8 && y >= r.top && y <= r.bottom) return { group: el.dataset.group, beforeId: null, el };
+  }
+  return null;
+}
+$("restoreHidden").addEventListener("click", restoreHidden);
 function loadOverrides() {
   try { overrides = JSON.parse(localStorage.getItem("vibe.presetOverrides") || "{}"); } catch (e) { overrides = {}; }
   if (!overrides || typeof overrides !== "object") overrides = {};
@@ -3417,10 +3506,11 @@ function saveOverrides() {
   try { localStorage.setItem("vibe.presetOverrides", JSON.stringify(overrides)); } catch (e) { /* no storage */ }
 }
 function rebuildLibrary() {
-  libraryPresets = libraryOriginal.map(p => {
+  libraryPresets = libraryOriginal.filter(p => !hiddenPresets.includes(p.id)).map(p => {
     const o = overrides[p.id];
-    return o ? Object.assign({}, p, { look: o.look, palette: o.palette, routes: o.routes }) : p;
+    return o ? Object.assign({}, p, { look: o.look, palette: o.palette, routes: o.routes }, o.group ? { group: o.group } : {}) : p;
   });
+  $("restoreHidden").hidden = !hiddenPresets.length;
   buildGrid();
 }
 function updatePreset() {
@@ -3458,7 +3548,7 @@ async function loadLibrary() {
   } catch (e) { /* file:// or offline: the built-in list stands */ }
   libraryOriginal = list.filter(validPreset);
   libraryFrom = from;
-  loadOverrides(); loadUserPresets(); loadSetlist(); rebuildLibrary();
+  loadOverrides(); loadLibraryEdits(); loadUserPresets(); loadSetlist(); rebuildLibrary();
 }
 let libraryFrom = "";
 loadLibrary();
@@ -3533,13 +3623,13 @@ $("fadeSec").addEventListener("input", () => {
   const wake = () => { lastMove = performance.now(); panel.classList.remove("away"); bar.classList.remove("away"); document.body.classList.remove("panel-away"); };
   ["mousemove", "pointerdown", "keydown", "wheel"].forEach(t => addEventListener(t, wake, { passive: true }));
   [panel, bar].forEach(el => {
-    el.addEventListener("mouseenter", () => { over = true; panel.classList.remove("glass"); });
+    el.addEventListener("mouseenter", () => { over = true; panel.classList.remove("glass"); document.body.classList.remove("panel-glass"); });
     el.addEventListener("mouseleave", () => { over = false; leftAt = performance.now(); });
   });
   setInterval(() => {
     if (document.body.classList.contains("hide-ui") || document.body.classList.contains("resizing")) return;
     const now = performance.now();
-    if (!over && now - leftAt > 2000) panel.classList.add("glass");
+    if (!over && now - leftAt > 2000) { panel.classList.add("glass"); document.body.classList.add("panel-glass"); }
     if (now - lastMove > 5000) { panel.classList.add("away"); bar.classList.add("away"); document.body.classList.add("panel-away"); }
   }, 250);
 })();

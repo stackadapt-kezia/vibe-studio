@@ -241,3 +241,13 @@ in Mine is rewritten in place.
 
 **Open questions, answered for now.** Reference clip: not needed. Thumbnail
 resolution: tile resolution. Set list editing: from the tiles.
+
+**Editing the library (0.9.17).** The library is arrangeable in the browser:
+drag a tile onto another to place it before that tile (in that tile's group,
+moving it between groups if needed), onto a group heading to put it last
+there, remove any look with its ×, and press + in a group to save the current
+controls as a new look in that group. Shipped looks that are removed are only
+hidden (Restore in the toolbar brings them all back); the shipped JSON is never
+changed by the UI. Edits live in `localStorage`: hidden ids, a per-group order,
+and a `group` on a preset's override. Export still produces the merged look to
+commit.
