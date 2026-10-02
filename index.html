@@ -513,6 +513,10 @@
         </span>
       </legend>
       <input type="file" id="imgFile" accept="image/*,video/*" hidden>
+      <div class="row" id="camRow" hidden>
+        <label for="camSel">Camera</label>
+        <select id="camSel" aria-label="Camera device"></select>
+      </div>
       <div class="player vplayer" id="vplayer" hidden>
         <canvas class="cover vthumb" id="vThumb" width="112" height="112" aria-hidden="true"></canvas>
         <div class="np-text">
@@ -715,12 +719,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.18";  // Camera source with face detection as reactivity sources; Media merges image and video; fader layout
+const APP_VERSION = "0.9.19";  // camera device picker, remembered per browser
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.19", "A camera picker appears under Video in when more than one camera is attached, and the choice is remembered."],
   ["0.9.18", "Video in has Media, Camera and Tab. Camera puts a webcam on the stage and, in Chrome with FaceDetector on, counts the faces it sees: Face presence, near, crowd and spread are new reactivity sources. Nothing is identified or stored. Gain and Smooth sit beside the meters with their labels on the Bass line."],
   ["0.9.17", "The library is yours to arrange: drag a tile to another spot or group, remove any look (Restore brings shipped ones back), and press + in a group to save the current look there. Gain and Smoothing stand beside the band meters. The panel\u2019s drag edge is a hairline that vanishes with the glass."],
   ["0.9.16", "The lower third stretches across the whole stage when the sidebar is tucked away. The Pattern studio link is gone. Click the version number for this list. Palette gains a colour library: save the current swatches as a named set and bring it back from tiles or a list."],
@@ -2319,7 +2324,7 @@ let vidMode = "none";                                     // the Video in source
 function setImageSource(el, w, h, name, kind) {
   if (imgVideo && imgVideo !== el) { imgVideo.pause(); imgVideo = null; }
   if (tabStream && kind !== "tab" && kind !== "camera") { tabStream.getTracks().forEach(t => t.stop()); tabStream = null; }
-  if (kind !== "camera") stopFaces();
+  if (kind !== "camera") { stopFaces(); $("camRow").hidden = true; }
   imgSrc = el; imgAspect = w / h; imgDirty = true; imgName = name; imgKind = kind;
   vidMode = kind === "image" || kind === "video" ? "media" : kind; segVid();
   const card = $("vplayer");
@@ -2338,7 +2343,7 @@ function setImageSource(el, w, h, name, kind) {
 function clearImageSource() {
   if (imgVideo) { imgVideo.pause(); imgVideo = null; }
   if (tabStream) { tabStream.getTracks().forEach(t => t.stop()); tabStream = null; }
-  stopFaces();
+  stopFaces(); $("camRow").hidden = true;
   imgSrc = null; imgKind = "none"; vidMode = "none"; segVid();
   $("vplayer").hidden = true;
   $("imgNote").hidden = false; $("imgNote").className = "note";
@@ -2396,26 +2401,59 @@ async function useTabVideo() {
       imgVideo = v; tabStream = stream;
       setImageSource(v, v.videoWidth, v.videoHeight, track.label || "Shared tab", "tab");
     }, { once: true });
-    track.addEventListener("ended", () => { if (imgKind === "tab") clearImageSource(); });
+    track.addEventListener("ended", () => { if (imgKind === "tab" && tabStream === stream) clearImageSource(); });
     await v.play();
   } catch (err) {
     imgError(err.name === "NotAllowedError" ? "Tab sharing was cancelled." : "Couldn\u2019t capture the tab: " + err.message);
   }
 }
-// the camera on the stage, mirrored like a mirror; face detection starts with it
+// the camera on the stage; face detection starts with it. A picker appears
+// when more than one camera is attached, and the choice is remembered.
+let camId = null;
+try { camId = localStorage.getItem("vibe.camId"); } catch (e) { /* no storage */ }
+async function listCams() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+  const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput");
+  const sel = $("camSel");
+  sel.innerHTML = "";
+  devs.forEach((d, i) => {
+    const o = document.createElement("option");
+    o.value = d.deviceId; o.textContent = d.label || ("Camera " + (i + 1));
+    sel.append(o);
+  });
+  const live = imgKind === "camera" && tabStream && tabStream.getVideoTracks()[0].getSettings().deviceId;
+  if (live && [...sel.options].some(o => o.value === live)) sel.value = live;
+  $("camRow").hidden = devs.length < 2 || imgKind !== "camera";
+}
+$("camSel").addEventListener("change", () => {
+  camId = $("camSel").value;
+  try { localStorage.setItem("vibe.camId", camId); } catch (e) { /* no storage */ }
+  useCamera();
+});
 async function useCamera() {
   try {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { imgError("This browser can\u2019t open a camera."); return; }
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" }, audio: false });
+    const base = { width: { ideal: 1280 }, height: { ideal: 720 } };
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: camId ? { ...base, deviceId: { exact: camId } } : { ...base, facingMode: "user" }, audio: false });
+    } catch (err) {
+      if (!camId || err.name === "NotAllowedError") throw err;
+      camId = null;                                   // the remembered camera is gone: use the default
+      try { localStorage.removeItem("vibe.camId"); } catch (e) { /* no storage */ }
+      stream = await navigator.mediaDevices.getUserMedia({ video: { ...base, facingMode: "user" }, audio: false });
+    }
     const track = stream.getVideoTracks()[0];
     const v = document.createElement("video");
     v.srcObject = stream; v.muted = true; v.playsInline = true;
     v.addEventListener("loadeddata", () => {
+      if (tabStream && tabStream !== stream) tabStream.getTracks().forEach(t => t.stop());   // the camera being switched away from
       imgVideo = v; tabStream = stream;
       setImageSource(v, v.videoWidth, v.videoHeight, track.label || "Camera", "camera");
       startFaces(v);
+      listCams();
     }, { once: true });
-    track.addEventListener("ended", () => { if (imgKind === "camera") clearImageSource(); });
+    track.addEventListener("ended", () => { if (imgKind === "camera" && tabStream === stream) clearImageSource(); });
     await v.play();
   } catch (err) {
     imgError(err.name === "NotAllowedError" ? "Camera permission was denied." : "Couldn\u2019t open the camera: " + err.message);
