@@ -190,3 +190,37 @@ the wall, which is the whole point.
   unnecessary here, and a liability.
 - Face mesh or landmark detail beyond the six keypoints.
 - Recording or saving any frame, crop or derived descriptor.
+
+---
+
+## Implementation notes (0.9.18)
+
+Built against this spec with the browser's **FaceDetector API** rather than
+MediaPipe, because MediaPipe is a CDN script that fetches its model from
+Google at runtime and the repo ships no external code. FaceDetector is built
+into Chrome, returns the same box plus eye, nose and mouth keypoints, and
+needs no download. It is Chrome-only and on desktop sits behind
+`chrome://flags/#enable-experimental-web-platform-features`, which is flipped
+once on the show machine. The detector is isolated in `startFaces` /
+`detectFaces`; a vendored MediaPipe can replace it without touching the
+derived values or the routes.
+
+- **Source.** Camera is a Video in source beside Media and Tab; the feed is
+  also the picture behind the effects. Detection runs only on the camera.
+- **Tracking.** Boxes are matched to tracks by overlap each detection; a
+  track arrives after 3 hits and is lost after 12 misses (asymmetric, as the
+  spec asks). Detection runs every second frame. Nothing is kept beyond the
+  current tracks, and track ids reset when the camera stops.
+- **Derived values.** `presence`, `count`, `occupancy`, `largest`, `nearest`
+  and `spread`, smoothed, plus up to eight boxes, exactly the spec's fields.
+- **Binding.** Face values are reactivity sources beside the audio bands:
+  Face: presence, Face: near (largest box height, scaled), Face: crowd
+  (occupancy, scaled) and Face: spread. They route to any target the bands
+  can, so "cells get smaller as someone gets closer" is Face: near →
+  Size with a negative-feeling amount achieved by routing to a target that
+  shrinks, or by pairing with a preset whose base is coarse.
+- **Readout.** The camera's stage card shows the live count, presence, near
+  and spread, or why detection is off.
+- **Not yet.** `nearest` is computed but no target consumes a point; the
+  shader uniforms block (`uFaceBoxes` and friends) is not bound; events are
+  not emitted as such, though `presence` falling to 0 is the `empty` cue.

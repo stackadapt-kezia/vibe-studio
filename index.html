@@ -229,15 +229,18 @@
   }
   .spark { display: block; width: 100%; height: 30px; margin-top: 4px; background: var(--panel-2); border-radius: 4px; }
   /* Gain and Smoothing stand beside the band meters, as tall as meter plus waveform */
-  .faders { display: flex; gap: 10px; flex: 0 0 auto; margin-left: 6px; }
-  .fader { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 34px; }
+  .faders { display: flex; gap: 12px; flex: 0 0 auto; margin-left: 8px; }
+  .fader { position: relative; display: flex; flex-direction: column; align-items: center; width: 40px; }
   .fader input[type=range] {
-    writing-mode: vertical-lr; direction: rtl; width: 22px; height: 60px; margin: 0;
+    writing-mode: vertical-lr; direction: rtl; width: 22px; height: 60px; margin: 0;   /* meter 26 + gap 4 + waveform 30 */
     accent-color: var(--accent);
   }
-  .fader label { font-size: 9px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-  .fader output { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .meters .fader { margin-top: 16px; }
+  .fader label {
+    position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 10px;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--muted); white-space: nowrap;
+  }
+  .fader output { position: absolute; top: 64px; font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .meters { margin-bottom: 26px; }   /* room for the fader readouts below */
   .meter span {
     position: absolute; top: -16px; left: 0; font-size: 10px; color: var(--muted);
     letter-spacing: .1em; text-transform: uppercase;
@@ -437,7 +440,7 @@
   .vplayer { margin-top: 10px; }
   .vthumb { object-fit: cover; }
   #vidPlay.playing .ic-play, #vidPlay:not(.playing) .ic-pause { display: none; }
-  .vplayer.still .transport #vidPlay, .vplayer.still .scrub, .vplayer.live .scrub { display: none; }
+  .vplayer.still .transport #vidPlay, .vplayer.still .scrub, .vplayer.live .scrub, .vplayer.live .transport #vidPlay { display: none; }
   .vplayer.still, .vplayer.live { grid-template-areas: "cover text transport"; }
   .note.warn { color: #ffb37a; }
   .hint {
@@ -504,18 +507,18 @@
     <fieldset class="fixed">
       <legend>Video in
         <span class="headctl seg" id="vidSeg">
-          <button data-vsrc="image">Image</button>
-          <button data-vsrc="video">Video</button>
+          <button data-vsrc="media" title="Load an image or a video file">Media</button>
+          <button data-vsrc="camera" title="Show a camera on the stage; faces it sees can drive the visuals">Camera</button>
           <button data-vsrc="tab" title="Show another browser tab or window on the stage">Tab</button>
         </span>
       </legend>
-      <input type="file" id="imgFile" accept="image/*" hidden>
-      <input type="file" id="vidFile" accept="video/*" hidden>
+      <input type="file" id="imgFile" accept="image/*,video/*" hidden>
       <div class="player vplayer" id="vplayer" hidden>
         <canvas class="cover vthumb" id="vThumb" width="112" height="112" aria-hidden="true"></canvas>
         <div class="np-text">
           <div class="np-title" id="vTitle">Nothing loaded</div>
           <div class="np-sub" id="vSub"></div>
+          <div class="np-sub" id="vFaces" hidden></div>
         </div>
         <div class="transport">
           <button id="vidPlay" class="big" aria-label="Play or pause the video"><svg class="ic-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><svg class="ic-pause" viewBox="0 0 24 24"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg></button>
@@ -712,12 +715,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.17";  // editable preset library (move, remove, add per group), faders beside the meters, hairline resizer
+const APP_VERSION = "0.9.18";  // Camera source with face detection as reactivity sources; Media merges image and video; fader layout
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.18", "Video in has Media, Camera and Tab. Camera puts a webcam on the stage and, in Chrome with FaceDetector on, counts the faces it sees: Face presence, near, crowd and spread are new reactivity sources. Nothing is identified or stored. Gain and Smooth sit beside the meters with their labels on the Bass line."],
   ["0.9.17", "The library is yours to arrange: drag a tile to another spot or group, remove any look (Restore brings shipped ones back), and press + in a group to save the current look there. Gain and Smoothing stand beside the band meters. The panel\u2019s drag edge is a hairline that vanishes with the glass."],
   ["0.9.16", "The lower third stretches across the whole stage when the sidebar is tucked away. The Pattern studio link is gone. Click the version number for this list. Palette gains a colour library: save the current swatches as a named set and bring it back from tiles or a list."],
   ["0.9.15", "Transition types next to Fade: Dissolve, Luma fade, Flash, Burn and Dip to black."],
@@ -820,7 +824,7 @@ const LOOK = [
   ["bands", "Bands", 0, 8, 1, v => (v < 2 ? "Off" : String(v))],
 ];
 // Reactivity routing: each route sends one audio band to one control.
-const SOURCES = { bass: "Bass", mid: "Mids", high: "Highs", beat: "Beat" };
+const SOURCES = { bass: "Bass", mid: "Mids", high: "Highs", beat: "Beat", presence: "Face: presence", near: "Face: near", crowd: "Face: crowd", spread: "Face: spread" };
 const TARGETS = {
   size: "Size", motion: "Motion", colour: "Colour", grain: "Grain", flash: "Flash",
   distort: "Distort", warp: "Warp", trails: "Trails", push: "Push", spin: "Spin", echo: "Echo",
@@ -853,7 +857,7 @@ const SCALE_LABELS = { 0: "Blob size", 1: "Zoom", 2: "Zoom", 3: "Zoom", 4: "Ampl
 const WARP_LABELS = { 1: "Warp", 2: "Warp", 4: "Trace", 5: "Cycle", 6: "Dither", 7: "Angle", 8: "Direction", 10: "Light", 11: "Lift", 12: "Angle", 14: "Smear", 15: "Dither" };
 const AUDIO_ROWS = [
   ["gain", "Gain", 0.2, 4, 0.05, v => v.toFixed(2)],
-  ["smooth", "Smoothing", 0, 0.95, 0.05, v => v.toFixed(2)],
+  ["smooth", "Smooth", 0, 0.95, 0.05, v => v.toFixed(2)],
 ];
 
 // vertical faders for the audio controls
@@ -868,7 +872,7 @@ function buildFaders(host, spec) {
     const lb = document.createElement("label"); lb.textContent = label;
     const out = document.createElement("output"); out.textContent = fmt(state[key]);
     input.addEventListener("input", () => { state[key] = +input.value; out.textContent = fmt(state[key]); touch(); });
-    cell.append(input, lb, out);
+    cell.append(lb, input, out);
     host.append(cell);
     faders[key] = { input, out, fmt };
   });
@@ -2314,15 +2318,17 @@ let vidMode = "none";                                     // the Video in source
 // a stop for a shared tab, a clear for everything
 function setImageSource(el, w, h, name, kind) {
   if (imgVideo && imgVideo !== el) { imgVideo.pause(); imgVideo = null; }
-  if (tabStream && kind !== "tab") { tabStream.getTracks().forEach(t => t.stop()); tabStream = null; }
+  if (tabStream && kind !== "tab" && kind !== "camera") { tabStream.getTracks().forEach(t => t.stop()); tabStream = null; }
+  if (kind !== "camera") stopFaces();
   imgSrc = el; imgAspect = w / h; imgDirty = true; imgName = name; imgKind = kind;
-  vidMode = kind; segVid();
+  vidMode = kind === "image" || kind === "video" ? "media" : kind; segVid();
   const card = $("vplayer");
   card.hidden = false;
   card.classList.toggle("still", kind === "image");
-  card.classList.toggle("live", kind === "tab");
+  card.classList.toggle("live", kind === "tab" || kind === "camera");
   $("vTitle").textContent = name;
-  $("vSub").textContent = (kind === "image" ? "Image" : kind === "tab" ? "Live tab" : "Video") + " \u00b7 " + w + "\u00d7" + h;
+  $("vSub").textContent = (kind === "image" ? "Image" : kind === "tab" ? "Live tab" : kind === "camera" ? "Camera" : "Video") + " \u00b7 " + w + "\u00d7" + h;
+  $("vFaces").hidden = kind !== "camera";
   lastShownTime = -1;
   drawVideoThumb();
   syncVideoUI();
@@ -2332,6 +2338,7 @@ function setImageSource(el, w, h, name, kind) {
 function clearImageSource() {
   if (imgVideo) { imgVideo.pause(); imgVideo = null; }
   if (tabStream) { tabStream.getTracks().forEach(t => t.stop()); tabStream = null; }
+  stopFaces();
   imgSrc = null; imgKind = "none"; vidMode = "none"; segVid();
   $("vplayer").hidden = true;
   $("imgNote").hidden = false; $("imgNote").className = "note";
@@ -2349,7 +2356,7 @@ function drawVideoThumb() {
 }
 function imgError(msg) {
   $("imgNote").hidden = false; $("imgNote").className = "note warn"; $("imgNote").textContent = msg;
-  vidMode = imgKind; segVid();
+  vidMode = litFor(); segVid();
 }
 function useImage(file) {
   const url = URL.createObjectURL(file);
@@ -2395,6 +2402,109 @@ async function useTabVideo() {
     imgError(err.name === "NotAllowedError" ? "Tab sharing was cancelled." : "Couldn\u2019t capture the tab: " + err.message);
   }
 }
+// the camera on the stage, mirrored like a mirror; face detection starts with it
+async function useCamera() {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { imgError("This browser can\u2019t open a camera."); return; }
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" }, audio: false });
+    const track = stream.getVideoTracks()[0];
+    const v = document.createElement("video");
+    v.srcObject = stream; v.muted = true; v.playsInline = true;
+    v.addEventListener("loadeddata", () => {
+      imgVideo = v; tabStream = stream;
+      setImageSource(v, v.videoWidth, v.videoHeight, track.label || "Camera", "camera");
+      startFaces(v);
+    }, { once: true });
+    track.addEventListener("ended", () => { if (imgKind === "camera") clearImageSource(); });
+    await v.play();
+  } catch (err) {
+    imgError(err.name === "NotAllowedError" ? "Camera permission was denied." : "Couldn\u2019t open the camera: " + err.message);
+  }
+}
+
+/* ================= face detection (docs/face-detection.md) ================= */
+// Detection, not recognition: the browser's FaceDetector reports boxes and a
+// few keypoints for the current frame and nothing is kept. Tracks are matched
+// by overlap, arrive after 3 hits and are lost after 12 misses, and the
+// derived values (presence, count, occupancy, largest, nearest, spread) are
+// smoothed so visuals never strobe. Detection runs every second frame.
+const FACE = { count: 0, presence: 0, occupancy: 0, largest: 0, nearest: { x: 0.5, y: 0.5 }, spread: 0, boxes: [] };
+let faceDet = null, faceVideo = null, faceTracks = [], faceNextId = 1, faceTick = 0, faceBusy = false, faceStatus = "";
+const FACE_CFG = { every: 2, arrive: 3, lose: 12, smooth: { presence: 0.12, position: 0.3, size: 0.2 } };
+function startFaces(video) {
+  faceVideo = video; faceTracks = []; faceNextId = 1;
+  if (!("FaceDetector" in window)) {
+    faceStatus = "Face detection is off: this browser has no FaceDetector. In Chrome, enable chrome://flags/#enable-experimental-web-platform-features.";
+    $("vFaces").textContent = faceStatus;
+    return;
+  }
+  try { faceDet = new FaceDetector({ fastMode: true, maxDetectedFaces: 8 }); faceStatus = ""; }
+  catch (e) { faceDet = null; faceStatus = "Face detection is off: " + e.message; $("vFaces").textContent = faceStatus; }
+}
+function stopFaces() {
+  faceDet = null; faceVideo = null; faceTracks = [];
+  FACE.count = 0; FACE.presence = 0; FACE.occupancy = 0; FACE.largest = 0; FACE.spread = 0; FACE.boxes = [];
+}
+const iou = (a, b) => {
+  const x = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
+  const y = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+  const i = x * y;
+  return i / (a.w * a.h + b.w * b.h - i + 1e-6);
+};
+async function detectFaces() {
+  if (!faceDet || !faceVideo || faceBusy || faceVideo.readyState < 2) return;
+  if (faceTick++ % FACE_CFG.every) return;
+  faceBusy = true;
+  try {
+    const W = faceVideo.videoWidth, H = faceVideo.videoHeight;
+    const found = (await faceDet.detect(faceVideo)).map(f => {
+      const b = f.boundingBox;
+      return { x: b.x / W, y: b.y / H, w: b.width / W, h: b.height / H };
+    });
+    // match to tracks by overlap
+    const used = new Set();
+    faceTracks.forEach(t => {
+      let best = -1, bi = -1;
+      found.forEach((b, i) => { if (!used.has(i)) { const s = iou(t.box, b); if (s > best) { best = s; bi = i; } } });
+      if (bi >= 0 && best > 0.2) {
+        used.add(bi);
+        const b = found[bi], k = FACE_CFG.smooth.position, ks = FACE_CFG.smooth.size;
+        t.box = { x: t.box.x + (b.x - t.box.x) * k, y: t.box.y + (b.y - t.box.y) * k, w: t.box.w + (b.w - t.box.w) * ks, h: t.box.h + (b.h - t.box.h) * ks };
+        t.hits++; t.misses = 0; t.age++;
+      } else { t.misses++; t.age++; }
+    });
+    found.forEach((b, i) => { if (!used.has(i)) faceTracks.push({ id: faceNextId++, box: b, hits: 1, misses: 0, age: 1 }); });
+    faceTracks = faceTracks.filter(t => t.misses < FACE_CFG.lose);
+  } catch (e) {
+    faceStatus = "Face detection stopped: " + e.message; faceDet = null;
+  }
+  faceBusy = false;
+}
+// smoothed scalars from the tracked faces, every frame
+function updateFaceDerived() {
+  const live = faceTracks.filter(t => t.hits >= FACE_CFG.arrive);
+  const n = live.length;
+  const kp = FACE_CFG.smooth.presence;
+  FACE.presence += ((n ? 1 : 0) - FACE.presence) * kp;
+  FACE.count = n;
+  const occ = live.reduce((a, t) => a + t.box.w * t.box.h, 0);
+  FACE.occupancy += (Math.min(1, occ) - FACE.occupancy) * kp;
+  let largest = 0, near = null;
+  live.forEach(t => { if (t.box.h > largest) { largest = t.box.h; near = t; } });
+  FACE.largest += (largest - FACE.largest) * kp;
+  if (near) { FACE.nearest.x += (near.box.x + near.box.w / 2 - FACE.nearest.x) * 0.3; FACE.nearest.y += (near.box.y + near.box.h / 2 - FACE.nearest.y) * 0.3; }
+  let spread = 0;
+  if (n > 1) {
+    const cx = live.map(t => t.box.x + t.box.w / 2), cy = live.map(t => t.box.y + t.box.h / 2);
+    const mx = cx.reduce((a, b) => a + b) / n, my = cy.reduce((a, b) => a + b) / n;
+    spread = Math.min(1, Math.sqrt(cx.reduce((a, x, i) => a + (x - mx) ** 2 + (cy[i] - my) ** 2, 0) / n) * 2.5);
+  }
+  FACE.spread += (spread - FACE.spread) * kp;
+  FACE.boxes = live.slice(0, 8).map(t => t.box);
+  if (imgKind === "camera" && (faceTick % 15) === 0) {
+    $("vFaces").textContent = faceStatus || (n ? n + (n > 1 ? " faces" : " face") + " \u00b7 presence " + FACE.presence.toFixed(2) + " \u00b7 near " + FACE.largest.toFixed(2) + " \u00b7 spread " + FACE.spread.toFixed(2) : "No faces \u00b7 presence " + FACE.presence.toFixed(2));
+  }
+}
 /* video playback: play/pause, a scrubber and a clock, only for a file video */
 const fmtTime = s => isFinite(s) ? Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0") : "0:00";
 let scrubbing = false, lastShownTime = -1;
@@ -2402,7 +2512,7 @@ function syncVideoUI() {
   const v = imgVideo;
   if (!v) return;
   $("vidPlay").classList.toggle("playing", !v.paused);
-  if (imgKind === "tab" && (thumbTick++ % 30) === 0) drawVideoThumb();
+  if ((imgKind === "tab" || imgKind === "camera") && (thumbTick++ % 30) === 0) drawVideoThumb();
   const t = Math.floor(v.currentTime * 10);
   if (t === lastShownTime) return;
   lastShownTime = t;
@@ -2435,14 +2545,14 @@ function uploadImage() {
 }
 // the Video in buttons: Image and Video open a picker, Tab opens the share
 // picker; the lit button is whatever is on the stage
+const litFor = () => imgKind === "image" || imgKind === "video" ? "media" : imgKind;
 const segVid = seg("vidSeg", "vsrc", () => vidMode, v => {
-  if (v === "image") { vidMode = imgKind; segVid(); $("imgFile").click(); }
-  else if (v === "video") { vidMode = imgKind; segVid(); $("vidFile").click(); }
-  else if (v === "tab") { vidMode = imgKind; segVid(); useTabVideo(); }
+  vidMode = litFor(); segVid();                     // the lit button is what is on the stage, not what was clicked
+  if (v === "media") $("imgFile").click();
+  else if (v === "camera") useCamera();
+  else if (v === "tab") useTabVideo();
 });
-const pickFile = e => { const f = e.target.files[0]; if (f) useImage(f); e.target.value = ""; };
-$("imgFile").addEventListener("change", pickFile);
-$("vidFile").addEventListener("change", pickFile);
+$("imgFile").addEventListener("change", e => { const f = e.target.files[0]; if (f) useImage(f); e.target.value = ""; });
 // drop an image, video or audio file anywhere on the stage
 const stageEl = $("stage");
 stageEl.addEventListener("dragover", e => { e.preventDefault(); stageEl.classList.add("drop"); });
@@ -3022,7 +3132,8 @@ function palFor(P) {
 }
 // the reactivity routes summed into per-target amounts, from the live bands
 function modsFor(routes) {
-  const lvl = { bass: band.bass, mid: band.mid, high: band.high, beat: beatEnv };
+  const lvl = { bass: band.bass, mid: band.mid, high: band.high, beat: beatEnv,
+                presence: FACE.presence, near: FACE.largest * 2.5, crowd: FACE.occupancy * 4, spread: FACE.spread };
   const mod = {};
   for (const r of routes) mod[r.dst] = (mod[r.dst] || 0) + (lvl[r.src] || 0) * r.amt;
   const m = k => mod[k] || 0;
@@ -3667,6 +3778,7 @@ function frame(now) {
   last = now;
   resize();
   syncPlayerUI();
+  detectFaces(); updateFaceDerived();
 
   if (analyser) {
     if (!timeData || timeData.length !== analyser.fftSize) timeData = new Float32Array(analyser.fftSize);
