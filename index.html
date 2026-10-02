@@ -467,11 +467,11 @@
 <dialog id="pubDlg" class="changelog pubdlg">
   <div class="clhead">
     <span class="title">Publish to GitHub</span>
-    <button class="ovclose" id="pubClose" type="button" aria-label="Close">\u00d7</button>
+    <button class="ovclose" id="pubClose" type="button" aria-label="Close">×</button>
   </div>
   <div class="pubbody">
-    <p class="note">Publishing commits this device\u2019s library to the repo as <code>presets/library.json</code>. It needs a GitHub fine-grained token with <b>Contents: read and write</b> on this one repository. The token stays in this browser only.</p>
-    <label>Token <input type="password" id="pubToken" autocomplete="off" spellcheck="false" placeholder="github_pat_\u2026"></label>
+    <p class="note">Publishing commits this device’s library to the repo as <code>presets/library.json</code>. It needs a GitHub fine-grained token with <b>Contents: read and write</b> on this one repository. The token stays in this browser only.</p>
+    <label>Token <input type="password" id="pubToken" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>
     <label>Repository <input type="text" id="pubRepo" spellcheck="false" placeholder="owner/name"></label>
     <label>Branch <input type="text" id="pubBranch" spellcheck="false" placeholder="main"></label>
     <div class="pubrow">
@@ -485,7 +485,7 @@
 <dialog id="editDlg" class="changelog pubdlg">
   <div class="clhead">
     <span class="title">Edit look</span>
-    <button class="ovclose" id="editClose" type="button" aria-label="Close">\u00d7</button>
+    <button class="ovclose" id="editClose" type="button" aria-label="Close">×</button>
   </div>
   <div class="pubbody">
     <label>Name <input type="text" id="editName" maxlength="40" spellcheck="false"></label>
@@ -748,7 +748,7 @@
         <button class="ovbtn" id="restoreHidden" type="button" title="Bring back library looks you deleted" hidden>Restore</button>
         <button class="ovbtn" id="exportLook" type="button" title="Copy the current look as one JSON entry">Export look</button>
         <button class="ovbtn" id="exportLib" type="button" title="Download the whole library as it is on this device, saved looks and edits included, as presets/library.json">Export library</button>
-        <button class="ovbtn" id="publishLib" type="button" title="Commit this device\u2019s library to GitHub as presets/library.json, so every device gets it">Publish</button>
+        <button class="ovbtn" id="publishLib" type="button" title="Commit this device’s library to GitHub as presets/library.json, so every device gets it">Publish</button>
         <button class="ovclose" id="ovClose" type="button" aria-label="Hide the presets">×</button>
       </div>
       <div class="ovlib" id="presetGrid"></div>
