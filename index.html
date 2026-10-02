@@ -303,6 +303,7 @@
   .fadectl { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); white-space: nowrap; }
   .fadectl input[type=range] { width: 64px; accent-color: var(--accent); }
   .fadectl output { min-width: 26px; font-variant-numeric: tabular-nums; }
+  .fadectl select { width: auto; padding: 4px 6px; font-size: 12px; }
   #stage:fullscreen .setlist-overlay, #stage:-webkit-full-screen .setlist-overlay { display: none !important; }
   /* the lower third: toolbar, library strip, timeline; sits just off the bottom edge */
   .setlist-overlay {
@@ -619,9 +620,16 @@
     <div class="setlist-overlay" id="setOverlay" hidden>
       <div class="ovbar">
         <span class="ovtitle">Presets</span>
-        <label class="fadectl" title="Crossfade between looks. 0 is a hard cut.">Fade
-          <input type="range" id="fadeSec" min="0" max="4" step="0.1" value="0" aria-label="Crossfade seconds">
+        <label class="fadectl" title="Transition between looks. 0 seconds is a hard cut.">Fade
+          <input type="range" id="fadeSec" min="0" max="4" step="0.1" value="0" aria-label="Transition seconds">
           <output id="fadeOut">cut</output>
+          <select id="fadeKind" aria-label="Transition type">
+            <option value="0">Dissolve</option>
+            <option value="1">Luma fade</option>
+            <option value="2">Flash</option>
+            <option value="3">Burn</option>
+            <option value="4">Dip to black</option>
+          </select>
         </label>
         <label class="fadectl" title="Default hold for slots added to the timeline">Hold
           <input type="range" id="ovHold" min="5" max="180" step="5" aria-label="Default seconds each look holds">
@@ -643,7 +651,7 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.14";  // Video in: Image, Video and Tab sources with a stage card; the music player shows only on Music
+const APP_VERSION = "0.9.15";  // transition types: Dissolve, Luma fade, Flash, Burn, Dip to black
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 
@@ -1784,6 +1792,41 @@ uniform sampler2D u_tex, u_tex2;   // incoming frame, and the outgoing one durin
 uniform vec2 u_res, u_off;         // target size, and the viewport origin when drawing into an atlas slot
 uniform float u_mix;               // 1 shows u_tex alone
 uniform float u_blur;              // softening radius in pixels, 0 = none
+uniform int u_fadeKind;            // 0 dissolve, 1 luma fade, 2 flash, 3 burn, 4 dip to black
+float chash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float cnoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(chash(i), chash(i + vec2(1.0, 0.0)), f.x), mix(chash(i + vec2(0.0, 1.0)), chash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+float cfbm(vec2 p) { return 0.5 * cnoise(p) + 0.25 * cnoise(p * 2.03 + 5.2) + 0.125 * cnoise(p * 4.07 + 1.3) + 0.0625 * cnoise(p * 8.1 + 9.7); }
+// the transition from the outgoing frame A to the incoming B at progress k
+vec4 transition(vec4 A, vec4 B, float k, vec2 uv) {
+  if (k >= 1.0) return B;
+  if (k <= 0.0) return A;
+  if (u_fadeKind == 1) {
+    // luma fade: the outgoing picture gives way darkest areas first, its highlights last
+    float la = dot(A.rgb, vec3(0.2126, 0.7152, 0.0722));
+    float w = smoothstep(la - 0.2, la + 0.2, k * 1.4 - 0.2);
+    return mix(A, B, w);
+  } else if (u_fadeKind == 2) {
+    // flash: up to white, then down into the new look
+    return k < 0.5 ? mix(A, vec4(1.0), pow(k * 2.0, 0.6)) : mix(vec4(1.0), B, pow((k - 0.5) * 2.0, 1.6));
+  } else if (u_fadeKind == 3) {
+    // burn: a noise front eats the outgoing picture, charring and glowing at its edge
+    float n = cfbm(uv * vec2(4.0 * u_res.x / u_res.y, 4.0) + 3.1);
+    float front = k * 1.5 - 0.3;
+    float gone = 1.0 - smoothstep(front - 0.015, front + 0.015, n);
+    float ch = smoothstep(front + 0.14, front + 0.02, n);
+    float ember = smoothstep(front - 0.01, front + 0.05, n) * (1.0 - smoothstep(front + 0.05, front + 0.13, n));
+    vec4 burnt = vec4(A.rgb * (1.0 - 0.9 * ch) + vec3(1.0, 0.42, 0.08) * ember * 1.3, A.a);
+    return mix(burnt, B, gone);
+  } else if (u_fadeKind == 4) {
+    // dip to black
+    return k < 0.5 ? vec4(A.rgb * (1.0 - k * 2.0), A.a) : vec4(B.rgb * ((k - 0.5) * 2.0), B.a);
+  }
+  return mix(A, B, k);
+}
 // Echo: the 1978 video-feedback trail. A ring of the last sixteen frames (a
 // 4x4 atlas of quarter-size captures) is laid under the live frame, oldest
 // first; each older copy is shifted a little further along a slowly turning
@@ -1793,7 +1836,7 @@ uniform float u_blur;              // softening radius in pixels, 0 = none
 uniform sampler2D u_ring, u_rpal;
 uniform float u_echo, u_ringHead, u_ringStep, u_etime;
 uniform float u_eSpread, u_eDecay, u_eAngle;   // step per copy, fade per copy, direction (radians)
-vec4 tap(vec2 uv) { return mix(texture2D(u_tex2, uv), texture2D(u_tex, uv), u_mix); }
+vec4 tap(vec2 uv) { return transition(texture2D(u_tex2, uv), texture2D(u_tex, uv), u_mix, uv); }
 vec3 ghost(vec2 uv, float i) {
   float s = mod(u_ringHead - 1.0 - i * u_ringStep + 64.0, 16.0);
   vec2 cell = vec2(mod(s, 4.0), floor(s / 4.0));
@@ -2070,6 +2113,7 @@ function captureRing(srcTex, j) {
   gl.uniform1f(gl.getUniformLocation(copy, "u_mix"), 1);
   gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), 0);
   gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), 0);
+  gl.uniform1i(gl.getUniformLocation(copy, "u_fadeKind"), 0);
   gl.uniform2f(gl.getUniformLocation(copy, "u_off"), ox, oy);
   gl.uniform2f(gl.getUniformLocation(copy, "u_res"), sw, sh);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -3286,14 +3330,21 @@ function startFade(dur) {
   gl.uniform1f(gl.getUniformLocation(copy, "u_mix"), 1);
   gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), 0);   // the history seed copies straight
   gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), 0);
+  gl.uniform1i(gl.getUniformLocation(copy, "u_fadeKind"), 0);
   gl.uniform2f(gl.getUniformLocation(copy, "u_off"), 0, 0);
   gl.uniform2f(gl.getUniformLocation(copy, "u_res"), Y.w, Y.h);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   fade = { look, routes, pal: { tex, palEnd: palEndOut }, X, Y, t0: performance.now(), dur };
 }
-let fadeSec = 0;
+let fadeSec = 0, fadeKind = 0;
 try { fadeSec = Math.max(0, Math.min(4, +localStorage.getItem("vibe.fade") || 0)); } catch (e) { /* no storage */ }
+try { fadeKind = Math.max(0, Math.min(4, +localStorage.getItem("vibe.fadeKind") || 0)); } catch (e) { /* no storage */ }
+$("fadeKind").value = String(fadeKind);
+$("fadeKind").addEventListener("change", () => {
+  fadeKind = +$("fadeKind").value;
+  try { localStorage.setItem("vibe.fadeKind", String(fadeKind)); } catch (e) { /* no storage */ }
+});
 $("fadeSec").value = fadeSec;
 const showFade = () => { $("fadeOut").textContent = fadeSec > 0 ? fadeSec.toFixed(1) + "s" : "cut"; };
 showFade();
@@ -3487,6 +3538,7 @@ function frame(now) {
   gl.uniform1i(gl.getUniformLocation(copy, "u_ring"), 2);
   gl.uniform1i(gl.getUniformLocation(copy, "u_rpal"), 3);
   gl.uniform1f(gl.getUniformLocation(copy, "u_mix"), mixK);
+  gl.uniform1i(gl.getUniformLocation(copy, "u_fadeKind"), fadeKind);
   gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), state.blur * state.blur * 24.0 * (canvas.height / 1080));
   gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), echoOn ? echoAmt : 0);
   gl.uniform1f(gl.getUniformLocation(copy, "u_eSpread"), state.echoSpread * (1 + m("echo") * 0.6));
