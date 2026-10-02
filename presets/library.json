@@ -14,6 +14,12 @@
       "routes": [ { "src": "bass", "dst": "size", "amt": 0.8 }, { "src": "high", "dst": "grain", "amt": 0.4 } ]
     },
     {
+      "id": "mine-miami-print-mur7jfaq", "name": "Miami Print", "group": "print",
+      "look": { "style": 7, "scale": 0.2, "speed": 1, "warp": 0.2, "blobs": 5, "trails": 0, "fbZoom": 0.004, "fbSpin": 0.002, "grain": 0.15, "bands": 0, "blur": 0, "dist": 1, "distort": 0.5, "screen": 0, "screenAmt": 0.7, "tex": 2, "texAmt": 0.41, "distSize": 1, "screenSize": 1, "texSize": 0.5, "glass": 0, "glassAngle": 0, "echoSpread": 1, "echoDecay": 0.93, "echoAngle": 0, "echoDrift": 0.5 },
+      "palette": { "colors": [ "#FF9BF9", "#006C67", "#FD6D73", "#0061FF", "#EE5FE6", "#FBBE49", "#06BDE0" ], "weights": [ 100, 100, 100, 100, 100, 100, 100 ] },
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.8 }, { "src": "high", "dst": "grain", "amt": 0.4 } ]
+    },
+    {
       "id": "dead-channel", "name": "Dead Channel", "group": "broadcast",
       "look": { "style": 5, "scale": 1, "warp": 0.2, "dist": 2, "distort": 0.35, "screen": 3, "screenAmt": 0.9, "trails": 0.3, "grain": 0.3 },
       "palette": "sa-dark",
@@ -39,7 +45,7 @@
     },
     {
       "id": "departure-board", "name": "Departure Board", "group": "terminal",
-      "look": { "style": 13, "scale": 1.3, "trails": 0, "grain": 0, "microText": "STACKADAPT ", "microFont": "ui-monospace,  Menlo,  Consolas,  monospace" },
+      "look": { "style": 13, "scale": 1.3, "trails": 0, "grain": 0, "microText": "STACKADAPT ", "microFont": "ui-monospace,   Menlo,   Consolas,   monospace" },
       "palette": { "colors": [ "#0B0B0D", "#F5B301" ] },
       "routes": [ { "src": "bass", "dst": "size", "amt": 0.4 }, { "src": "beat", "dst": "flash", "amt": 0.4 } ]
     },
@@ -86,10 +92,28 @@
       "routes": [ { "src": "bass", "dst": "distort", "amt": 0.6 }, { "src": "beat", "dst": "flash", "amt": 0.3 } ]
     },
     {
+      "id": "mine-watermelon-mur742cn", "name": "Watermelon", "group": "mine",
+      "look": { "style": 5, "scale": 1, "speed": 1, "warp": 0, "blobs": 5, "trails": 0.3, "fbZoom": 0.004, "fbSpin": 0.002, "grain": 0.18, "bands": 0, "blur": 0, "dist": 6, "distort": 0.8, "screen": 1, "screenAmt": 0.7, "tex": 0, "texAmt": 0.6, "distSize": 1, "screenSize": 1, "texSize": 1, "glass": 5, "glassAngle": 0, "echoSpread": 1, "echoDecay": 0.93, "echoAngle": 0, "echoDrift": 0.5 },
+      "palette": { "colors": [ "#2A6BFF", "#000000", "#5A0A00", "#33FF33", "#FF2A00", "#00E5FF", "#FFD000" ], "weights": [ 84, 81, 121, 114, 111, 89, 100 ] },
+      "routes": [ { "src": "bass", "dst": "distort", "amt": 0.6 }, { "src": "beat", "dst": "flash", "amt": 0.3 } ]
+    },
+    {
       "id": "mine-negative-shapes-mur79ci7", "name": "Negative Shapes", "group": "mine",
       "look": { "style": 15, "scale": 0.26, "speed": 1, "warp": 0, "blobs": 5, "trails": 0.49, "fbZoom": 0.004, "fbSpin": -0.005, "grain": 0, "bands": 0, "blur": 0, "dist": 0, "distort": 0.5, "screen": 0, "screenAmt": 0.7, "tex": 0, "texAmt": 0.6, "distSize": 1, "screenSize": 1, "texSize": 1, "glass": 0, "glassAngle": 0, "echoSpread": 1, "echoDecay": 0.93, "echoAngle": 0, "echoDrift": 0.5 },
       "palette": { "colors": [ "#0061FF", "#7FDFFD", "#000000", "#ffffff" ], "weights": [ 100, 98, 100, 102 ] },
       "routes": [ { "src": "bass", "dst": "size", "amt": 0.6 }, { "src": "mid", "dst": "colour", "amt": 0.3 } ]
+    },
+    {
+      "id": "mine-negative-shapes-mur79ci7", "name": "Negative Shapes", "group": "mine",
+      "look": { "style": 15, "scale": 0.26, "speed": 1, "warp": 0, "blobs": 5, "trails": 0.49, "fbZoom": 0.004, "fbSpin": -0.005, "grain": 0, "bands": 0, "blur": 0, "dist": 0, "distort": 0.5, "screen": 0, "screenAmt": 0.7, "tex": 0, "texAmt": 0.6, "distSize": 1, "screenSize": 1, "texSize": 1, "glass": 0, "glassAngle": 0, "echoSpread": 1, "echoDecay": 0.93, "echoAngle": 0, "echoDrift": 0.5 },
+      "palette": { "colors": [ "#0061FF", "#7FDFFD", "#000000", "#ffffff" ], "weights": [ 100, 98, 100, 102 ] },
+      "routes": [ { "src": "bass", "dst": "size", "amt": 0.6 }, { "src": "mid", "dst": "colour", "amt": 0.3 } ]
+    },
+    {
+      "id": "mine-stackadapt-grunge-mur7ervc", "name": "StackAdapt Grunge", "group": "mine",
+      "look": { "style": 14, "scale": 0.2, "speed": 0.42, "warp": 0.45, "blobs": 5, "trails": 0, "fbZoom": -0.006, "fbSpin": -0.001, "grain": 0.6, "bands": 0, "blur": 0.2, "dist": 0, "distort": 0.5, "screen": 0, "screenAmt": 0.7, "tex": 1, "texAmt": 0.25, "distSize": 1, "screenSize": 1, "texSize": 0.4, "glass": 0, "glassAngle": 0, "echoSpread": 1, "echoDecay": 0.93, "echoAngle": 0, "echoDrift": 0.5 },
+      "palette": { "colors": [ "#F3EFE4", "#0061ff" ], "weights": [ 216, 69 ] },
+      "routes": [ { "src": "bass", "dst": "warp", "amt": 1 }, { "src": "beat", "dst": "motion", "amt": 0.55 }, { "src": "mid", "dst": "spin", "amt": 0.85 } ]
     },
     {
       "id": "mine-stackadapt-grunge-mur7ervc", "name": "StackAdapt Grunge", "group": "mine",
