@@ -758,12 +758,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.22";  // fold local copies of shipped looks into the library, no duplicates
+const APP_VERSION = "0.9.23";  // Mic recovers on iPad: resumes a paused audio context on tap, re-opens a muted input, says why it is silent
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.23", "The mic recovers on iPad. If the browser pauses audio or the system mutes the input, a tap on the screen resumes or reopens it, and the note says which one it was instead of just \u201cno signal\u201d."],
   ["0.9.22", "A look that was saved on this device and has since been committed to the library no longer shows twice; the shipped copy is kept."],
   ["0.9.21", "A pencil on each preset tile renames it or moves it to another group. Publish commits this device\u2019s library straight to GitHub as presets/library.json, with a token kept in this browser, so every device gets it on reload. After a publish the local copies fold into the shipped library instead of showing twice."],
   ["0.9.20", "Export library downloads the whole library as this device shows it, saved looks, tweaks and arrangement included, as a drop-in presets/library.json. Export look still copies one look."],
@@ -2670,9 +2671,33 @@ async function ensureCtx() {
     freq = new Uint8Array(analyser.frequencyBinCount);
     dest = actx.createMediaStreamDestination();
     sampleRate = actx.sampleRate;
+    actx.addEventListener("statechange", () => {
+      if (actx.state !== "running" && (srcMode === "mic" || srcMode === "tab"))
+        micNote("The browser paused audio (" + actx.state + "). Tap the screen to resume.", true);
+    });
   }
-  if (actx.state === "suspended") await actx.resume();
+  if (actx.state !== "running") await actx.resume();
 }
+/* iPadOS pauses ("suspended"/"interrupted") the audio context when the page is
+   backgrounded, the screen locks, another app takes the audio session, or the
+   camera starts; it may also mute the input track. None of that recovers by
+   itself and a resume only works from a tap, so listen for it, retry on every
+   tap, and re-open the mic if its track has died. */
+function reviveAudio() {
+  if (actx && actx.state !== "running" && actx.state !== "closed") actx.resume().catch(() => {});
+}
+let reviving = false;
+async function reviveInput(e) {
+  reviveAudio();
+  if (reviving || srcMode !== "mic" || !micStream) return;
+  if (e && e.target.closest && e.target.closest("#srcSeg, #micSel")) return;   // those start the mic themselves
+  const t = micStream.getAudioTracks()[0];
+  if (t && t.readyState !== "ended" && !t.muted) return;
+  reviving = true;
+  try { await useMic(); } finally { reviving = false; }
+}
+["touchend", "click"].forEach(t => addEventListener(t, reviveInput, { passive: true }));
+document.addEventListener("visibilitychange", () => { if (!document.hidden) reviveAudio(); });
 function disconnectSource() {
   if (srcNode) { try { srcNode.disconnect(); } catch (e) { /* already gone */ } srcNode = null; }
   if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
@@ -2729,7 +2754,8 @@ async function useMic() {
     micLabel = track.label || "the microphone";
     micNote("Listening to " + micLabel + ".");
     micSince = performance.now(); micPeak = 0;
-    track.addEventListener("ended", () => { if (srcMode === "mic") micNote(micLabel + " was disconnected. Pick another input.", true); });
+    track.addEventListener("ended", () => { if (srcMode === "mic") micNote(micLabel + " was disconnected. Tap the screen to reconnect, or pick another input.", true); });
+    track.addEventListener("unmute", reviveAudio);
     segSrc();
     listMics();
   } catch (err) {
@@ -2784,9 +2810,15 @@ async function useTab() {
 // device, or a browser macOS has not been allowed to use the mic
 function checkMicSignal(now) {
   if ((srcMode !== "mic" && srcMode !== "tab") || !micStream || now - micSince < 3000) return;
-  if (micPeak < 0.002) micNote("No signal from " + micLabel + ". Check the input level in System Settings \u2192 Sound, "
-    + "or pick another input.", true);
-  else micNote("Listening to " + micLabel + ".");
+  if (micPeak < 0.002) {
+    reviveAudio();
+    const t = micStream.getAudioTracks()[0];
+    if (actx.state !== "running") micNote("The browser paused audio (" + actx.state + "). Tap the screen to resume.", true);
+    else if (!t || t.readyState === "ended") micNote(micLabel + " is no longer available. Tap the screen to reconnect.", true);
+    else if (t.muted) micNote("The system has muted " + micLabel + " \u2014 another app or the camera may be using it. Tap the screen to reconnect.", true);
+    else micNote("No signal from " + micLabel + ". Check the input level in System Settings \u2192 Sound, "
+      + "or pick another input.", true);
+  } else micNote("Listening to " + micLabel + ".");
   micSince = now; micPeak = 0;
 }
 $("micSel").addEventListener("change", () => {
