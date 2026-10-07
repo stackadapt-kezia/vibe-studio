@@ -758,12 +758,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.23";  // Mic recovers on iPad: resumes a paused audio context on tap, re-opens a muted input, says why it is silent
+const APP_VERSION = "0.9.24";  // iPad/iPhone mic opens with auto gain on so a voice registers; the no-signal note reports the real levels
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.24", "On an iPad or iPhone the mic now opens with automatic gain on, since the raw input is so quiet that only knocks and handling noise registered, not a voice. If the mic still reads silent, the note now shows the measured level and the input\u2019s settings so the cause can be pinned down. Laptops keep the raw, unprocessed input."],
   ["0.9.23", "The mic recovers on iPad. If the browser pauses audio or the system mutes the input, a tap on the screen resumes or reopens it, and the note says which one it was instead of just \u201cno signal\u201d."],
   ["0.9.22", "A look that was saved on this device and has since been committed to the library no longer shows twice; the shipped copy is kept."],
   ["0.9.21", "A pencil on each preset tile renames it or moves it to another group. Publish commits this device\u2019s library straight to GitHub as presets/library.json, with a token kept in this browser, so every device gets it on reload. After a publish the local copies fold into the shipped library instead of showing twice."],
@@ -2703,6 +2704,14 @@ function disconnectSource() {
   if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
   if (audioEl) { audioEl.pause(); audioEl = null; }
 }
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+// what the input is really doing, for the no-signal note
+function micDiag(track) {
+  const st = track && track.getSettings ? track.getSettings() : {};
+  return " (level " + micPeak.toFixed(4) + "; input " + (st.sampleRate || "?") + " Hz, "
+    + (st.channelCount || "?") + " ch, auto gain " + (st.autoGainControl ? "on" : "off")
+    + "; audio " + actx.sampleRate + " Hz)";
+}
 let micId = null, micSince = 0, micPeak = 0, micLabel = "";
 try { micId = localStorage.getItem("vibe.micId"); } catch (e) { /* no storage */ }
 const micNote = (msg, warn) => {
@@ -2738,7 +2747,10 @@ async function useMic() {
     micNote("Asking for microphone permission\u2026");
     await ensureCtx();
     disconnectSource();
-    const base = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+    // Laptops get the raw line feed. iPads and iPhones deliver an unprocessed
+    // mic so quiet that only thumps and handling noise register, so ask for
+    // automatic gain there; echo cancelling and noise suppression stay off.
+    const base = { echoCancellation: false, noiseSuppression: false, autoGainControl: IS_IOS };
     try {
       micStream = await navigator.mediaDevices.getUserMedia({ audio: micId ? { ...base, deviceId: { exact: micId } } : base });
     } catch (err) {
@@ -2817,7 +2829,7 @@ function checkMicSignal(now) {
     else if (!t || t.readyState === "ended") micNote(micLabel + " is no longer available. Tap the screen to reconnect.", true);
     else if (t.muted) micNote("The system has muted " + micLabel + " \u2014 another app or the camera may be using it. Tap the screen to reconnect.", true);
     else micNote("No signal from " + micLabel + ". Check the input level in System Settings \u2192 Sound, "
-      + "or pick another input.", true);
+      + "or pick another input." + micDiag(t), true);
   } else micNote("Listening to " + micLabel + ".");
   micSince = now; micPeak = 0;
 }
