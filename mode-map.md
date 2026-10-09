@@ -8,7 +8,7 @@ effects that need real machinery.
 Build by family, not by mode. One halftone shader yields four of the numbered
 effects; one Sobel operator yields five.
 
-## Status (29 Sep 2026, v0.5.4)
+## Status (9 Oct 2026, v0.9.27)
 
 All nine families have a first mode on stage. The app was already WebGL when
 this map was written, so "GL migration" never happened as a step; image and
@@ -42,6 +42,13 @@ microphone input picker with a silent-input warning, per-mode control
 visibility, folding and resizable panel sections, reactivity routes from any
 band to any control, and the preset library with live thumbnails and a set
 list on keys 1–8 (0.7.0, see `docs/preset-library.md`).
+
+Since 0.5.4 the layers have grown: Distort gained Bleed and Glass (Frosted,
+Flute and five glass-block faces, with Seam controls); Screen gained Echo (a
+16-frame ring of past captures) and Slit-scan (0.9.26, the first "needs more
+than a shader" mode, reading the same ring); a Texture layer holds Scratches
+and Print dots; crossfades have five transition types; and the camera feeds
+face detection as a reactivity source (`docs/face-detection.md`).
 
 ---
 
@@ -172,7 +179,10 @@ potential.
 ## Needs more than a shader
 
 18 Datamosh Smear, 49 Slit-Scan Time Slices, 52 Pixel Sorting Streaks,
-28 Particle Reconstruction. **None built.**
+28 Particle Reconstruction. **Slit-scan built** (0.9.26) as a Screen mode on
+Echo's ring: sixteen quarter-size captures, so the older slices are softer
+than the live edge. Spacing sets how many frames apart they are. The rest are
+open.
 
 These need memory of previous frames or a simulation. Datamosh and slit-scan need
 a ring buffer of past frames in GPU memory plus a second render pass. Pixel sorting
@@ -193,18 +203,19 @@ first — most striking, most forgiving of an approximate implementation.
    already handled.
 1. **Show-readiness** — partly done. Mic constraints all false (already were),
    fullscreen (already was), live sensitivity controls (Gain and Smoothing
-   under Reactivity), audio input device picker (0.5.4). **Still to do: Screen
-   Wake Lock, re-acquired on `visibilitychange`.** For a multi-hour projector
-   run that is the one that matters most.
+   under Reactivity), audio input device picker (0.5.4), Screen Wake Lock,
+   re-taken whenever the page shows (0.9.26). A soak harness (0.9.27) found
+   and fixed a render-target leak on resize and a feedback loop that broke
+   the first draw of every crossfade.
 2. **Image texture input + Heatmap** — done (0.3.0). Video input too, with
    playback controls (0.4.5).
 3. Family 1 — done, as a layer.
 4. Family 3 — built and replaced by family 4 (see Status).
 5. Families 4–7, then 8–9 — done, first mode each.
 
-Next, in rough order of value: Screen Wake Lock; then either slit-scan (the
-first "needs more than a shader" mode) or a second pass over families 1, 5 and
-9 for the remaining numbered effects.
+Next, in rough order of value: face positions into the shader (the "not
+yet" list in `docs/face-detection.md`); datamosh, which can reuse the ring;
+or a second pass over families 1, 5 and 9 for the remaining numbered effects.
 
 Sound In polish — media player controls, file metadata, album art — turned out
 to be wanted early and is done (0.5.0). It is operator UI, hidden in
@@ -221,5 +232,5 @@ presentation mode.
   repo — and kept small, since git stores every version of a binary permanently.
   (Nothing is bundled today: the music library stores the operator's own files
   in the browser, not in the repo.)
-- Palette blending is still in sRGB, not linear light. Heatmap and Prism make
-  the muddy midtones more visible than the procedural patterns did.
+- Palette ramps blend in linear light (0.9.26). Other mixes in the shaders
+  (crossfades, Prism's offset copies, trails) still blend stored sRGB values.

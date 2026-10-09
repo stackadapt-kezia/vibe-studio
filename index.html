@@ -785,12 +785,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.26";  // Slit-scan screen mode; screen wake lock; palette colours blend in linear light
+const APP_VERSION = "0.9.27";  // Crossfades keep the outgoing trails; resizing no longer leaks graphics memory
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.27", "Two fixes from a long unattended test run. Crossfades now carry the outgoing look\u2019s trails into the fade; before, the first step of every fade was refused by the graphics card and the old look faded from a blank history. Resizing the window, including going in and out of fullscreen, no longer leaks two screen-sized buffers each time."],
   ["0.9.26", "Slit-scan under Screen: each band of the picture shows a different moment, so movement bends and smears across the frame while anything still stays put. Direction turns which way time runs; Spacing sets how far back it reaches. The screen now stays awake while the page is showing (Output says whether the browser allowed it). Palette colours blend in linear light, so the mix between two strong colours stays bright instead of turning muddy; existing looks shift slightly brighter in their midtones."],
   ["0.9.25", "Frosted glass: a sandblasted sheet that blurs and softly bends the picture behind it, with highlights blooming through. Glass styles now sit in a dropdown under Distort instead of a second row of pills. Glass blocks get Seam and Seam width, so the lines between blocks can be faded right down or thinned; they start softer than before. On a phone the sidebar fills the screen and the presets and timeline move into it, leaving the stage its full height."],
   ["0.9.24", "On an iPad or iPhone the mic now opens with automatic gain on, since the raw input is so quiet that only knocks and handling noise registered, not a voice. If the mic still reads silent, the note now shows the measured level and the input\u2019s settings so the cause can be pinned down. Laptops keep the raw, unprocessed input."],
@@ -2410,7 +2411,17 @@ function makeTarget(w, h) {
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.bindTexture(gl.TEXTURE_2D, null);   // don't leave a render target bound to whatever unit was active
   return { tex, fb, w, h };
+}
+// The copy shader also samples units 2 and 3 (the ring and the palette, for
+// Echo and Slit-scan). The side passes that draw with it into a ring slot or a
+// fresh target must not have that target bound there: WebGL refuses the draw
+// as a feedback loop. They don't use those units, so empty them.
+function clearRingUnits() {
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, null);
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, null);
+  gl.activeTexture(gl.TEXTURE0);
 }
 let A = null, B = null;
 function resize() {
@@ -2421,6 +2432,7 @@ function resize() {
   if (w * h > cap) { const s = Math.sqrt(cap / (w * h)); w = Math.round(w * s); h = Math.round(h * s); }
   if (canvas.width === w && canvas.height === h) return;
   canvas.width = w; canvas.height = h;
+  [A, B].forEach(t => { if (t) { gl.deleteFramebuffer(t.fb); gl.deleteTexture(t.tex); } });   // each resize used to leak both
   A = makeTarget(w, h); B = makeTarget(w, h);
   endFade();                                 // the outgoing look's targets are the old size
   if (ring) { gl.deleteFramebuffer(ring.fb); gl.deleteTexture(ring.tex); }
@@ -2444,6 +2456,7 @@ function captureRing(srcTex, j) {
   gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), 0);
   gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), 0);
   gl.uniform1f(gl.getUniformLocation(copy, "u_slit"), 0);
+  clearRingUnits();
   gl.uniform1i(gl.getUniformLocation(copy, "u_fadeKind"), 0);
   gl.uniform2f(gl.getUniformLocation(copy, "u_off"), ox, oy);
   gl.uniform2f(gl.getUniformLocation(copy, "u_res"), sw, sh);
@@ -4080,6 +4093,7 @@ function startFade(dur) {
   gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), 0);   // the history seed copies straight
   gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), 0);
   gl.uniform1f(gl.getUniformLocation(copy, "u_slit"), 0);
+  clearRingUnits();
   gl.uniform1i(gl.getUniformLocation(copy, "u_fadeKind"), 0);
   gl.uniform2f(gl.getUniformLocation(copy, "u_off"), 0, 0);
   gl.uniform2f(gl.getUniformLocation(copy, "u_res"), Y.w, Y.h);
