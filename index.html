@@ -456,6 +456,23 @@
     color: var(--muted); font-size: 12px; background: rgba(0,0,0,.55);
     padding: 6px 12px; border-radius: 999px; pointer-events: none;
   }
+  /* phone: the sidebar takes the whole width and the lower third (presets
+     and timeline) moves into it, so the stage keeps its full height */
+  @media (max-width: 640px) {
+    .panel { width: 100%; }
+    .panel.glass { background: var(--panel); backdrop-filter: none; -webkit-backdrop-filter: none; }   /* full width: stay readable */
+    .resizer { display: none; }
+    header { padding: 10px 14px; gap: 10px; }
+    .panel .setlist-overlay {
+      position: relative; left: auto; right: auto; bottom: auto; margin: 0 0 14px; padding: 0 0 14px;
+      border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: none;
+      backdrop-filter: none; -webkit-backdrop-filter: none;
+    }
+    .panel .ovbar { padding-right: 30px; }
+    .panel .ovclose { top: 0; right: 0; }
+    .panel .ovtl { flex-wrap: wrap; }
+    .panel .tslot { flex: 1 1 calc(25% - 6px); }
+  }
 </style>
 </head>
 <body>
@@ -658,13 +675,21 @@
         <button data-dist="6">Bleed</button>
         <button data-dist="7">Glass</button>
       </div>
-      <div class="seg" id="glassSeg" style="margin-top:8px" hidden>
-        <button data-glass="0">Flute</button>
-        <button data-glass="1">Clarity</button>
-        <button data-glass="2">Alpha</button>
-        <button data-glass="3">Cross rib</button>
-        <button data-glass="4">Paralline</button>
-        <button data-glass="5">Wave</button>
+      <div class="row" id="glassRow" style="margin-top:10px" hidden>
+        <label for="glassSel">Glass</label>
+        <select id="glassSel" aria-label="Glass style">
+          <optgroup label="Sheet">
+            <option value="6">Frosted</option>
+            <option value="0">Flute</option>
+          </optgroup>
+          <optgroup label="Blocks">
+            <option value="1">Clarity</option>
+            <option value="2">Alpha</option>
+            <option value="3">Cross rib</option>
+            <option value="4">Paralline</option>
+            <option value="5">Wave</option>
+          </optgroup>
+        </select>
       </div>
       <div id="distRows" style="margin-top:10px"></div>
     </fieldset>
@@ -758,12 +783,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.24";  // iPad/iPhone mic opens with auto gain on so a voice registers; the no-signal note reports the real levels
+const APP_VERSION = "0.9.25";  // Frosted glass; glass styles in a dropdown; Seam and Seam width for glass blocks; phone layout
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.25", "Frosted glass: a sandblasted sheet that blurs and softly bends the picture behind it, with highlights blooming through. Glass styles now sit in a dropdown under Distort instead of a second row of pills. Glass blocks get Seam and Seam width, so the lines between blocks can be faded right down or thinned; they start softer than before. On a phone the sidebar fills the screen and the presets and timeline move into it, leaving the stage its full height."],
   ["0.9.24", "On an iPad or iPhone the mic now opens with automatic gain on, since the raw input is so quiet that only knocks and handling noise registered, not a voice. If the mic still reads silent, the note now shows the measured level and the input\u2019s settings so the cause can be pinned down. Laptops keep the raw, unprocessed input."],
   ["0.9.23", "The mic recovers on iPad. If the browser pauses audio or the system mutes the input, a tap on the screen resumes or reopens it, and the note says which one it was instead of just \u201cno signal\u201d."],
   ["0.9.22", "A look that was saved on this device and has since been committed to the library no longer shows twice; the shipped copy is kept."],
@@ -852,7 +878,7 @@ const state = {
   screen: 0, screenAmt: 0.7,
   tex: 0, texAmt: 0.6,
   distSize: 1, screenSize: 1, texSize: 1,
-  glass: 0, glassAngle: 0,
+  glass: 0, glassAngle: 0, glassSeam: 0.4, glassSeamW: 1,
   echoSpread: 1, echoDecay: 0.93, echoAngle: 0, echoDrift: 0.5,
   routes: [],                                   // filled from DEFAULT_ROUTES or storage below
   gain: 1.6, smooth: 0.7,
@@ -887,6 +913,8 @@ const DIST_ROWS = [
   ["distort", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
   ["distSize", "Size", 0.25, 4, 0.05, v => v.toFixed(2)],
   ["glassAngle", "Angle", 0, 180, 1, v => v + "\u00b0"],
+  ["glassSeam", "Seam", 0, 1, 0.01, v => v.toFixed(2)],
+  ["glassSeamW", "Seam width", 0.25, 3, 0.05, v => v.toFixed(2)],
 ];
 const SCREEN_ROWS = [
   ["screenAmt", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
@@ -1372,8 +1400,9 @@ function syncControls() {
   show("screenSize", state.screen !== 0);
   ["echoSpread", "echoDecay", "echoAngle", "echoDrift"].forEach(k => show(k, state.screen === 4));
   show("distSize", [2, 3, 6, 7].includes(state.dist));   // the kinds with a pitch or a reach
-  show("glassAngle", state.dist === 7);
-  $("glassSeg").hidden = state.dist !== 7;
+  show("glassAngle", state.dist === 7 && state.glass !== 6);   // frosted has no grain direction
+  ["glassSeam", "glassSeamW"].forEach(k => show(k, state.dist === 7 && state.glass >= 1 && state.glass <= 5));
+  $("glassRow").hidden = state.dist !== 7;
   const label = (key, text) => { const l = document.querySelector('.row[data-key="' + key + '"] label'); if (l) l.textContent = text; };
   label("scale", SCALE_LABELS[s] || "Scale");
   label("warp", WARP_LABELS[s] || "Warp");
@@ -1407,7 +1436,9 @@ function syncControls() {
 const segDist = seg("distSeg", "dist", () => state.dist, v => { state.dist = +v; syncControls(); touch(); });
 const segScreen = seg("screenSeg", "screen", () => state.screen, v => { state.screen = +v; syncControls(); touch(); });
 const segTex = seg("texSeg", "tex", () => state.tex, v => { state.tex = +v; syncControls(); touch(); });
-const segGlass = seg("glassSeg", "glass", () => state.glass, v => { state.glass = +v; touch(); });
+const segGlass = () => { $("glassSel").value = String(state.glass); };
+$("glassSel").addEventListener("change", () => { state.glass = +$("glassSel").value; syncControls(); touch(); });
+segGlass();
 syncControls();
 
 /* ================= resizable panel ================= */
@@ -1462,6 +1493,7 @@ uniform float u_distort, u_screenAmt, u_texAmt;
 uniform float u_distSize, u_screenSize, u_texSize;   // pitch or reach of each layer, 1 = as designed
 uniform int u_glass;                                  // glass type: 0 flute, then the block faces
 uniform float u_glassAngle;
+uniform float u_glassSeam, u_glassSeamW;              // how much the block seams show, and how wide the bevel is
 float glassShade = 1.0, glassHi = 0.0, glassWall = 0.0;   // handed from distort() to the sampler and colour stage
 vec3 glassTint = vec3(1.0);
 uniform sampler2D u_pal;
@@ -1519,6 +1551,20 @@ float imgLum(vec2 uv) {
     }
     float glow = max(c, max(m1 * 0.9, max(m2 * 0.76, m3 * 0.6)));
     return mix(glow, sum / 19.0, 0.45);
+  }
+  if (u_dist == 7 && u_glass == 6) {                 // frosted: a wide soft blur, with highlights blooming through
+    float r = 0.03 * u_distort;
+    vec2 asp = vec2(u_res.y / u_res.x, 1.0);
+    float c = dot(texture2D(u_img, imgUV(uv)).rgb, W), sum = c, wsum = 1.0, hi = c;
+    float rot = 6.2832 * hash2(gl_FragCoord.xy);     // turn the spiral per pixel: ghost copies become a fine frost
+    for (int i = 0; i < 16; i++) {                   // a golden-angle spiral, weighted toward the centre
+      float k = (float(i) + 0.5) / 16.0;
+      float ang = float(i) * 2.39996 + rot;
+      float t = dot(texture2D(u_img, imgUV(uv + vec2(cos(ang), sin(ang)) * asp * r * sqrt(k))).rgb, W);
+      float w = 1.0 - 0.6 * k;
+      sum += t * w; wsum += w; hi = max(hi, t * (1.0 - 0.5 * k));
+    }
+    return mix(sum / wsum, hi, 0.2);
   }
   if (u_dist == 7) {                                 // glass softens the view: across the rib for flute, all round for blocks, more through the walls
     float d = 0.0035 * u_distort * (1.0 + 4.0 * glassWall);
@@ -1630,7 +1676,20 @@ vec2 distort(vec2 uv, float T) {
     mat2 R = mat2(cA, -sA, sA, cA), Ri = mat2(cA, sA, -sA, cA);
     vec2 p = R * ((uv - 0.5) * vec2(ca, 1.0));
     vec2 d = vec2(0.0);
-    if (u_glass == 0) {
+    if (u_glass == 6) {
+      // frosted: a sandblasted sheet. Every pixel looks through a slightly
+      // different spot (the scatter that turns it milky and grainy, fixed in
+      // place so it never flickers), over slow soft swells that bend the
+      // picture gently. imgLum blurs the image behind; bright parts bloom
+      // through. Size sets the swells' scale, Amount the frost.
+      vec2 j = vec2(hash2(gl_FragCoord.xy), hash2(gl_FragCoord.xy + 17.3)) - 0.5;
+      vec2 q = p * 2.2 / u_distSize;
+      vec2 sw = vec2(fbm(q + vec2(0.0, T * 0.04)), fbm(q + vec2(5.2, 1.3) - T * 0.03)) - 0.5;
+      d = sw * 0.06 * a + j * 0.0035 * a;
+      float sheen = smoothstep(0.3, 0.75, fbm(q * 0.6 + vec2(9.0, T * 0.02)));
+      glassHi = a * (0.04 + 0.05 * sheen);
+      glassTint = vec3(0.97, 0.99, 1.0);
+    } else if (u_glass == 0) {
       float n = 54.0 / u_distSize;
       float c = (floor(p.x * n) + 0.5) / n;
       float rx = (p.x - c) * n * 2.0;
@@ -1653,18 +1712,21 @@ vec2 distort(vec2 uv, float T) {
                     glassHeight(l + vec2(0.0, e), cell) - glassHeight(l - vec2(0.0, e), cell)) / (2.0 * e);
       vec3 nrm = normalize(vec3(-g * 0.6, 1.0));
       float rim = max(abs(l.x), abs(l.y));
-      float wall = smoothstep(0.72, 0.98, rim);
+      float wall = smoothstep(max(0.3, 1.0 - 0.28 * u_glassSeamW), 0.98, rim);
       d += nrm.xy * S * (0.28 + 0.5 * wall) * a;
       d -= l * S * 0.18 * wall * a;
       glassWall = wall;
       vec3 Ld = normalize(vec3(-0.45, 0.6, 0.66));
       float spec = pow(max(0.0, dot(reflect(-Ld, nrm), vec3(0.0, 0.0, 1.0))), 28.0);
       float fres = pow(1.0 - nrm.z, 2.5);
-      // no grout: blocks meet at a thin bright glass edge, the rest is optics
-      float edge = 1.0 - smoothstep(0.0, 0.03, 1.0 - rim);
-      glassShade = (0.82 + 0.18 * nrm.z) * (1.0 - 0.06 * wall);
-      glassHi = (0.32 * spec + 0.18 * fres) * (0.6 + 0.4 * a) + 0.12 * edge;
-      glassTint = mix(vec3(1.0), vec3(0.86, 1.0, 0.96), 0.35 + 0.4 * wall);
+      // no grout: blocks meet at a thin bright glass edge. Seam fades that
+      // edge, the bevel's shading, rim light and green; the face's own
+      // optics and specular stay. Seam width widens the bevel and the edge.
+      float sm = u_glassSeam;
+      float edge = 1.0 - smoothstep(0.0, 0.03 * u_glassSeamW, 1.0 - rim);
+      glassShade = mix(1.0, (0.82 + 0.18 * nrm.z) * (1.0 - 0.06 * wall), 0.3 + 0.7 * sm);
+      glassHi = 0.32 * spec * (0.6 + 0.4 * a) + (0.18 * fres * (0.6 + 0.4 * a) + 0.12 * edge) * sm;
+      glassTint = mix(vec3(1.0), vec3(0.86, 1.0, 0.96), 0.35 + 0.4 * wall * sm);
     }
     uv = (Ri * (p + d)) / vec2(ca, 1.0) + 0.5;
   }
@@ -3201,7 +3263,7 @@ const segSrc = seg("srcSeg", "src", () => srcMode, v => {
 // cannot read the file.
 const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom", "fbSpin", "grain", "bands", "blur",
                    "dist", "distort", "screen", "screenAmt", "tex", "texAmt", "distSize", "screenSize", "texSize",
-                   "glass", "glassAngle", "echoSpread", "echoDecay", "echoAngle", "echoDrift"];
+                   "glass", "glassAngle", "glassSeam", "glassSeamW", "echoSpread", "echoDecay", "echoAngle", "echoDrift"];
 const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
 const GROUPS = { print: "Print", broadcast: "Broadcast", terminal: "Terminal", damaged: "Damaged", optical: "Optical", mine: "Mine" };
 const BUILTIN_PRESETS = [
@@ -3294,6 +3356,8 @@ function setLook(L, m, w, h, pEnd, time = T) {
   gl.uniform1f(U("u_texSize"), L.texSize);
   gl.uniform1i(U("u_glass"), L.glass);
   gl.uniform1f(U("u_glassAngle"), L.glassAngle * 3.14159265 / 180);
+  gl.uniform1f(U("u_glassSeam"), L.glassSeam);
+  gl.uniform1f(U("u_glassSeamW"), L.glassSeamW);
   gl.uniform1f(U("u_distort"), Math.min(1.5, L.distort + m("distort")));
 }
 
@@ -3772,6 +3836,16 @@ function toggleOverlay(force) {
 }
 $("ovGain").addEventListener("input", () => { state.gain = +$("ovGain").value; syncSliders(); });
 $("setBtn").addEventListener("click", () => toggleOverlay());
+// on a phone the lower third lives at the top of the sidebar instead of over the stage
+(() => {
+  const mq = matchMedia("(max-width: 640px)"), ov = $("setOverlay");
+  const place = () => {
+    if (mq.matches) $("panel").querySelector(".scrolls").prepend(ov);
+    else $("stage").append(ov);
+  };
+  place();
+  mq.addEventListener("change", place);
+})();
 $("ovClose").addEventListener("click", () => toggleOverlay(false));
 $("saveLook").addEventListener("click", () => saveLook("mine"));
 $("exportLook").addEventListener("click", exportLook);
