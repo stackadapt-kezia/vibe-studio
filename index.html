@@ -702,6 +702,7 @@
         <button data-screen="2">LCD</button>
         <button data-screen="3">VHS</button>
         <button data-screen="4">Echo</button>
+        <button data-screen="5">Slit-scan</button>
       </div>
       <div id="screenRows" style="margin-top:10px"></div>
     </fieldset>
@@ -738,6 +739,7 @@
       <button class="pill" id="setBtn">Presets &amp; set list — S</button>
       <button class="pill" id="recBtn">Record performance</button>
       <p class="note" id="outNote">Drag this window to the projector display, then go fullscreen.</p>
+      <p class="note" id="wakeNote"></p>
     </fieldset>
     </div>
   </aside>
@@ -783,12 +785,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.25";  // Frosted glass; glass styles in a dropdown; Seam and Seam width for glass blocks; phone layout
+const APP_VERSION = "0.9.26";  // Slit-scan screen mode; screen wake lock; palette colours blend in linear light
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.26", "Slit-scan under Screen: each band of the picture shows a different moment, so movement bends and smears across the frame while anything still stays put. Direction turns which way time runs; Spacing sets how far back it reaches. The screen now stays awake while the page is showing (Output says whether the browser allowed it). Palette colours blend in linear light, so the mix between two strong colours stays bright instead of turning muddy; existing looks shift slightly brighter in their midtones."],
   ["0.9.25", "Frosted glass: a sandblasted sheet that blurs and softly bends the picture behind it, with highlights blooming through. Glass styles now sit in a dropdown under Distort instead of a second row of pills. Glass blocks get Seam and Seam width, so the lines between blocks can be faded right down or thinned; they start softer than before. On a phone the sidebar fills the screen and the presets and timeline move into it, leaving the stage its full height."],
   ["0.9.24", "On an iPad or iPhone the mic now opens with automatic gain on, since the raw input is so quiet that only knocks and handling noise registered, not a voice. If the mic still reads silent, the note now shows the measured level and the input\u2019s settings so the cause can be pinned down. Laptops keep the raw, unprocessed input."],
   ["0.9.23", "The mic recovers on iPad. If the browser pauses audio or the system mutes the input, a tap on the screen resumes or reopens it, and the note says which one it was instead of just \u201cno signal\u201d."],
@@ -880,6 +883,7 @@ const state = {
   distSize: 1, screenSize: 1, texSize: 1,
   glass: 0, glassAngle: 0, glassSeam: 0.4, glassSeamW: 1,
   echoSpread: 1, echoDecay: 0.93, echoAngle: 0, echoDrift: 0.5,
+  slitAngle: 90,
   routes: [],                                   // filled from DEFAULT_ROUTES or storage below
   gain: 1.6, smooth: 0.7,
 };
@@ -923,6 +927,7 @@ const SCREEN_ROWS = [
   ["echoDecay", "Decay", 0.6, 0.99, 0.01, v => v.toFixed(2)],
   ["echoAngle", "Angle", 0, 360, 1, v => v + "\u00b0"],
   ["echoDrift", "Drift", 0, 1, 0.01, v => v.toFixed(2)],
+  ["slitAngle", "Direction", 0, 360, 1, v => v + "\u00b0"],
 ];
 const TEX_ROWS = [
   ["texAmt", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
@@ -1051,8 +1056,12 @@ function stopFractions() {
 }
 // bake a colour list and its weights into a 256-entry RGBA ramp; returns where
 // the wrap-around segment (last colour back to the first) begins
+// Colours mix in linear light, not sRGB: blending the stored values directly
+// sinks the midpoint between two saturated colours into a dull grey-brown.
+const toLin = c => { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+const toSrgb = c => 255 * (c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055);
 function computePalette(colors, weights, out) {
-  const cols = colors.map(hexToRgb);
+  const cols = colors.map(c => hexToRgb(c).map(toLin));
   const n = cols.length;
   const w = weights.map(x => Math.max(0.05, +x || 1));
   const sum = w.reduce((a, b) => a + b, 0);
@@ -1066,9 +1075,9 @@ function computePalette(colors, weights, out) {
     const span = stops[seg + 1] - stops[seg];
     const f = span > 0 ? (t - stops[seg]) / span : 0;
     const a = cols[seg], b = cols[(seg + 1) % n];
-    out[i * 4] = a[0] + (b[0] - a[0]) * f;
-    out[i * 4 + 1] = a[1] + (b[1] - a[1]) * f;
-    out[i * 4 + 2] = a[2] + (b[2] - a[2]) * f;
+    out[i * 4] = toSrgb(a[0] + (b[0] - a[0]) * f);
+    out[i * 4 + 1] = toSrgb(a[1] + (b[1] - a[1]) * f);
+    out[i * 4 + 2] = toSrgb(a[2] + (b[2] - a[2]) * f);
     out[i * 4 + 3] = 255;
   }
   return stops[n - 1];
@@ -1399,6 +1408,7 @@ function syncControls() {
   show("texSize", state.tex !== 0);
   show("screenSize", state.screen !== 0);
   ["echoSpread", "echoDecay", "echoAngle", "echoDrift"].forEach(k => show(k, state.screen === 4));
+  show("slitAngle", state.screen === 5);
   show("distSize", [2, 3, 6, 7].includes(state.dist));   // the kinds with a pitch or a reach
   show("glassAngle", state.dist === 7 && state.glass !== 6);   // frosted has no grain direction
   ["glassSeam", "glassSeamW"].forEach(k => show(k, state.dist === 7 && state.glass >= 1 && state.glass <= 5));
@@ -1406,7 +1416,7 @@ function syncControls() {
   const label = (key, text) => { const l = document.querySelector('.row[data-key="' + key + '"] label'); if (l) l.textContent = text; };
   label("scale", SCALE_LABELS[s] || "Scale");
   label("warp", WARP_LABELS[s] || "Warp");
-  label("screenSize", state.screen === 4 ? "Spacing" : "Size");
+  label("screenSize", state.screen === 4 || state.screen === 5 ? "Spacing" : "Size");
   $("microRow").hidden = s !== 13;
   $("shapeRow").hidden = s !== 15;
 }
@@ -2142,6 +2152,20 @@ vec3 ghost(vec2 uv, float i) {
   vec2 cell = vec2(mod(s, 4.0), floor(s / 4.0));
   return texture2D(u_ring, (cell + clamp(uv, 0.002, 0.998)) / 4.0).rgb;
 }
+// Slit-scan: each band of the frame is shown from a different moment, newest
+// at one edge and fifteen captures old at the other, blending between
+// neighbouring captures so time runs smoothly across the picture. Movement
+// bends and smears; anything still stays put. Uses the same ring as Echo.
+uniform float u_slit, u_sAngle, u_ringN;    // u_ringN: how many ring slots hold a frame yet
+vec3 slit(vec3 live, vec2 uv) {
+  vec2 dir = vec2(cos(u_sAngle), sin(u_sAngle));
+  float t = clamp(dot(uv - 0.5, dir) / (abs(dir.x) + abs(dir.y)) + 0.5, 0.0, 1.0);
+  float age = t * 15.0, i0 = floor(age), f = age - i0;
+  vec3 a = i0 < 0.5 || i0 >= u_ringN ? live : ghost(uv, i0);       // slots not yet filled show the live frame
+  float i1 = min(i0 + 1.0, 15.0);
+  vec3 b = i1 >= u_ringN ? live : ghost(uv, i1);
+  return mix(live, mix(a, b, f), min(u_slit, 1.0));
+}
 vec3 echo(vec3 col, vec2 uv) {
   vec3 live = col;
   vec2 dir = vec2(cos(u_eAngle), sin(u_eAngle) * (u_res.x / u_res.y));
@@ -2159,7 +2183,12 @@ vec3 echo(vec3 col, vec2 uv) {
 }
 void main() {
   vec2 uv = (gl_FragCoord.xy - u_off) / u_res;
-  if (u_blur < 0.5) { vec4 c = tap(uv); gl_FragColor = u_echo > 0.0 ? vec4(echo(c.rgb, uv), c.a) : c; return; }
+  if (u_blur < 0.5) {
+    vec4 c = tap(uv);
+    if (u_slit > 0.0) c.rgb = slit(c.rgb, uv);
+    gl_FragColor = u_echo > 0.0 ? vec4(echo(c.rgb, uv), c.a) : c;
+    return;
+  }
   // three rings of taps, rotated per pixel so the sparse pattern reads as
   // soft grain rather than stepped rings
   vec2 px = u_blur / u_res;
@@ -2172,6 +2201,7 @@ void main() {
     s += tap(uv + vec2(cos(a + 0.2618), sin(a + 0.2618)) * px);
   }
   s /= 20.0;
+  if (u_slit > 0.0) s.rgb = slit(s.rgb, uv);
   gl_FragColor = u_echo > 0.0 ? vec4(echo(s.rgb, uv), s.a) : s;
 }`;
 
@@ -2395,9 +2425,9 @@ function resize() {
   endFade();                                 // the outgoing look's targets are the old size
   if (ring) { gl.deleteFramebuffer(ring.fb); gl.deleteTexture(ring.tex); }
   ring = makeTarget(Math.max(4, w & ~3), Math.max(4, h & ~3));
-  ringHead = 0;
+  ringHead = 0; ringN = 0;
 }
-let ring = null, ringHead = 0, ringTick = 0, echoAngleT = 0;
+let ring = null, ringHead = 0, ringN = 0, ringTick = 0, echoAngleT = 0;
 // copy a frame into ring slot j (a 4x4 atlas of quarter-size captures)
 function captureRing(srcTex, j) {
   const sw = ring.w / 4, sh = ring.h / 4, ox = (j % 4) * sw, oy = Math.floor(j / 4) * sh;
@@ -2413,6 +2443,7 @@ function captureRing(srcTex, j) {
   gl.uniform1f(gl.getUniformLocation(copy, "u_mix"), 1);
   gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), 0);
   gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_slit"), 0);
   gl.uniform1i(gl.getUniformLocation(copy, "u_fadeKind"), 0);
   gl.uniform2f(gl.getUniformLocation(copy, "u_off"), ox, oy);
   gl.uniform2f(gl.getUniformLocation(copy, "u_res"), sw, sh);
@@ -3263,7 +3294,7 @@ const segSrc = seg("srcSeg", "src", () => srcMode, v => {
 // cannot read the file.
 const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom", "fbSpin", "grain", "bands", "blur",
                    "dist", "distort", "screen", "screenAmt", "tex", "texAmt", "distSize", "screenSize", "texSize",
-                   "glass", "glassAngle", "glassSeam", "glassSeamW", "echoSpread", "echoDecay", "echoAngle", "echoDrift"];
+                   "glass", "glassAngle", "glassSeam", "glassSeamW", "echoSpread", "echoDecay", "echoAngle", "echoDrift", "slitAngle"];
 const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
 const GROUPS = { print: "Print", broadcast: "Broadcast", terminal: "Terminal", damaged: "Damaged", optical: "Optical", mine: "Mine" };
 const BUILTIN_PRESETS = [
@@ -4048,6 +4079,7 @@ function startFade(dur) {
   gl.uniform1f(gl.getUniformLocation(copy, "u_mix"), 1);
   gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), 0);   // the history seed copies straight
   gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_slit"), 0);
   gl.uniform1i(gl.getUniformLocation(copy, "u_fadeKind"), 0);
   gl.uniform2f(gl.getUniformLocation(copy, "u_off"), 0, 0);
   gl.uniform2f(gl.getUniformLocation(copy, "u_res"), Y.w, Y.h);
@@ -4233,9 +4265,10 @@ function frame(now) {
   // trail even when the Screen kind is something else.
   const echoAmt = Math.min(1, (state.screen === 4 ? state.screenAmt : 0) + m("echo"));
   const echoOn = echoAmt > 0.01;
-  if (echoOn) {
-    const every = Math.max(1, Math.round((state.screen === 4 ? state.screenSize : 1) * 2));
-    if (ringTick++ % every === 0) { captureRing(A.tex, ringHead); ringHead = (ringHead + 1) % 16; }
+  const slitOn = state.screen === 5 && state.screenAmt > 0.01;
+  if (echoOn || slitOn) {
+    const every = Math.max(1, Math.round((state.screen === 4 || slitOn ? state.screenSize : 1) * 2));
+    if (ringTick++ % every === 0) { captureRing(A.tex, ringHead); ringHead = (ringHead + 1) % 16; ringN = Math.min(16, ringN + 1); }
   }
   echoAngleT += dt * state.echoDrift * 0.5;
 
@@ -4260,6 +4293,9 @@ function frame(now) {
   gl.uniform1i(gl.getUniformLocation(copy, "u_fadeKind"), fadeKind);
   gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), state.blur * state.blur * 24.0 * (canvas.height / 1080));
   gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), echoOn ? echoAmt : 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_slit"), slitOn ? state.screenAmt : 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_sAngle"), state.slitAngle * Math.PI / 180);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_ringN"), ringN);
   gl.uniform1f(gl.getUniformLocation(copy, "u_eSpread"), state.echoSpread * (1 + m("echo") * 0.6));
   gl.uniform1f(gl.getUniformLocation(copy, "u_eDecay"), Math.min(0.99, state.echoDecay + m("echo") * 0.04));
   gl.uniform1f(gl.getUniformLocation(copy, "u_eAngle"), state.echoAngle * Math.PI / 180 + echoAngleT);
@@ -4278,6 +4314,32 @@ function frame(now) {
 }
 resize();
 requestAnimationFrame(frame);
+
+/* ================= keep the screen awake ================= */
+// A projector run lasts hours; the display must not dim or sleep. The browser
+// drops the lock whenever the page is hidden (another tab, a minimised
+// window, a locked screen), so take it again each time the page shows, and on
+// any tap in case the browser wanted a gesture first.
+let wakeLock = null;
+const wakeNote = (msg, warn) => { $("wakeNote").className = warn ? "note warn" : "note"; $("wakeNote").textContent = msg; };
+async function keepAwake() {
+  if (wakeLock || document.hidden) return;
+  if (!("wakeLock" in navigator)) {
+    wakeNote("This browser can\u2019t keep the screen awake. Turn off display sleep in the system settings before a show.", true);
+    return;
+  }
+  try {
+    wakeLock = await navigator.wakeLock.request("screen");
+    wakeLock.addEventListener("release", () => { wakeLock = null; if (!document.hidden) keepAwake(); });
+    wakeNote("Screen kept awake while this page is showing.");
+  } catch (err) {
+    wakeLock = null;
+    wakeNote("Couldn\u2019t keep the screen awake yet (" + err.message + "). It will try again on the next tap.", true);
+  }
+}
+document.addEventListener("visibilitychange", keepAwake);
+["click", "touchend", "keydown"].forEach(t => addEventListener(t, keepAwake, { passive: true }));
+keepAwake();
 
 /* ================= output ================= */
 $("fsBtn").addEventListener("click", () => {
