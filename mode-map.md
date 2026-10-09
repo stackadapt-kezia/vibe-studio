@@ -201,12 +201,16 @@ first — most striking, most forgiving of an approximate implementation.
    init-order bug that piled them at the bottom of the pill. The oscilloscope's
    stair-stepping was 8-bit sample precision, not `devicePixelRatio`, which was
    already handled.
-1. **Show-readiness** — partly done. Mic constraints all false (already were),
+1. **Show-readiness** — done. Mic constraints all false on laptops (already were),
    fullscreen (already was), live sensitivity controls (Gain and Smoothing
    under Reactivity), audio input device picker (0.5.4), Screen Wake Lock,
    re-taken whenever the page shows (0.9.26). A soak harness (0.9.27) found
    and fixed a render-target leak on resize and a feedback loop that broke
-   the first draw of every crossfade.
+   the first draw of every crossfade; after the fixes a one-hour run (video,
+   camera, a preset change with a fade every 15 s, resizes, Slit-scan, Echo
+   and Frosted) held flat on JS heap, textures and framebuffers, with no GL
+   or page errors. It ran on software rendering, so it says nothing about
+   frame rate on real hardware.
 2. **Image texture input + Heatmap** — done (0.3.0). Video input too, with
    playback controls (0.4.5).
 3. Family 1 — done, as a layer.
