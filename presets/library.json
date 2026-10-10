@@ -8,6 +8,12 @@
       "routes": [ { "src":  "bass",  "dst":  "size",  "amt":  0.6 },  { "src":  "beat",  "dst":  "flash",  "amt":  0.3 } ]
     },
     {
+      "id": "stippled", "name": "Stippled", "group": "print",
+      "look": { "style":  16,  "scale":  1,  "warp":  0.5,  "trails":  0,  "grain":  0.04 },
+      "palette": { "colors":  [ "#232325",  "#8E8E92",  "#C9C9CC" ],  "weights":  [ 100,  100,  100 ] },
+      "routes": [ { "src":  "bass",  "dst":  "size",  "amt":  0.3 } ]
+    },
+    {
       "id": "mine-miami-print-mur7jfaq", "name": "Miami Print", "group": "print",
       "look": { "style":  7,  "scale":  0.2,  "speed":  1,  "warp":  0.2,  "blobs":  5,  "trails":  0,  "fbZoom":  0.004,  "fbSpin":  0.002,  "grain":  0.15,  "bands":  0,  "blur":  0,  "dist":  1,  "distort":  0.5,  "screen":  0,  "screenAmt":  0.7,  "tex":  2,  "texAmt":  0.41,  "distSize":  1,  "screenSize":  1,  "texSize":  0.5,  "glass":  0,  "glassAngle":  0,  "echoSpread":  1,  "echoDecay":  0.93,  "echoAngle":  0,  "echoDrift":  0.5 },
       "palette": { "colors":  [ "#FF9BF9",  "#006C67",  "#FD6D73",  "#0061FF",  "#EE5FE6",  "#FBBE49",  "#06BDE0" ],  "weights":  [ 100,  100,  100,  100,  100,  100,  100 ] },

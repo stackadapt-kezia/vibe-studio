@@ -638,6 +638,7 @@
         <button data-style="13">Text</button>
         <button data-style="14">Thermal</button>
         <button data-style="15">Shapes</button>
+        <button data-style="16">Stipple</button>
       </div>
     </fieldset>
 
@@ -785,12 +786,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.27";  // Crossfades keep the outgoing trails; resizing no longer leaks graphics memory
+const APP_VERSION = "0.9.28";  // Stipple pattern and a Stippled preset
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.28", "Stipple pattern: the picture drawn in fine, hand-scattered dots that crowd the highlights and thin out to nothing in the shadows. The dots hold still and only appear or vanish as the picture moves, so video and the camera stay calm. Dot pitch sets how fine, Dot size how heavy. A Stippled look in Print starts it grey on charcoal; best with a camera, a video or a photo."],
   ["0.9.27", "Two fixes from a long unattended test run. Crossfades now carry the outgoing look\u2019s trails into the fade; before, the first step of every fade was refused by the graphics card and the old look faded from a blank history. Resizing the window, including going in and out of fullscreen, no longer leaks two screen-sized buffers each time."],
   ["0.9.26", "Slit-scan under Screen: each band of the picture shows a different moment, so movement bends and smears across the frame while anything still stays put. Direction turns which way time runs; Spacing sets how far back it reaches. The screen now stays awake while the page is showing (Output says whether the browser allowed it). Palette colours blend in linear light, so the mix between two strong colours stays bright instead of turning muddy; existing looks shift slightly brighter in their midtones."],
   ["0.9.25", "Frosted glass: a sandblasted sheet that blurs and softly bends the picture behind it, with highlights blooming through. Glass styles now sit in a dropdown under Distort instead of a second row of pills. Glass blocks get Seam and Seam width, so the lines between blocks can be faded right down or thinned; they start softer than before. On a phone the sidebar fills the screen and the presets and timeline move into it, leaving the stage its full height."],
@@ -936,8 +938,8 @@ const TEX_ROWS = [
 ];
 // what Scale and Warp mean in each pattern, so the Look rows say so
 const SCALE_LABELS = { 0: "Blob size", 1: "Zoom", 2: "Zoom", 3: "Zoom", 4: "Amplitude", 5: "Contrast", 6: "Block size",
-  7: "Dot pitch", 8: "Offset", 9: "Detail", 10: "Detail", 11: "Line pitch", 12: "Line pitch", 13: "Cell size", 14: "Grain", 15: "Cell size" };
-const WARP_LABELS = { 1: "Warp", 2: "Warp", 4: "Trace", 5: "Cycle", 6: "Dither", 7: "Angle", 8: "Direction", 10: "Light", 11: "Lift", 12: "Angle", 14: "Smear", 15: "Dither" };
+  7: "Dot pitch", 8: "Offset", 9: "Detail", 10: "Detail", 11: "Line pitch", 12: "Line pitch", 13: "Cell size", 14: "Grain", 15: "Cell size", 16: "Dot pitch" };
+const WARP_LABELS = { 1: "Warp", 2: "Warp", 4: "Trace", 5: "Cycle", 6: "Dither", 7: "Angle", 8: "Direction", 10: "Light", 11: "Lift", 12: "Angle", 14: "Smear", 15: "Dither", 16: "Dot size" };
 const AUDIO_ROWS = [
   ["gain", "Gain", 0.2, 4, 0.05, v => v.toFixed(2)],
   ["smooth", "Smooth", 0, 0.95, 0.05, v => v.toFixed(2)],
@@ -2067,6 +2069,26 @@ void main() {
     float idx = clamp(floor(pick), 0.0, u_shapeN - 1.0);
     ink = texture2D(u_shapes, vec2((idx + cf.x) / u_shapeN, cf.y)).r;
     v = (1.0 - l) * u_palEnd;
+  } else if (u_style == 16) {
+    // stipple: the picture drawn in fine, evenly sized dots scattered by hand,
+    // crowding the highlights and thinning out to nothing in the shadows. A
+    // fine grid where every cell holds one dot at its own random spot, kept
+    // only if the picture there is brighter than that cell's own random
+    // threshold; positions and thresholds are fixed per cell, so the dots
+    // never shimmer, they only appear and vanish as the picture moves.
+    // Scale sets the dot pitch, Warp the dot size.
+    float ca = u_res.x / u_res.y;
+    float n = 150.0 / u_scale;                         // cells down the height
+    vec2 g = uv * vec2(ca, 1.0) * n;
+    vec2 ci = floor(g);
+    vec2 dp = ci + 0.5 + (vec2(hash2(ci * 1.31 + vec2(17.3, 41.9)), hash2(ci.yx * 0.77 + vec2(5.7, 91.1))) - 0.5) * 0.62;
+    vec2 duv = dp / n / vec2(ca, 1.0);
+    float l = fld(duv, T);
+    float keep = step(hash2(ci * vec2(1.73, 2.29) + 3.3), smoothstep(0.08, 0.7, l));   // empty shadows, packed highlights
+    float rad = 0.11 + 0.17 * u_warp;                  // in cells; stays inside its own cell
+    float aa = n * 1.2 / u_res.y;
+    ink = keep * (1.0 - smoothstep(rad - aa, rad + aa, length(g - dp)));
+    v = (0.6 + 0.4 * l) * u_palEnd;                    // brighter dots sit further up the palette
   } else {
     vec2 z = p * 1.7 / u_scale;
     vec2 c = 0.7885 * vec2(cos(T * 0.25), sin(T * 0.25));
