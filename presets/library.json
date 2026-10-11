@@ -2,6 +2,12 @@
   "version": 1,
   "presets": [
     {
+      "id": "cyber-goth", "name": "Cyber Goth", "group": "optical",
+      "look": { "style":  3,  "fracKind":  1,  "fracSeed":  5,  "scale":  1,  "speed":  1,  "warp":  0.3,  "trails":  0,  "grain":  0.03 },
+      "palette": { "colors":  [ "#02030F",  "#0A1B6E",  "#1E5BFF",  "#28E0FF",  "#7CFF3A",  "#B04DFF" ],  "weights":  [ 100,  100,  100,  100,  100,  100 ] },
+      "routes": [ { "src":  "bass",  "dst":  "size",  "amt":  0.2 },  { "src":  "high",  "dst":  "warp",  "amt":  0.3 } ]
+    },
+    {
       "id": "bracket-fungus", "name": "Bracket Fungus", "group": "optical",
       "look": { "style":  3,  "scale":  1,  "speed":  1,  "warp":  0.6,  "fracSeed":  42,  "trails":  0,  "grain":  0.04 },
       "palette": { "colors":  [ "#000000",  "#5A1405",  "#C4501A",  "#F07A2A",  "#1E8C95",  "#5FE3E0" ],  "weights":  [ 100,  100,  100,  100,  100,  100 ] },
