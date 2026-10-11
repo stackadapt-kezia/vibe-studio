@@ -843,12 +843,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.29";  // Pattern list trimmed and regrouped; Geometry section with Kaleido; grid-table selectors; editable colour sets, shapes and preset groups; Lines thickness
+const APP_VERSION = "0.9.30";  // Fractal rebuilt: seeded, noise-grown Julia sets drawn as layered shelves
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.30", "Fractal is rebuilt to look grown rather than computed. Each Seed picks a different set, and the shape keeps slowly budding and changing. Growth bends it with smooth noise so lobes swell unevenly and branches sprout off-pattern. Outside the set it is drawn as layered shelves, each its own colour with a bright lip in the colour across the palette and fine fibres fanning over it, like bracket fungus; detail too fine to draw falls into dark lace instead of noise. Zoom sets the scale."],
   ["0.9.29", "A tidier sidebar. Waves, Edges, Relief and Hatch are gone; the generative patterns (Blobs, Plasma, Fractal, Scope) sit on their own row above the ones that draw from the picture, and Thermal is now Ink Smear. Mirror and Grid move out of Distort into a new Geometry section, joined by Kaleido (Segments and Spin). Every mode picker is a plain table with hairlines between the cells instead of pills. Lines get a Thickness slider and lose the soft halo round each line. The palette dropdown is gone: the stock colour sets live in Saved sets, where any set can be renamed, given the current colours, or deleted (Restore stock brings deleted stock sets back). Shapes shows every shape in a grid: click one to swap in an SVG, \u00d7 removes it. Preset groups can be renamed, added (+ Group) and deleted; a deleted group\u2019s looks move to Mine. Looks saved with a removed pattern or the old Mirror and Grid load as the nearest equivalent."],
   ["0.9.28", "Stipple pattern: the picture drawn in fine, hand-scattered dots that crowd the highlights and thin out to nothing in the shadows. The dots hold still and only appear or vanish as the picture moves, so video and the camera stay calm. Dot pitch sets how fine, Dot size how heavy. A Stippled look in Print starts it grey on charcoal; best with a camera, a video or a photo."],
   ["0.9.27", "Two fixes from a long unattended test run. Crossfades now carry the outgoing look\u2019s trails into the fade; before, the first step of every fade was refused by the graphics card and the old look faded from a blank history. Resizing the window, including going in and out of fullscreen, no longer leaks two screen-sized buffers each time."],
@@ -945,7 +946,7 @@ const state = {
   glass: 0, glassAngle: 0, glassSeam: 0.4, glassSeamW: 1,
   echoSpread: 1, echoDecay: 0.93, echoAngle: 0, echoDrift: 0.5,
   slitAngle: 90,
-  geo: 0, geoN: 6, geoSpin: 0.1, lineW: 1.5,
+  geo: 0, geoN: 6, geoSpin: 0.1, lineW: 1.5, fracSeed: 7,
   routes: [],                                   // filled from DEFAULT_ROUTES or storage below
   gain: 1.6, smooth: 0.7,
 };
@@ -964,6 +965,7 @@ const LOOK = [
   ["blur", "Blur", 0, 1, 0.01, v => v.toFixed(2)],
   ["bands", "Bands", 0, 8, 1, v => (v < 2 ? "Off" : String(v))],
   ["lineW", "Thickness", 0.5, 8, 0.1, v => v.toFixed(1) + " px"],
+  ["fracSeed", "Seed", 0, 99, 1, v => String(v)],
 ];
 // Reactivity routing: each route sends one audio band to one control.
 const SOURCES = { bass: "Bass", mid: "Mids", high: "Highs", beat: "Beat", presence: "Face: presence", near: "Face: near", crowd: "Face: crowd", spread: "Face: spread" };
@@ -1003,7 +1005,7 @@ const TEX_ROWS = [
 // what Scale and Warp mean in each pattern, so the Look rows say so
 const SCALE_LABELS = { 0: "Blob size", 1: "Zoom", 2: "Zoom", 3: "Zoom", 4: "Amplitude", 5: "Contrast", 6: "Block size",
   7: "Dot pitch", 8: "Offset", 9: "Detail", 10: "Detail", 11: "Line pitch", 12: "Line pitch", 13: "Cell size", 14: "Grain", 15: "Cell size", 16: "Dot pitch" };
-const WARP_LABELS = { 1: "Warp", 2: "Warp", 4: "Trace", 5: "Cycle", 6: "Dither", 7: "Angle", 8: "Direction", 10: "Light", 11: "Lift", 12: "Angle", 14: "Smear", 15: "Dither", 16: "Dot size" };
+const WARP_LABELS = { 3: "Growth", 1: "Warp", 2: "Warp", 4: "Trace", 5: "Cycle", 6: "Dither", 7: "Angle", 8: "Direction", 10: "Light", 11: "Lift", 12: "Angle", 14: "Smear", 15: "Dither", 16: "Dot size" };
 const AUDIO_ROWS = [
   ["gain", "Gain", 0.2, 4, 0.05, v => v.toFixed(2)],
   ["smooth", "Smooth", 0, 0.95, 0.05, v => v.toFixed(2)],
@@ -1521,12 +1523,13 @@ const segStyle = seg("styleSeg", "style", () => state.style, v => { state.style 
 // Read from the shader: Blobs only counts on Blobs; Warp is unused by Blobs,
 // Fractal, Edges, Contour, ASCII and Microtext; the Distort and Screen amounts
 // (and Beat -> Distort) only matter once a kind is chosen.
-const NO_WARP = [0, 3, 13];
+const NO_WARP = [0, 13];
 function syncControls() {
   const s = state.style;
   const show = (key, on) => document.querySelectorAll('.row[data-key="' + key + '"]').forEach(r => { r.hidden = !on; });
   show("blobs", s === 0);
   show("lineW", s === 11);
+  show("fracSeed", s === 3);
   show("geoN", state.geo >= 3);
   show("geoSpin", state.geo === 4);
   show("warp", !NO_WARP.includes(s));
@@ -1632,6 +1635,7 @@ uniform int u_style, u_dist, u_screen, u_tex;
 uniform int u_geo;                 // geometry: 0 none, 1 mirror, 2 quad mirror, 3 grid, 4 kaleidoscope
 uniform float u_geoN, u_geoSpin;   // copies or segments; kaleidoscope turn speed
 uniform float u_lineW;             // Lines: line thickness in pixels
+uniform float u_fseed;             // Fractal: which set, and how it grows
 uniform float u_distort, u_screenAmt, u_texAmt;
 uniform float u_distSize, u_screenSize, u_texSize;   // pitch or reach of each layer, 1 = as designed
 uniform int u_glass;                                  // glass type: 0 flute, then the block faces
@@ -2188,15 +2192,63 @@ void main() {
     ink = keep * (1.0 - smoothstep(rad - aa, rad + aa, length(g - dp)));
     v = (0.6 + 0.4 * l) * u_palEnd;                    // brighter dots sit further up the palette
   } else {
-    vec2 z = p * 1.7 / u_scale;
-    vec2 c = 0.7885 * vec2(cos(T * 0.25), sin(T * 0.25));
-    float it = 0.0;
-    for (int i = 0; i < 48; i++) {
+    // fractal: a Julia set grown rather than computed. The seed picks a
+    // point just outside the edge of the Mandelbrot set's main body (every
+    // Julia set from there is intricate, and no two look alike), and that
+    // point creeps round slowly so the shapes keep budding and merging.
+    // Before iterating, the plane is pushed around by smooth noise (Growth),
+    // so lobes swell unevenly and branches lean and sprout off-pattern.
+    // Outside the set the escape count is drawn as layered shelves: each
+    // band is its own colour with a dark root, a lit body and a bright lip
+    // in the colour across the palette, with fine fibres fanning over it
+    // (stripe averaging) and a light catching its curve. Far out is black.
+    // Zoom sets the scale.
+    float sd = u_fseed;
+    float zs = 1.35 / u_scale * (1.0 + 0.12 * sin(T * 0.05));
+    float th = 6.28318 * fract(sd * 0.618034 + 0.17) + T * 0.006;
+    vec2 c = (0.5 * vec2(cos(th), sin(th)) - 0.25 * vec2(cos(2.0 * th), sin(2.0 * th))) * 1.02;
+    vec2 q = p + 0.04 * vec2(sin(T * 0.03 + sd), cos(T * 0.025 + sd * 1.7));
+    vec2 wv = vec2(fbm(q * 1.6 + sd * 3.17 + T * 0.02), fbm(q * 1.6 + sd * 5.31 + 4.3 - T * 0.017)) - 0.5;
+    vec2 wf = vec2(vnoise(q * 11.0 + sd * 2.1), vnoise(q * 11.0 + sd * 2.1 + 7.7)) - 0.5;
+    q += wv * 0.55 * u_warp + wf * 0.025 * u_warp;     // broad uneven growth, plus a crisp fine wobble
+    float ang = T * 0.01 + sd;
+    vec2 z = mat2(cos(ang), -sin(ang), sin(ang), cos(ang)) * q * zs;
+    vec2 dz = vec2(1.0, 0.0);
+    float n = 0.0, stripe = 0.0, last = 0.0;
+    bool esc = false;
+    for (int i = 0; i < 140; i++) {
+      dz = 2.0 * vec2(z.x * dz.x - z.y * dz.y, z.x * dz.y + z.y * dz.x);
       z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;
-      if (dot(z, z) > 4.0) break;
-      it += 1.0;
+      last = 0.5 + 0.5 * sin(11.0 * atan(z.y, z.x));  // high frequency: fine fibres
+      stripe += last;
+      if (dot(z, z) > 1e4) { esc = true; break; }
+      n += 1.0;
     }
-    v = sqrt(it / 48.0);
+    vec3 deep = pal(0.0) * 0.03;
+    if (!esc) {
+      colv = deep;                                     // inside the set
+    } else {
+      float r = length(z);
+      float mu = n + 1.0 - log2(log2(r));
+      stripe = mix((stripe - last) / max(n, 1.0), stripe / (n + 1.0), fract(mu));
+      float f = fract(mu * 0.5), band = floor(mu * 0.5);   // two escape steps per shelf: broader shelves
+      float de = 0.5 * r * log(r) / max(length(dz), 1e-12);
+      float px = zs / u_res.y;
+      float rim = exp(-de / (px * 0.8));               // a thin edge right on the set
+      // where the set's detail is finer than a pixel, neighbouring pixels land
+      // on unrelated shelves and read as sand; let that fall into dark lace
+      float clear = smoothstep(px * 0.6, px * 5.0, de);
+      vec2 u = normalize(vec2(z.x * dz.x + z.y * dz.y, z.y * dz.x - z.x * dz.y));
+      float sh = clamp((dot(u, vec2(0.6, 0.8)) + 1.2) / 2.2, 0.0, 1.0);
+      float vis = smoothstep(3.0, 7.0, mu);             // far out stays black
+      float bp = fract(band * 0.29 + hash(band + floor(sd * 7.0)) * 0.18 + sd * 0.137);   // each shelf its own colour
+      vec3 body = pal((0.2 + 0.8 * bp) * u_palEnd);
+      vec3 lipc = pal(fract(0.2 + 0.8 * bp + 0.5) * u_palEnd);
+      float fib = 0.45 + 1.1 * stripe;
+      vec3 shelf = body * (0.12 + 1.0 * pow(f, 1.6)) * fib * mix(0.6, 1.3, sh)
+                 + lipc * smoothstep(0.72, 1.0, f) * (0.5 + 0.6 * stripe) * 0.9;
+      colv = deep + vis * shelf * clear + pal(0.6 * u_palEnd) * rim * 0.45 * clear * clear;
+    }
   }
 
   vec3 col = colv.x < 0.0 ? mix(pal(0.0), pal(v), ink) : colv;
@@ -3482,7 +3534,7 @@ const segSrc = seg("srcSeg", "src", () => srcMode, v => {
 const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom", "fbSpin", "grain", "bands", "blur",
                    "dist", "distort", "screen", "screenAmt", "tex", "texAmt", "distSize", "screenSize", "texSize",
                    "glass", "glassAngle", "glassSeam", "glassSeamW", "echoSpread", "echoDecay", "echoAngle", "echoDrift", "slitAngle",
-                   "geo", "geoN", "geoSpin", "lineW"];
+                   "geo", "geoN", "geoSpin", "lineW", "fracSeed"];
 const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
 // Groups (the library's categories), in display order. presets/library.json
 // may ship its own list; renames, additions and deletions made here are kept
@@ -3591,6 +3643,7 @@ function setLook(L, m, w, h, pEnd, time = T) {
   gl.uniform1f(U("u_time"), time);
   gl.uniform1i(U("u_style"), L.style);
   gl.uniform1i(U("u_geo"), L.geo);
+  gl.uniform1f(U("u_fseed"), L.fracSeed);
   gl.uniform1f(U("u_geoN"), L.geoN);
   gl.uniform1f(U("u_geoSpin"), L.geoSpin);
   gl.uniform1f(U("u_lineW"), Math.max(0.5, L.lineW * h / 1080));   // thickness is set for 1080 lines, so thumbnails match

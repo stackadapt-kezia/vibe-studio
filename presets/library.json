@@ -2,6 +2,12 @@
   "version": 1,
   "presets": [
     {
+      "id": "bracket-fungus", "name": "Bracket Fungus", "group": "optical",
+      "look": { "style":  3,  "scale":  1,  "speed":  1,  "warp":  0.6,  "fracSeed":  42,  "trails":  0,  "grain":  0.04 },
+      "palette": { "colors":  [ "#000000",  "#5A1405",  "#C4501A",  "#F07A2A",  "#1E8C95",  "#5FE3E0" ],  "weights":  [ 100,  100,  100,  100,  100,  100 ] },
+      "routes": [ { "src":  "bass",  "dst":  "size",  "amt":  0.25 },  { "src":  "mid",  "dst":  "warp",  "amt":  0.4 } ]
+    },
+    {
       "id": "newsprint", "name": "Newsprint", "group": "print",
       "look": { "style":  7,  "scale":  0.2,  "warp":  0.45,  "trails":  0,  "grain":  0.05,  "tex":  1,  "texAmt":  0.4 },
       "palette": { "colors":  [ "#F4EFE6",  "#1B1B1B" ] },
