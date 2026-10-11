@@ -674,7 +674,7 @@
           <button data-style="4">Scope</button>
         </div>
         <p class="seglabel">From the picture</p>
-        <div class="gridseg" data-cols="4">
+        <div class="gridseg" data-cols="3">
           <button data-style="5">Heatmap</button>
           <button data-style="6">Mosaic</button>
           <button data-style="7">Halftone</button>
@@ -683,6 +683,7 @@
           <button data-style="14">Ink Smear</button>
           <button data-style="15">Shapes</button>
           <button data-style="16">Stipple</button>
+          <button data-style="17">Mesh</button>
         </div>
       </div>
     </fieldset>
@@ -852,12 +853,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.32";  // Fringe screen mode; Prism retired; Zoom and Fringe reactivity targets; drag to reorder shapes
+const APP_VERSION = "0.9.33";  // Mesh pattern: the picture as a 3D wireframe relief
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.33", "Mesh pattern: the picture raised into a 3D relief by its brightness and drawn as a wireframe grid, with a camera swinging slowly round it; nearer bumps hide the lines behind them. Point the camera at someone and their face becomes the relief. Grid sets the line count, Depth how far it stands out, Thickness the line weight."],
   ["0.9.32", "Fringe under Screen pulls the red and blue of the finished picture apart, wider toward the edges like a cheap lens, so any pattern can have a chromatic glow; Amount sets how far, Spread scales it. Prism is retired: looks that used it load as Heatmap with Fringe. Reactivity gains Zoom (the whole picture pushes in on the beat or the bass) and Fringe (the split jumps with the music, even when Fringe isn\u2019t the Screen mode). Shapes can be dragged into any order (or moved with the arrow keys); the help is now on the Shapes label\u2019s tooltip."],
   ["0.9.31", "Fractal has a Kind under Look: Fungus (the layered shelves) or Filament, a neon zoom into the Mandelbrot set\u2019s outskirts where colour bands crowd into glowing rivers round tiny copies of the set, with sharp fibres along the field lines. Seed picks one of six neighbourhoods and where in it you sit; Growth bends it. A Cyber Goth look in Optical starts it in neon green, cyan and violet on black. For more glow, add a little Blur and Trails under Look."],
   ["0.9.30", "Fractal is rebuilt to look grown rather than computed. Each Seed picks a different set, and the shape keeps slowly budding and changing. Growth bends it with smooth noise so lobes swell unevenly and branches sprout off-pattern. Outside the set it is drawn as layered shelves, each its own colour with a bright lip in the colour across the palette and fine fibres fanning over it, like bracket fungus; detail too fine to draw falls into dark lace instead of noise. Zoom sets the scale."],
@@ -1016,8 +1018,8 @@ const TEX_ROWS = [
 ];
 // what Scale and Warp mean in each pattern, so the Look rows say so
 const SCALE_LABELS = { 0: "Blob size", 1: "Zoom", 2: "Zoom", 3: "Zoom", 4: "Amplitude", 5: "Contrast", 6: "Block size",
-  7: "Dot pitch", 8: "Offset", 9: "Detail", 10: "Detail", 11: "Line pitch", 12: "Line pitch", 13: "Cell size", 14: "Grain", 15: "Cell size", 16: "Dot pitch" };
-const WARP_LABELS = { 3: "Growth", 1: "Warp", 2: "Warp", 4: "Trace", 5: "Cycle", 6: "Dither", 7: "Angle", 8: "Direction", 10: "Light", 11: "Lift", 12: "Angle", 14: "Smear", 15: "Dither", 16: "Dot size" };
+  7: "Dot pitch", 8: "Offset", 9: "Detail", 10: "Detail", 11: "Line pitch", 12: "Line pitch", 13: "Cell size", 14: "Grain", 15: "Cell size", 16: "Dot pitch", 17: "Grid" };
+const WARP_LABELS = { 3: "Growth", 1: "Warp", 2: "Warp", 4: "Trace", 5: "Cycle", 6: "Dither", 7: "Angle", 8: "Direction", 10: "Light", 11: "Lift", 12: "Angle", 14: "Smear", 15: "Dither", 16: "Dot size", 17: "Depth" };
 const AUDIO_ROWS = [
   ["gain", "Gain", 0.2, 4, 0.05, v => v.toFixed(2)],
   ["smooth", "Smooth", 0, 0.95, 0.05, v => v.toFixed(2)],
@@ -1540,7 +1542,7 @@ function syncControls() {
   const s = state.style;
   const show = (key, on) => document.querySelectorAll('.row[data-key="' + key + '"]').forEach(r => { r.hidden = !on; });
   show("blobs", s === 0);
-  show("lineW", s === 11);
+  show("lineW", s === 11 || s === 17);
   show("fracSeed", s === 3);
   show("geoN", state.geo >= 3);
   show("geoSpin", state.geo === 4);
@@ -2083,6 +2085,52 @@ void main() {
     float aa = n * 1.5 / u_res.y;                      // ~1.5px edge
     ink = 1.0 - smoothstep(rad - aa, rad + aa, length(q - cc));
     v = (1.0 - l) * u_palEnd;
+  } else if (u_style == 17) {
+    // mesh: the picture raised into a relief by its brightness and drawn as
+    // a 3D wireframe, seen by a camera that swings slowly round it. Each
+    // pixel's sight line is traced onto the relief (stepped, then refined),
+    // so nearer bumps hide what is behind them and the gaps stay paper; a
+    // square grid is drawn on the surface, its lines kept a steady pixel
+    // width at any distance. A face on camera becomes a face-shaped relief.
+    // Grid sets the line count, Depth how far the relief stands out,
+    // Thickness the line weight; lines colour up the palette with height.
+    float ca = u_res.x / u_res.y;
+    float yaw = 0.55 * sin(T * 0.21), pitch = 0.1 + 0.16 * sin(T * 0.15);
+    float D = 2.3;
+    vec3 ro = vec3(sin(yaw) * cos(pitch), sin(pitch), cos(yaw) * cos(pitch)) * D;
+    vec3 fw = normalize(-ro), rt = normalize(cross(vec3(0.0, 1.0, 0.0), fw)), up = cross(fw, rt);
+    vec3 rd = normalize(fw * 1.9 + rt * p.x + up * p.y);
+    float depth = 0.04 + 0.5 * u_warp;
+    ink = 0.0;
+    if (rd.z < -0.02) {
+      // march between the relief's top plane and its base
+      float t0 = max(0.0, (ro.z - depth) / -rd.z), t1 = (ro.z + 0.002) / -rd.z;
+      float dt = (t1 - t0) / 64.0, t = t0, hitT = -1.0;
+      for (int i = 0; i < 64; i++) {
+        vec3 q = ro + rd * t;
+        vec2 fuv = vec2(q.x / ca + 0.5, q.y + 0.5);
+        if (fuv.x > 0.0 && fuv.x < 1.0 && fuv.y > 0.0 && fuv.y < 1.0 && q.z < fld(fuv, T) * depth) { hitT = t; break; }
+        t += dt;
+      }
+      if (hitT > 0.0) {
+        float lo = hitT - dt, hi = hitT;                 // refine the crossing
+        for (int j = 0; j < 6; j++) {
+          float mid = 0.5 * (lo + hi);
+          vec3 q = ro + rd * mid;
+          vec2 fuv = clamp(vec2(q.x / ca + 0.5, q.y + 0.5), 0.0, 1.0);
+          if (q.z < fld(fuv, T) * depth) hi = mid; else lo = mid;
+        }
+        vec3 q = ro + rd * hi;
+        float N = 44.0 / u_scale;
+        vec2 g = q.xy * N;
+        vec2 fg = fract(g);
+        float dl = min(min(fg.x, 1.0 - fg.x), min(fg.y, 1.0 - fg.y));   // distance to the nearest grid line, in cells
+        float pxw = hi / (1.9 * u_res.y) * N;            // one pixel, in cells, at this distance
+        float w = 0.5 * u_lineW * pxw;
+        ink = (1.0 - smoothstep(w - pxw * 0.5, w + pxw * 0.5, dl)) * (1.0 - smoothstep(0.25, 0.5, pxw));   // fades where lines would merge
+        v = (0.3 + 0.7 * clamp(q.z / depth, 0.0, 1.0)) * u_palEnd;
+      }
+    }
   } else if (u_style == 11) {
     // lines: a stack of horizontal traces, each lifted into a ridge by the
     // brightness of the picture along its own row and jittering where it

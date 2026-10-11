@@ -2,6 +2,12 @@
   "version": 1,
   "presets": [
     {
+      "id": "wireframe", "name": "Wireframe", "group": "optical",
+      "look": { "style":  17,  "scale":  1,  "speed":  1,  "warp":  0.55,  "lineW":  1.5,  "trails":  0,  "grain":  0.02 },
+      "palette": { "colors":  [ "#000000",  "#9A9AA0",  "#FFFFFF" ],  "weights":  [ 100,  100,  100 ] },
+      "routes": [ { "src":  "bass",  "dst":  "warp",  "amt":  0.4 },  { "src":  "beat",  "dst":  "zoom",  "amt":  0.15 } ]
+    },
+    {
       "id": "cyber-goth", "name": "Cyber Goth", "group": "optical",
       "look": { "style":  3,  "fracKind":  1,  "fracSeed":  5,  "scale":  1,  "speed":  1,  "warp":  0.3,  "trails":  0,  "grain":  0.03 },
       "palette": { "colors":  [ "#02030F",  "#0A1B6E",  "#1E5BFF",  "#28E0FF",  "#7CFF3A",  "#B04DFF" ],  "weights":  [ 100,  100,  100,  100,  100,  100 ] },
