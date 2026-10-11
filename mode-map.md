@@ -127,7 +127,10 @@ angle, ink count, erosion.
 Likely to travel back to Pattern studio (print-effects-for-motion direction).
 
 ### 6. Channel separation and ghosting
-**Tier: next.** **Built** as Prism (0.4.1). Note for anyone extending it:
+**Tier: next.** **Built** as Prism (0.4.1), **moved** to the Screen layer as
+Fringe (0.9.32): a red/blue split of the finished frame in the copy pass, so
+it stacks on every pattern. Prism retired; its looks load as Heatmap with
+Fringe. Note for anyone extending it:
 averaging palette-mapped copies goes muddy. The blend that works keeps the base
 at full saturation and only prints the offset copies where they disagree with
 it, so fringing lands on edges.

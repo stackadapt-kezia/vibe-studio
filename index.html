@@ -182,6 +182,9 @@
   .shape:hover { border-color: var(--muted); }
   .shape:focus-visible { outline: 1px solid var(--accent); }
   .shapeadd { border-style: dashed; background: none; }
+  .shape[data-id] { touch-action: none; }
+  .shape.dragging { opacity: .4; }
+  .shape.over { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .shapedel {
     position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; padding: 0; border-radius: 999px;
     border: 1px solid var(--line); background: var(--panel); color: var(--muted); font-size: 11px; line-height: 1;
@@ -671,11 +674,10 @@
           <button data-style="4">Scope</button>
         </div>
         <p class="seglabel">From the picture</p>
-        <div class="gridseg" data-cols="3">
+        <div class="gridseg" data-cols="4">
           <button data-style="5">Heatmap</button>
           <button data-style="6">Mosaic</button>
           <button data-style="7">Halftone</button>
-          <button data-style="8">Prism</button>
           <button data-style="11">Lines</button>
           <button data-style="13">Text</button>
           <button data-style="14">Ink Smear</button>
@@ -706,12 +708,11 @@
       </div>
       <div id="shapeRow" hidden>
         <div class="row">
-          <label>Shapes</label>
+          <label title="Lightest to heaviest: light areas of the picture get the first shape, dark areas the last. Drag a shape to reorder; click one to replace it with an SVG; × removes it.">Shapes</label>
           <span class="note" id="shapeCount" style="margin:0; flex:1"></span>
           <button class="mini" id="resetShapes" type="button" title="Back to the built-in shapes, with your own removed">Reset</button>
         </div>
         <div class="shapegrid" id="shapeGrid" aria-label="Shapes, lightest to heaviest"></div>
-        <p class="note" style="margin-top:6px">Lightest to heaviest: light areas of the picture get the first, dark areas the last. Click a shape to replace it with an SVG; × removes it.</p>
         <input type="file" id="shapeFiles" accept=".svg,image/svg+xml" multiple hidden>
         <input type="file" id="shapeReplace" accept=".svg,image/svg+xml" hidden>
       </div>
@@ -768,6 +769,7 @@
         <button data-screen="3">VHS</button>
         <button data-screen="4">Echo</button>
         <button data-screen="5">Slit-scan</button>
+        <button data-screen="6">Fringe</button>
       </div>
       <div id="screenRows" style="margin-top:10px"></div>
     </fieldset>
@@ -850,12 +852,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.31";  // Fractal gains a Kind: Fungus shelves or neon Filament
+const APP_VERSION = "0.9.32";  // Fringe screen mode; Prism retired; Zoom and Fringe reactivity targets; drag to reorder shapes
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.32", "Fringe under Screen pulls the red and blue of the finished picture apart, wider toward the edges like a cheap lens, so any pattern can have a chromatic glow; Amount sets how far, Spread scales it. Prism is retired: looks that used it load as Heatmap with Fringe. Reactivity gains Zoom (the whole picture pushes in on the beat or the bass) and Fringe (the split jumps with the music, even when Fringe isn\u2019t the Screen mode). Shapes can be dragged into any order (or moved with the arrow keys); the help is now on the Shapes label\u2019s tooltip."],
   ["0.9.31", "Fractal has a Kind under Look: Fungus (the layered shelves) or Filament, a neon zoom into the Mandelbrot set\u2019s outskirts where colour bands crowd into glowing rivers round tiny copies of the set, with sharp fibres along the field lines. Seed picks one of six neighbourhoods and where in it you sit; Growth bends it. A Cyber Goth look in Optical starts it in neon green, cyan and violet on black. For more glow, add a little Blur and Trails under Look."],
   ["0.9.30", "Fractal is rebuilt to look grown rather than computed. Each Seed picks a different set, and the shape keeps slowly budding and changing. Growth bends it with smooth noise so lobes swell unevenly and branches sprout off-pattern. Outside the set it is drawn as layered shelves, each its own colour with a bright lip in the colour across the palette and fine fibres fanning over it, like bracket fungus; detail too fine to draw falls into dark lace instead of noise. Zoom sets the scale."],
   ["0.9.29", "A tidier sidebar. Waves, Edges, Relief and Hatch are gone; the generative patterns (Blobs, Plasma, Fractal, Scope) sit on their own row above the ones that draw from the picture, and Thermal is now Ink Smear. Mirror and Grid move out of Distort into a new Geometry section, joined by Kaleido (Segments and Spin). Every mode picker is a plain table with hairlines between the cells instead of pills. Lines get a Thickness slider and lose the soft halo round each line. The palette dropdown is gone: the stock colour sets live in Saved sets, where any set can be renamed, given the current colours, or deleted (Restore stock brings deleted stock sets back). Shapes shows every shape in a grid: click one to swap in an SVG, \u00d7 removes it. Preset groups can be renamed, added (+ Group) and deleted; a deleted group\u2019s looks move to Mine. Looks saved with a removed pattern or the old Mirror and Grid load as the nearest equivalent."],
@@ -980,6 +983,7 @@ const SOURCES = { bass: "Bass", mid: "Mids", high: "Highs", beat: "Beat", presen
 const TARGETS = {
   size: "Size", motion: "Motion", colour: "Colour", grain: "Grain", flash: "Flash",
   distort: "Distort", warp: "Warp", trails: "Trails", push: "Push", spin: "Spin", echo: "Echo",
+  zoom: "Zoom", fringe: "Fringe",
 };
 const DEFAULT_ROUTES = [
   ["bass", "size", 0.9], ["mid", "motion", 0.7], ["high", "grain", 0.5],
@@ -1556,7 +1560,7 @@ function syncControls() {
   label("geoN", state.geo === 4 ? "Segments" : "Copies");
   label("scale", SCALE_LABELS[s] || "Scale");
   label("warp", WARP_LABELS[s] || "Warp");
-  label("screenSize", state.screen === 4 || state.screen === 5 ? "Spacing" : "Size");
+  label("screenSize", state.screen === 4 || state.screen === 5 ? "Spacing" : state.screen === 6 ? "Spread" : "Size");
   $("microRow").hidden = s !== 13;
   $("fracRow").hidden = s !== 3;
   $("shapeRow").hidden = s !== 15;
@@ -1646,7 +1650,8 @@ uniform int u_geo;                 // geometry: 0 none, 1 mirror, 2 quad mirror,
 uniform float u_geoN, u_geoSpin;   // copies or segments; kaleidoscope turn speed
 uniform float u_lineW;             // Lines: line thickness in pixels
 uniform float u_fseed;             // Fractal: which set, and how it grows
-uniform int u_fkind;               // Fractal: 0 fungus shelves, 1 neon filaments
+uniform int u_fkind;
+uniform float u_zoom;              // reactivity: how far the frame is pushed in               // Fractal: 0 fungus shelves, 1 neon filaments
 uniform float u_distort, u_screenAmt, u_texAmt;
 uniform float u_distSize, u_screenSize, u_texSize;   // pitch or reach of each layer, 1 = as designed
 uniform int u_glass;                                  // glass type: 0 flute, then the block faces
@@ -2013,7 +2018,8 @@ vec3 pal(float t) {
 void main() {
   vec2 uv0 = gl_FragCoord.xy / u_res;          // untouched, for the feedback tap
   float T = u_time;
-  vec2 uv = distort(geometry(uv0, T), T);
+  vec2 uvz = (uv0 - 0.5) / (1.0 + u_zoom) + 0.5;      // the Zoom route: the whole picture pushes in and out
+  vec2 uv = distort(geometry(uvz, T), T);
   vec2 p = (uv - 0.5) * vec2(u_res.x / u_res.y, 1.0);
   float v = 0.0;
   float ink = 1.0;           // 0 shows "paper", the first palette colour
@@ -2077,19 +2083,6 @@ void main() {
     float aa = n * 1.5 / u_res.y;                      // ~1.5px edge
     ink = 1.0 - smoothstep(rad - aa, rad + aa, length(q - cc));
     v = (1.0 - l) * u_palEnd;
-  } else if (u_style == 8) {
-    // prism: the field mapped up the palette, with two copies offset along one
-    // axis. Where a copy disagrees with the base it prints in a colour a third
-    // of the way round the palette, so edges fringe like misregistered plates
-    // while flat areas stay clean. Scale sets the offset, Warp its direction,
-    // bass pushes it further.
-    float ang = u_warp * 3.14159;
-    vec2 o = vec2(cos(ang), sin(ang)) * 0.014 * u_scale * (1.0 + u_bass * 2.0);
-    o.x *= u_res.y / u_res.x;
-    float l1 = fld(uv - o, T), l2 = fld(uv, T), l3 = fld(uv + o, T);
-    colv = pal(l2 * u_palEnd);
-    colv = mix(colv, pal(fract(l1 * u_palEnd + 0.333)), clamp(abs(l1 - l2) * 3.0, 0.0, 1.0));
-    colv = mix(colv, pal(fract(l3 * u_palEnd + 0.667)), clamp(abs(l3 - l2) * 3.0, 0.0, 1.0));
   } else if (u_style == 11) {
     // lines: a stack of horizontal traces, each lifted into a ridge by the
     // brightness of the picture along its own row and jittering where it
@@ -2387,7 +2380,17 @@ vec4 transition(vec4 A, vec4 B, float k, vec2 uv) {
 uniform sampler2D u_ring, u_rpal;
 uniform float u_echo, u_ringHead, u_ringStep, u_etime;
 uniform float u_eSpread, u_eDecay, u_eAngle;   // step per copy, fade per copy, direction (radians)
-vec4 tap(vec2 uv) { return transition(texture2D(u_tex2, uv), texture2D(u_tex, uv), u_mix, uv); }
+vec4 tap0(vec2 uv) { return transition(texture2D(u_tex2, uv), texture2D(u_tex, uv), u_mix, uv); }
+// Fringe (Screen): the finished frame with its red and blue pulled apart,
+// further toward the edges like a cheap lens, plus a little sideways so the
+// centre fringes too. Works on any pattern because it runs on the frame.
+uniform float u_fringe, u_fsize;
+vec4 tap(vec2 uv) {
+  if (u_fringe <= 0.0) return tap0(uv);
+  vec2 o = ((uv - 0.5) * 0.028 + vec2(0.0025, 0.0)) * u_fringe * u_fsize;
+  vec4 g = tap0(uv);
+  return vec4(tap0(uv + o).r, g.g, tap0(uv - o).b, g.a);
+}
 vec3 ghost(vec2 uv, float i) {
   float s = mod(u_ringHead - 1.0 - i * u_ringStep + 64.0, 16.0);
   vec2 cell = vec2(mod(s, 4.0), floor(s / 4.0));
@@ -2564,13 +2567,17 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-let shapeN = 1, customShapes = [], hiddenShapes = [];
+let shapeN = 1, customShapes = [], hiddenShapes = [], shapeOrder = [];
+try { const o = JSON.parse(localStorage.getItem("vibe.shapeOrder") || "[]"); shapeOrder = Array.isArray(o) ? o.filter(x => typeof x === "string") : []; } catch (e) { /* no storage */ }
+// a stable id per shape, so the order survives removals: built-ins by index, yours by content
+const shapeId = src => src.kind === "b" ? "b" + src.i : "c" + [...src.svg].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) | 0, 7).toString(36);
 try { const c = JSON.parse(localStorage.getItem("vibe.shapes") || "[]"); customShapes = Array.isArray(c) ? c.filter(s => typeof s === "string") : []; } catch (e) { /* no storage */ }
 try { const h = JSON.parse(localStorage.getItem("vibe.shapesHidden") || "[]"); hiddenShapes = Array.isArray(h) ? h.filter(n => Number.isInteger(n)) : []; } catch (e) { /* no storage */ }
 function saveShapes() {
   try {
     localStorage.setItem("vibe.shapes", JSON.stringify(customShapes));
     localStorage.setItem("vibe.shapesHidden", JSON.stringify(hiddenShapes));
+    localStorage.setItem("vibe.shapeOrder", JSON.stringify(shapeOrder));
   } catch (e) { /* no storage */ }
 }
 const svgData = svg => "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
@@ -2611,7 +2618,18 @@ async function buildShapeAtlas() {
     for (let q = 3; q < d.length; q += 4) cov += d[q];
     cells.push({ c, cov, src: src[k] });
   });
-  cells.sort((a, b) => a.cov - b.cov);
+  // the set runs lightest to heaviest by default; once you have dragged it,
+  // your order holds and any new shape slots in where its ink coverage fits
+  cells.forEach(cell => { cell.id = shapeId(cell.src); });
+  const byCov = [...cells].sort((a, b) => a.cov - b.cov);
+  let order = shapeOrder.filter(id => cells.some(c => c.id === id));
+  byCov.forEach(cell => {
+    if (order.includes(cell.id)) return;
+    const at = order.findIndex(id => cells.find(c => c.id === id).cov > cell.cov);
+    if (at < 0) order.push(cell.id); else order.splice(at, 0, cell.id);
+  });
+  shapeOrder = order;
+  cells.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
   shapeN = cells.length;
   const atlas = document.createElement("canvas");
   atlas.width = shapeN * SHAPE_PX; atlas.height = SHAPE_PX;
@@ -2634,7 +2652,7 @@ function renderShapeGrid(cells) {
   cells.forEach(cell => {
     const t = document.createElement("div");
     t.className = "shape"; t.tabIndex = 0; t.setAttribute("role", "button");
-    t.title = (cell.src.kind === "c" ? "Your SVG" : "Built-in") + " \u2014 click to replace with an SVG";
+    t.title = (cell.src.kind === "c" ? "Your SVG" : "Built-in") + " \u2014 drag to reorder, click to replace with an SVG";
     const cv = document.createElement("canvas"); cv.width = SHAPE_PX; cv.height = SHAPE_PX;
     cv.getContext("2d").drawImage(cell.c, 0, 0);
     if (cell.cov === 0) t.classList.add("blank");
@@ -2642,8 +2660,12 @@ function renderShapeGrid(cells) {
     del.type = "button"; del.className = "shapedel"; del.textContent = "\u00d7"; del.setAttribute("aria-label", "Remove this shape");
     del.addEventListener("click", e => { e.stopPropagation(); removeShape(cell.src); });
     const pick = () => { replacing = cell.src; $("shapeReplace").click(); };
-    t.addEventListener("click", pick);
-    t.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+    t.dataset.id = cell.id;
+    shapeDrag(t, pick);
+    t.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); }
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") { e.preventDefault(); moveShape(cell.id, e.key === "ArrowLeft" ? -1 : 1); }
+    });
     t.append(cv, del);
     host.append(t);
   });
@@ -2652,6 +2674,42 @@ function renderShapeGrid(cells) {
   add.title = "Add your own SVG files; they sort into the set by ink coverage";
   add.addEventListener("click", () => $("shapeFiles").click());
   host.append(add);
+}
+// drag a tile along the grid to move it; a press without movement is a click
+function shapeDrag(t, onClick) {
+  t.addEventListener("pointerdown", e => {
+    if (e.target.closest(".shapedel") || e.button > 0) return;
+    const x0 = e.clientX, y0 = e.clientY;
+    let dragging = false, over = null;
+    const move = ev => {
+      if (!dragging && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+      if (!dragging) { dragging = true; t.classList.add("dragging"); }
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      const tile = el && el.closest(".shape[data-id]");
+      if (over && over !== tile) over.classList.remove("over");
+      over = tile && tile !== t ? tile : null;
+      if (over) over.classList.add("over");
+    };
+    const up = () => {
+      removeEventListener("pointermove", move); removeEventListener("pointerup", up); removeEventListener("pointercancel", up);
+      t.classList.remove("dragging");
+      if (over) over.classList.remove("over");
+      if (!dragging) { onClick(); return; }
+      if (over) {
+        const from = shapeOrder.indexOf(t.dataset.id), to = shapeOrder.indexOf(over.dataset.id);
+        shapeOrder.splice(from, 1); shapeOrder.splice(to, 0, t.dataset.id);
+        saveShapes(); buildShapeAtlas();
+      }
+    };
+    addEventListener("pointermove", move); addEventListener("pointerup", up); addEventListener("pointercancel", up);
+  });
+}
+function moveShape(id, dir) {
+  const i = shapeOrder.indexOf(id), j = i + dir;
+  if (i < 0 || j < 0 || j >= shapeOrder.length) return;
+  [shapeOrder[i], shapeOrder[j]] = [shapeOrder[j], shapeOrder[i]];
+  saveShapes();
+  buildShapeAtlas().then(() => { const el = document.querySelector('.shape[data-id="' + id + '"]'); if (el) el.focus(); });
 }
 function removeShape(src) {
   if (shapeN <= 1) return;                            // the pattern needs at least one
@@ -2665,6 +2723,8 @@ $("shapeReplace").addEventListener("change", async e => {
   if (!f || !replacing) return;
   const svg = f.size <= 40000 ? normaliseSvg(await f.text()) : null;
   if (!svg) { $("shapeCount").textContent = "That file isn\u2019t a usable SVG (an <svg> under 40 KB)."; return; }
+  const at = shapeOrder.indexOf(shapeId(replacing));           // the new shape takes the old one's place in the order
+  if (at >= 0) shapeOrder[at] = shapeId({ kind: "c", svg });
   if (replacing.kind === "c") customShapes[replacing.i] = svg;
   else { hiddenShapes.push(replacing.i); customShapes.push(svg); }
   replacing = null;
@@ -2686,8 +2746,8 @@ $("shapeFiles").addEventListener("change", async e => {
   if (!added) { $("shapeCount").textContent = "No usable SVGs (each must be an <svg> under 40 KB)."; }
 });
 $("resetShapes").addEventListener("click", () => {
-  if (customShapes.length && !confirm("Back to the built-in shapes? Your own SVGs are removed.")) return;
-  customShapes = []; hiddenShapes = [];
+  if ((customShapes.length || shapeOrder.length) && !confirm("Back to the built-in shapes in their default order? Your own SVGs are removed.")) return;
+  customShapes = []; hiddenShapes = []; shapeOrder = [];
   saveShapes(); buildShapeAtlas();
 });
 $("microText").addEventListener("input", buildGlyphAtlas);
@@ -2750,6 +2810,7 @@ function captureRing(srcTex, j) {
   gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), 0);
   gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), 0);
   gl.uniform1f(gl.getUniformLocation(copy, "u_slit"), 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_fringe"), 0);
   clearRingUnits();
   gl.uniform1i(gl.getUniformLocation(copy, "u_fadeKind"), 0);
   gl.uniform2f(gl.getUniformLocation(copy, "u_off"), ox, oy);
@@ -3711,6 +3772,7 @@ function setLook(L, m, w, h, pEnd, time = T) {
   gl.uniform1f(U("u_time"), time);
   gl.uniform1i(U("u_style"), L.style);
   gl.uniform1i(U("u_geo"), L.geo);
+  gl.uniform1f(U("u_zoom"), Math.max(-0.4, Math.min(2, m("zoom") * 0.6)));
   gl.uniform1f(U("u_fseed"), L.fracSeed);
   gl.uniform1i(U("u_fkind"), L.fracKind);
   gl.uniform1f(U("u_geoN"), L.geoN);
@@ -3948,9 +4010,10 @@ function syncSliders() {
 // Looks saved before 0.9.29 may name a pattern that is gone (Waves, Edges,
 // Relief, Hatch) or Mirror and Grid as Distort kinds; map them onto what
 // replaced them so an old look still loads as something close.
-const GONE_STYLES = { 2: 1, 9: 5, 10: 5, 12: 7 };
+const GONE_STYLES = { 2: 1, 8: 5, 9: 5, 10: 5, 12: 7 };
 function migrateLook(L) {
   const o = Object.assign({}, L);
+  if (o.style === 8 && !o.screen) { o.screen = 6; o.screenAmt = 0.6; }   // Prism's colour split lives on as Fringe
   if (o.style in GONE_STYLES) o.style = GONE_STYLES[o.style];
   if (o.dist === 4) { o.geo = (o.distort || 0) > 0.5 ? 2 : 1; o.dist = 0; }
   else if (o.dist === 5) { o.geo = 3; o.geoN = 1 + Math.floor((o.distort || 0) * 3.99); o.dist = 0; }
@@ -4469,6 +4532,7 @@ function startFade(dur) {
   gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), 0);   // the history seed copies straight
   gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), 0);
   gl.uniform1f(gl.getUniformLocation(copy, "u_slit"), 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_fringe"), 0);
   clearRingUnits();
   gl.uniform1i(gl.getUniformLocation(copy, "u_fadeKind"), 0);
   gl.uniform2f(gl.getUniformLocation(copy, "u_off"), 0, 0);
@@ -4684,6 +4748,8 @@ function frame(now) {
   gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), state.blur * state.blur * 24.0 * (canvas.height / 1080));
   gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), echoOn ? echoAmt : 0);
   gl.uniform1f(gl.getUniformLocation(copy, "u_slit"), slitOn ? state.screenAmt : 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_fringe"), state.screen === 6 ? Math.min(2, state.screenAmt + m("fringe")) : Math.min(2, m("fringe")));
+  gl.uniform1f(gl.getUniformLocation(copy, "u_fsize"), state.screen === 6 ? state.screenSize : 1);
   gl.uniform1f(gl.getUniformLocation(copy, "u_sAngle"), state.slitAngle * Math.PI / 180);
   gl.uniform1f(gl.getUniformLocation(copy, "u_ringN"), ringN);
   gl.uniform1f(gl.getUniformLocation(copy, "u_eSpread"), state.echoSpread * (1 + m("echo") * 0.6));
