@@ -43,6 +43,12 @@ visibility, folding and resizable panel sections, reactivity routes from any
 band to any control, and the preset library with live thumbnails and a set
 list on keys 1–8 (0.7.0, see `docs/preset-library.md`).
 
+0.9.29 pruned the pattern list to what meets the visual bar: Waves, Edges,
+Relief and Hatch were retired (family 7 now lives on only in Lines, and the
+Sobel helper went with them), Thermal was renamed Ink Smear, and Mirror and
+Grid left Distort for a Geometry layer that runs before it, alongside a new
+Kaleidoscope. Family 1 is now split across those two layers.
+
 Since 0.5.4 the layers have grown: Distort gained Bleed and Glass (Frosted,
 Flute and five glass-block faces, with Seam controls); Screen gained Echo (a
 16-frame ring of past captures) and Slit-scan (0.9.26, the first "needs more

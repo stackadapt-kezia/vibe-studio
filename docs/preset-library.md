@@ -278,3 +278,19 @@ operator reloads first.
 to rename the look or move it to another group. Saved looks change in place;
 shipped looks keep the new name as part of their override, so Export library
 and Publish carry it.
+
+**Editable groups (0.9.29).** The group list is no longer fixed. The library
+file may carry `"groups": [ { "id": "print", "name": "Print" }, ... ]` in
+display order; without it the app uses its built-in six. In the presets
+panel a group's name can be renamed (pencil), a group deleted (×, its looks
+move to Mine) and a new one added (+ Group). Those edits live in this
+browser (`vibe.groups`) until Export library or Publish writes them into the
+file. `mine` always exists and cannot be deleted. A look whose group id is
+not in the list shows in Mine.
+
+**Retired patterns (0.9.29).** Waves (2), Edges (9), Relief (10) and Hatch
+(12) are gone, and Mirror and Grid moved from Distort (`dist` 4 and 5) to the
+Geometry layer (`geo`). Pattern indices were not renumbered. A look that
+still names a retired index loads through `migrateLook()`: Waves becomes
+Plasma, Edges and Relief become Heatmap, Hatch becomes Halftone, and the old
+Mirror and Grid become the matching `geo` setting.

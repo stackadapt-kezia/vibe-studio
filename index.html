@@ -146,14 +146,49 @@
     padding: 9px 10px; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer;
   }
   .seg button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-  #styleSeg { grid-template-columns: repeat(4, 1fr); }
-  #styleSeg button { padding: 8px 2px; font-size: 11.5px; }
+  /* mode selectors as a table: hairlines only between cells, none on the
+     outside edges. Each cell carries a right and a bottom rule; the last
+     column and the last row drop theirs (marked by gridTable()). */
+  .gridseg { display: grid; grid-template-columns: repeat(var(--cols, 3), 1fr); }
+  .gridseg > button, .gridseg > .segpad {
+    background: none; border: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    border-radius: 0; color: var(--muted); font: inherit; font-size: 12.5px; padding: 10px 4px; cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .15s, background-color .15s;
+  }
+  .gridseg > .segpad { cursor: default; }
+  .gridseg > .lastcol { border-right: 0; }
+  .gridseg > .lastrow { border-bottom: 0; }
+  .gridseg > button:not(.active):hover { color: var(--text); background: rgba(255, 255, 255, .03); }
+  .gridseg > button.active { color: var(--text); background: rgba(61, 132, 255, .14); box-shadow: inset 0 -2px 0 var(--accent); }
+  .gridseg > button:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+  .seglabel {
+    font: 500 10px/1 "Space Grotesk", sans-serif; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--muted); margin: 4px 0 6px;
+  }
+  .gridseg + .seglabel { margin-top: 14px; }
   .mini {
     background: var(--panel-2); border: 1px solid var(--line); color: var(--text); border-radius: 999px;
     padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
   }
   .mini:hover { background: #1b1b21; }
   #microRow select { flex: 0 0 118px; width: 118px; }
+  .shapegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 6px; }
+  .shape {
+    position: relative; aspect-ratio: 1; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2);
+    display: grid; place-items: center; cursor: pointer; padding: 0; color: var(--muted); font: inherit; font-size: 18px;
+  }
+  .shape canvas { width: 70%; height: 70%; }
+  .shape.blank::after { content: "blank"; position: absolute; font-size: 9px; color: var(--muted); }
+  .shape:hover { border-color: var(--muted); }
+  .shape:focus-visible { outline: 1px solid var(--accent); }
+  .shapeadd { border-style: dashed; background: none; }
+  .shapedel {
+    position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; padding: 0; border-radius: 999px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--muted); font-size: 11px; line-height: 1;
+    cursor: pointer; opacity: 0; display: grid; place-items: center;
+  }
+  .shape:hover .shapedel, .shape:focus-within .shapedel { opacity: 1; }
+  .shapedel:hover { color: var(--text); border-color: var(--muted); }
   .stage.drop::after {
     content: "Drop to load"; position: absolute; inset: 12px; border: 2px dashed var(--accent);
     border-radius: 12px; display: grid; place-items: center; color: var(--text);
@@ -184,7 +219,14 @@
     color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 4px; opacity: 0;
   }
   .swlib.tiles .swset .swdel { top: auto; bottom: 3px; transform: none; }
-  .swset:hover .swdel { opacity: 1; }
+  .swset:hover .swdel, .swset:hover .swedit { opacity: 1; }
+  .swset .swedit {
+    position: absolute; right: 22px; top: 50%; transform: translateY(-50%); border: 0; background: none;
+    color: var(--muted); cursor: pointer; font-size: 12px; line-height: 1; padding: 2px 4px; opacity: 0;
+  }
+  .swlib.tiles .swset .swedit { top: auto; bottom: 4px; transform: none; }
+  .swset .swedit:hover, .swset .swdel:hover { color: var(--text); }
+  .swset .swname { padding-right: 42px; }
   .swset .swdel:hover { color: var(--text); }
   .pill.on { background: var(--accent); border-color: var(--accent); color: #fff; }
   select, input[type=text] {
@@ -330,6 +372,14 @@
   .ptile.padd:hover { color: var(--text); border-color: var(--muted); }
   .ptile.over { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .ovgroup.over .pgroup { color: var(--accent); }
+  .pgroup { display: flex; align-items: center; gap: 4px; min-height: 14px; }
+  .pgroup .gbtn {
+    border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0 2px; font-size: 11px; line-height: 1;
+    opacity: 0; transition: opacity .15s;
+  }
+  .ovgroup:hover .gbtn, .pgroup .gbtn:focus-visible { opacity: 1; }
+  .pgroup .gbtn:hover { color: var(--text); }
+  .ptile.gadd { width: 104px; font-size: 12px; font-family: inherit; }
   .ptile canvas { display: block; width: 100%; aspect-ratio: 2 / 1; }
   .ptile:hover { border-color: var(--muted); }
   .ptile:focus-visible { outline: 1px solid var(--accent); }
@@ -593,17 +643,7 @@
     <div class="scrolls">
     <fieldset>
       <legend>Palette</legend>
-      <select id="preset" aria-label="Palette preset">
-        <option value="custom">Custom</option>
-        <optgroup label="StackAdapt core">
-          <option value="sa-light" selected>StackAdapt Light</option>
-          <option value="sa-dark">StackAdapt Dark</option>
-        </optgroup>
-        <optgroup label="Event kits — not core brand">
-          <option value="cv27-miami">Conversion 2027: Miami</option>
-        </optgroup>
-      </select>
-      <div id="swatches" style="margin-top:10px"></div>
+      <div id="swatches"></div>
       <div class="pillrow">
         <button class="pill" id="addColor">Add color</button>
         <button class="pill" id="mixColors" title="Shuffle the order of the colours">Mix order</button>
@@ -611,6 +651,7 @@
       </div>
       <div class="libline" style="margin-top:12px">
         <button class="libtoggle" id="swlibCount" aria-expanded="true" aria-controls="swlib">No saved sets</button>
+        <button class="mini" id="swRestore" type="button" title="Bring back the stock colour sets you deleted" hidden>Restore stock</button>
         <div class="seg mini-seg" id="swViewSeg">
           <button data-swview="tiles" title="Tiles">▦</button>
           <button data-swview="list" title="List">☰</button>
@@ -621,24 +662,26 @@
 
     <fieldset>
       <legend>Pattern</legend>
-      <div class="seg" id="styleSeg">
-        <button data-style="0">Blobs</button>
-        <button data-style="1">Plasma</button>
-        <button data-style="2">Waves</button>
-        <button data-style="3">Fractal</button>
-        <button data-style="4">Scope</button>
-        <button data-style="5">Heatmap</button>
-        <button data-style="6">Mosaic</button>
-        <button data-style="7">Halftone</button>
-        <button data-style="8">Prism</button>
-        <button data-style="9">Edges</button>
-        <button data-style="10">Relief</button>
-        <button data-style="11">Lines</button>
-        <button data-style="12">Hatch</button>
-        <button data-style="13">Text</button>
-        <button data-style="14">Thermal</button>
-        <button data-style="15">Shapes</button>
-        <button data-style="16">Stipple</button>
+      <div id="styleSeg">
+        <p class="seglabel">Generative</p>
+        <div class="gridseg" data-cols="4">
+          <button data-style="0">Blobs</button>
+          <button data-style="1">Plasma</button>
+          <button data-style="3">Fractal</button>
+          <button data-style="4">Scope</button>
+        </div>
+        <p class="seglabel">From the picture</p>
+        <div class="gridseg" data-cols="3">
+          <button data-style="5">Heatmap</button>
+          <button data-style="6">Mosaic</button>
+          <button data-style="7">Halftone</button>
+          <button data-style="8">Prism</button>
+          <button data-style="11">Lines</button>
+          <button data-style="13">Text</button>
+          <button data-style="14">Ink Smear</button>
+          <button data-style="15">Shapes</button>
+          <button data-style="16">Stipple</button>
+        </div>
       </div>
     </fieldset>
 
@@ -654,25 +697,39 @@
           <option value="Georgia, 'Times New Roman', serif">Serif</option>
         </select>
       </div>
-      <div class="row" id="shapeRow" hidden>
-        <label>Shapes</label>
-        <button class="mini" id="addShapes" type="button" title="Add your own SVG files as shapes; they sort into the set by ink coverage">+ Add SVG</button>
-        <button class="mini" id="resetShapes" type="button" title="Back to the built-in shapes">Reset</button>
-        <span class="note" id="shapeCount" style="margin:0"></span>
+      <div id="shapeRow" hidden>
+        <div class="row">
+          <label>Shapes</label>
+          <span class="note" id="shapeCount" style="margin:0; flex:1"></span>
+          <button class="mini" id="resetShapes" type="button" title="Back to the built-in shapes, with your own removed">Reset</button>
+        </div>
+        <div class="shapegrid" id="shapeGrid" aria-label="Shapes, lightest to heaviest"></div>
+        <p class="note" style="margin-top:6px">Lightest to heaviest: light areas of the picture get the first, dark areas the last. Click a shape to replace it with an SVG; × removes it.</p>
         <input type="file" id="shapeFiles" accept=".svg,image/svg+xml" multiple hidden>
+        <input type="file" id="shapeReplace" accept=".svg,image/svg+xml" hidden>
       </div>
       <div id="lookRows"></div>
     </fieldset>
 
     <fieldset>
+      <legend>Geometry</legend>
+      <div class="gridseg" id="geoSeg" data-cols="5">
+        <button data-geo="0">None</button>
+        <button data-geo="1">Mirror</button>
+        <button data-geo="2">Quad</button>
+        <button data-geo="3">Grid</button>
+        <button data-geo="4">Kaleido</button>
+      </div>
+      <div id="geoRows" style="margin-top:10px"></div>
+    </fieldset>
+
+    <fieldset>
       <legend>Distort</legend>
-      <div class="seg" id="distSeg">
+      <div class="gridseg" id="distSeg" data-cols="3">
         <button data-dist="0">None</button>
         <button data-dist="1">Fisheye</button>
         <button data-dist="2">Scanlines</button>
         <button data-dist="3">Band shift</button>
-        <button data-dist="4">Mirror</button>
-        <button data-dist="5">Grid</button>
         <button data-dist="6">Bleed</button>
         <button data-dist="7">Glass</button>
       </div>
@@ -697,7 +754,7 @@
 
     <fieldset>
       <legend>Screen</legend>
-      <div class="seg" id="screenSeg">
+      <div class="gridseg" id="screenSeg" data-cols="3">
         <button data-screen="0">None</button>
         <button data-screen="1">CRT</button>
         <button data-screen="2">LCD</button>
@@ -710,7 +767,7 @@
 
     <fieldset>
       <legend>Texture</legend>
-      <div class="seg" id="texSeg">
+      <div class="gridseg" id="texSeg" data-cols="3">
         <button data-tex="0">None</button>
         <button data-tex="1">Scratches</button>
         <button data-tex="2">Print dots</button>
@@ -786,12 +843,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.28";  // Stipple pattern and a Stippled preset
+const APP_VERSION = "0.9.29";  // Pattern list trimmed and regrouped; Geometry section with Kaleido; grid-table selectors; editable colour sets, shapes and preset groups; Lines thickness
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.29", "A tidier sidebar. Waves, Edges, Relief and Hatch are gone; the generative patterns (Blobs, Plasma, Fractal, Scope) sit on their own row above the ones that draw from the picture, and Thermal is now Ink Smear. Mirror and Grid move out of Distort into a new Geometry section, joined by Kaleido (Segments and Spin). Every mode picker is a plain table with hairlines between the cells instead of pills. Lines get a Thickness slider and lose the soft halo round each line. The palette dropdown is gone: the stock colour sets live in Saved sets, where any set can be renamed, given the current colours, or deleted (Restore stock brings deleted stock sets back). Shapes shows every shape in a grid: click one to swap in an SVG, \u00d7 removes it. Preset groups can be renamed, added (+ Group) and deleted; a deleted group\u2019s looks move to Mine. Looks saved with a removed pattern or the old Mirror and Grid load as the nearest equivalent."],
   ["0.9.28", "Stipple pattern: the picture drawn in fine, hand-scattered dots that crowd the highlights and thin out to nothing in the shadows. The dots hold still and only appear or vanish as the picture moves, so video and the camera stay calm. Dot pitch sets how fine, Dot size how heavy. A Stippled look in Print starts it grey on charcoal; best with a camera, a video or a photo."],
   ["0.9.27", "Two fixes from a long unattended test run. Crossfades now carry the outgoing look\u2019s trails into the fade; before, the first step of every fade was refused by the graphics card and the old look faded from a blank history. Resizing the window, including going in and out of fullscreen, no longer leaks two screen-sized buffers each time."],
   ["0.9.26", "Slit-scan under Screen: each band of the picture shows a different moment, so movement bends and smears across the frame while anything still stays put. Direction turns which way time runs; Spacing sets how far back it reaches. The screen now stays awake while the page is showing (Output says whether the browser allowed it). Palette colours blend in linear light, so the mix between two strong colours stays bright instead of turning muddy; existing looks shift slightly brighter in their midtones."],
@@ -887,6 +945,7 @@ const state = {
   glass: 0, glassAngle: 0, glassSeam: 0.4, glassSeamW: 1,
   echoSpread: 1, echoDecay: 0.93, echoAngle: 0, echoDrift: 0.5,
   slitAngle: 90,
+  geo: 0, geoN: 6, geoSpin: 0.1, lineW: 1.5,
   routes: [],                                   // filled from DEFAULT_ROUTES or storage below
   gain: 1.6, smooth: 0.7,
 };
@@ -904,6 +963,7 @@ const LOOK = [
   ["grain", "Grain", 0, 1, 0.01, v => v.toFixed(2)],
   ["blur", "Blur", 0, 1, 0.01, v => v.toFixed(2)],
   ["bands", "Bands", 0, 8, 1, v => (v < 2 ? "Off" : String(v))],
+  ["lineW", "Thickness", 0.5, 8, 0.1, v => v.toFixed(1) + " px"],
 ];
 // Reactivity routing: each route sends one audio band to one control.
 const SOURCES = { bass: "Bass", mid: "Mids", high: "Highs", beat: "Beat", presence: "Face: presence", near: "Face: near", crowd: "Face: crowd", spread: "Face: spread" };
@@ -916,6 +976,10 @@ const DEFAULT_ROUTES = [
   ["beat", "flash", 0.6], ["beat", "distort", 0.3],
 ];
 const ROUTE_MAX = 8;
+const GEO_ROWS = [
+  ["geoN", "Copies", 2, 12, 1, v => String(v)],
+  ["geoSpin", "Spin", -1, 1, 0.01, v => v.toFixed(2)],
+];
 const DIST_ROWS = [
   ["distort", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
   ["distSize", "Size", 0.25, 4, 0.05, v => v.toFixed(2)],
@@ -1038,6 +1102,7 @@ $("addRoute").addEventListener("click", () => {
 });
 loadRoutes(); renderRoutes();
 buildFaders($("audioRows"), AUDIO_ROWS);
+buildRows($("geoRows"), GEO_ROWS);
 buildRows($("distRows"), DIST_ROWS);
 buildRows($("screenRows"), SCREEN_ROWS);
 buildRows($("texRows"), TEX_ROWS);
@@ -1191,7 +1256,7 @@ function dragStop(e, i) {
     h.classList.toggle("to-front", toFront);
     h.style.top = (fc * 100) + "%";
     buildPalette();
-    $("preset").value = "custom";
+    syncActiveSwatch();
   };
   const up = () => {
     stops().forEach(el => el.classList.remove("drag", "to-front"));
@@ -1252,7 +1317,7 @@ function renderSwatches() {
     del.disabled = state.colors.length <= 2;
     pick.addEventListener("input", () => {
       state.colors[i] = pick.value; txt.value = pick.value.toUpperCase();
-      buildPalette(); $("preset").value = "custom";
+      buildPalette(); syncActiveSwatch();
     });
     txt.addEventListener("change", () => {
       let v = txt.value.trim();
@@ -1260,13 +1325,13 @@ function renderSwatches() {
       if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v)) {
         state.colors[i] = v; pick.value = v.length === 4
           ? "#" + [...v.slice(1)].map(c => c + c).join("") : v;
-        buildPalette(); $("preset").value = "custom";
+        buildPalette(); syncActiveSwatch();
       } else txt.value = state.colors[i].toUpperCase();
     });
     del.addEventListener("click", () => {
       state.colors.splice(i, 1);
       state.weights.splice(i, 1);
-      buildPalette(); renderSwatches(); $("preset").value = "custom";
+      buildPalette(); renderSwatches(); syncActiveSwatch();
     });
     row.append(pick, txt, del);
     rows.append(row);
@@ -1291,13 +1356,13 @@ function addColorAt(f) {
   state.colors.splice(i + 1, 0, hex);
   state.weights[i] = (f - starts[i]) * sum;
   state.weights.splice(i + 1, 0, (starts[i + 1] - f) * sum);
-  buildPalette(); renderSwatches(); $("preset").value = "custom";
+  buildPalette(); renderSwatches(); syncActiveSwatch();
 }
 $("addColor").addEventListener("click", () => {
   if (state.colors.length >= 8) return;
   state.colors.push("#7FDFFD");
   state.weights.push(100);
-  buildPalette(); renderSwatches(); $("preset").value = "custom";
+  buildPalette(); renderSwatches(); syncActiveSwatch();
 });
 $("mixColors").addEventListener("click", () => {
   const n = state.colors.length;
@@ -1310,23 +1375,43 @@ $("mixColors").addEventListener("click", () => {
       [state.weights[i], state.weights[j]] = [state.weights[j], state.weights[i]];
     }
   }
-  buildPalette(); renderSwatches(); $("preset").value = "custom";
-});
-$("preset").addEventListener("change", e => {
-  const p = PRESETS[e.target.value];
-  if (!p) return;
-  state.colors = [...p];
-  state.weights = p.map(() => 100);
-  buildPalette(); renderSwatches();
+  buildPalette(); renderSwatches(); syncActiveSwatch();
 });
 
 /* ================= colour library ================= */
 // Saved colour sets (colours and their weights), kept in this browser, shown
 // as gradient tiles or a list under the palette. Click one to apply it.
-let swatchLib = [], swView = "tiles", activeSwatch = null;
+// The stock sets (the brand palettes and event kits) are seeded into the
+// library once, ahead of anything saved; after that they are ordinary sets,
+// so they can be renamed, re-coloured or deleted. A deleted stock set stays
+// gone until Restore stock. Presets that name a palette by key still read the
+// fixed definitions in PRESETS, so editing a set never changes a preset.
+const STOCK_SETS = [
+  { id: "sa-light", name: "StackAdapt Light" },
+  { id: "sa-dark", name: "StackAdapt Dark" },
+  { id: "cv27-miami", name: "Conversion 2027: Miami" },
+];
+let swatchLib = [], swView = "tiles", activeSwatch = null, stockSeen = [];
 try { swatchLib = (JSON.parse(localStorage.getItem("vibe.swatches") || "[]") || []).filter(s => s && Array.isArray(s.colors) && s.colors.length >= 2); } catch (e) { swatchLib = []; }
+try { stockSeen = JSON.parse(localStorage.getItem("vibe.swStock") || "[]") || []; } catch (e) { stockSeen = []; }
+function seedStock(ids) {
+  const add = STOCK_SETS.filter(st => ids.includes(st.id) && !swatchLib.some(x => x.id === st.id))
+    .map(st => ({ id: st.id, name: st.name, colors: [...PRESETS[st.id]], weights: PRESETS[st.id].map(() => 100), stock: true }));
+  swatchLib.unshift(...add);
+  stockSeen = [...new Set([...stockSeen, ...ids])];
+  try { localStorage.setItem("vibe.swStock", JSON.stringify(stockSeen)); } catch (e) { /* no storage */ }
+  saveSwatchLib();
+}
+// the set the current colours match, if any, shows as active
+function syncActiveSwatch() {
+  const key = c => c.map(x => x.toLowerCase()).join();
+  const hit = swatchLib.find(x => key(x.colors) === key(state.colors));
+  activeSwatch = hit ? hit.id : null;
+  if (typeof renderSwatchLib === "function" && $("swlib").childElementCount) renderSwatchLib();
+}
 try { swView = localStorage.getItem("vibe.swView") === "list" ? "list" : "tiles"; } catch (e) { /* no storage */ }
 function saveSwatchLib() { try { localStorage.setItem("vibe.swatches", JSON.stringify(swatchLib)); } catch (e) { /* no storage */ } }
+seedStock(STOCK_SETS.map(st => st.id).filter(id => !stockSeen.includes(id)));
 function rampCss(colors, weights) {
   const w = (weights && weights.length === colors.length ? weights : colors.map(() => 100)).map(x => Math.max(0.05, +x || 1));
   const sum = w.reduce((a, b) => a + b, 0);
@@ -1346,11 +1431,29 @@ function renderSwatchLib() {
     const name = document.createElement("span"); name.className = "swname"; name.textContent = s.name;
     const del = document.createElement("button");
     del.type = "button"; del.className = "swdel"; del.textContent = "\u00d7"; del.setAttribute("aria-label", "Delete " + s.name);
-    del.addEventListener("click", e => { e.stopPropagation(); swatchLib.splice(i, 1); if (activeSwatch === s.id) activeSwatch = null; saveSwatchLib(); renderSwatchLib(); });
-    el.append(ramp, name, del);
+    del.title = "Delete this set";
+    del.addEventListener("click", e => {
+      e.stopPropagation();
+      if (!confirm("Delete the colour set \u201c" + s.name + "\u201d?")) return;
+      swatchLib.splice(i, 1); if (activeSwatch === s.id) activeSwatch = null; saveSwatchLib(); renderSwatchLib();
+    });
+    const ed = document.createElement("button");
+    ed.type = "button"; ed.className = "swedit"; ed.textContent = "\u270e"; ed.setAttribute("aria-label", "Edit " + s.name);
+    ed.title = "Rename, or store the current colours in this set";
+    ed.addEventListener("click", e => {
+      e.stopPropagation();
+      const nm = prompt("Name this colour set", s.name);
+      if (nm === null) return;
+      if (nm.trim()) s.name = nm.trim();
+      if (confirm("Also replace its colours with the palette you have now?")) {
+        s.colors = [...state.colors]; s.weights = state.weights.map(w => Math.round(w));
+      }
+      saveSwatchLib(); syncActiveSwatch(); renderSwatchLib();
+    });
+    el.append(ramp, name, ed, del);
     const apply = () => {
       state.colors = [...s.colors]; state.weights = s.weights && s.weights.length === s.colors.length ? [...s.weights] : s.colors.map(() => 100);
-      buildPalette(); renderSwatches(); $("preset").value = "custom";
+      buildPalette(); renderSwatches();
       activeSwatch = s.id; renderSwatchLib();
     };
     el.addEventListener("click", apply);
@@ -1358,6 +1461,7 @@ function renderSwatchLib() {
     host.append(el);
   });
   $("swlibCount").textContent = swatchLib.length ? swatchLib.length + " saved set" + (swatchLib.length > 1 ? "s" : "") : "No saved sets";
+  $("swRestore").hidden = STOCK_SETS.every(st => swatchLib.some(x => x.id === st.id));
   segSwView();
 }
 $("saveSwatch").addEventListener("click", () => {
@@ -1376,10 +1480,28 @@ const segSwView = seg("swViewSeg", "swview", () => swView, v => {
   swView = v; try { localStorage.setItem("vibe.swView", v); } catch (e) { /* no storage */ }
   renderSwatchLib();
 });
+$("swRestore").addEventListener("click", () => { seedStock(STOCK_SETS.map(st => st.id)); syncActiveSwatch(); renderSwatchLib(); });
+syncActiveSwatch();
 renderSwatchLib();
 buildPalette(); renderSwatches();   // palette first: the stops are positioned from state.weights
 
 /* ================= segmented buttons ================= */
+// Lay out each mode table: fill the last row with blank cells so it reads as
+// a whole table, and mark the last column and last row so they drop their
+// outer rules.
+function gridTable(host) {
+  const cols = +host.dataset.cols || 3;
+  host.style.setProperty("--cols", cols);
+  host.querySelectorAll(".segpad").forEach(el => el.remove());
+  const n = host.children.length;
+  for (let i = n; i % cols; i++) { const pad = document.createElement("span"); pad.className = "segpad"; host.append(pad); }
+  const cells = [...host.children], rows = Math.ceil(cells.length / cols);
+  cells.forEach((el, i) => {
+    el.classList.toggle("lastcol", i % cols === cols - 1);
+    el.classList.toggle("lastrow", Math.floor(i / cols) === rows - 1);
+  });
+}
+document.querySelectorAll(".gridseg").forEach(gridTable);
 function seg(id, attr, get, set) {
   const host = $(id);
   const sync = () => host.querySelectorAll("button").forEach(b =>
@@ -1399,11 +1521,14 @@ const segStyle = seg("styleSeg", "style", () => state.style, v => { state.style 
 // Read from the shader: Blobs only counts on Blobs; Warp is unused by Blobs,
 // Fractal, Edges, Contour, ASCII and Microtext; the Distort and Screen amounts
 // (and Beat -> Distort) only matter once a kind is chosen.
-const NO_WARP = [0, 3, 9, 13];
+const NO_WARP = [0, 3, 13];
 function syncControls() {
   const s = state.style;
   const show = (key, on) => document.querySelectorAll('.row[data-key="' + key + '"]').forEach(r => { r.hidden = !on; });
   show("blobs", s === 0);
+  show("lineW", s === 11);
+  show("geoN", state.geo >= 3);
+  show("geoSpin", state.geo === 4);
   show("warp", !NO_WARP.includes(s));
   show("distort", state.dist !== 0);
   show("screenAmt", state.screen !== 0);
@@ -1417,6 +1542,7 @@ function syncControls() {
   ["glassSeam", "glassSeamW"].forEach(k => show(k, state.dist === 7 && state.glass >= 1 && state.glass <= 5));
   $("glassRow").hidden = state.dist !== 7;
   const label = (key, text) => { const l = document.querySelector('.row[data-key="' + key + '"] label'); if (l) l.textContent = text; };
+  label("geoN", state.geo === 4 ? "Segments" : "Copies");
   label("scale", SCALE_LABELS[s] || "Scale");
   label("warp", WARP_LABELS[s] || "Warp");
   label("screenSize", state.screen === 4 || state.screen === 5 ? "Spacing" : "Size");
@@ -1446,6 +1572,7 @@ function syncControls() {
     sync();
   });
 })();
+const segGeo = seg("geoSeg", "geo", () => state.geo, v => { state.geo = +v; syncControls(); touch(); });
 const segDist = seg("distSeg", "dist", () => state.dist, v => { state.dist = +v; syncControls(); touch(); });
 const segScreen = seg("screenSeg", "screen", () => state.screen, v => { state.screen = +v; syncControls(); touch(); });
 const segTex = seg("texSeg", "tex", () => state.tex, v => { state.tex = +v; syncControls(); touch(); });
@@ -1502,6 +1629,9 @@ precision highp float;
 uniform vec2 u_res;
 uniform float u_time;
 uniform int u_style, u_dist, u_screen, u_tex;
+uniform int u_geo;                 // geometry: 0 none, 1 mirror, 2 quad mirror, 3 grid, 4 kaleidoscope
+uniform float u_geoN, u_geoSpin;   // copies or segments; kaleidoscope turn speed
+uniform float u_lineW;             // Lines: line thickness in pixels
 uniform float u_distort, u_screenAmt, u_texAmt;
 uniform float u_distSize, u_screenSize, u_texSize;   // pitch or reach of each layer, 1 = as designed
 uniform int u_glass;                                  // glass type: 0 flute, then the block faces
@@ -1613,19 +1743,6 @@ float field(vec2 uv, vec2 p, float T) {
 float fld(vec2 uv, float T) {
   return field(uv, (uv - 0.5) * vec2(u_res.x / u_res.y, 1.0), T);
 }
-// Sobel gradient of the field at uv, with taps e apart (uv units); family 7
-vec2 sobel(vec2 uv, vec2 e, float T) {
-  float tl = fld(uv + vec2(-e.x,  e.y), T), tc = fld(uv + vec2(0.0,  e.y), T), tr = fld(uv + vec2(e.x,  e.y), T);
-  float ml = fld(uv + vec2(-e.x,  0.0), T),                                    mr = fld(uv + vec2(e.x,  0.0), T);
-  float bl = fld(uv + vec2(-e.x, -e.y), T), bc = fld(uv + vec2(0.0, -e.y), T), br = fld(uv + vec2(e.x, -e.y), T);
-  return vec2(tr + 2.0 * mr + br - tl - 2.0 * ml - bl, tl + 2.0 * tc + tr - bl - 2.0 * bc - br) / 8.0;
-}
-// one set of parallel hatch lines at angle a; q in aspect-correct units
-float hatch(vec2 q, float a, float freq, float aa) {
-  float s = fract(dot(q, vec2(cos(a), sin(a))) * freq);
-  return 1.0 - smoothstep(0.0, aa, min(s, 1.0 - s));
-}
-
 // family 1: move the coordinate before anything samples it. Applies to every
 // pattern, since each one reads uv or p after this.
 // A glass block's surface as a height field in block-local coordinates (-1..1):
@@ -1647,6 +1764,26 @@ float glassHeight(vec2 l, vec2 cell) {
   }
   return h;
 }
+// Geometry: fold or repeat the frame before Distort sees it. Mirror folds
+// left onto right, Quad folds both ways, Grid repeats the frame Copies times
+// across, Kaleidoscope folds it into Segments wedges round the centre, turning
+// at Spin.
+vec2 geometry(vec2 uv, float T) {
+  if (u_geo == 1 || u_geo == 2) {
+    uv.x = 0.5 - abs(uv.x - 0.5);
+    if (u_geo == 2) uv.y = 0.5 - abs(uv.y - 0.5);
+  } else if (u_geo == 3) {
+    uv = fract(uv * u_geoN);
+  } else if (u_geo == 4) {
+    float ca = u_res.x / u_res.y;
+    vec2 q = (uv - 0.5) * vec2(ca, 1.0);
+    float r = length(q), seg = 6.28318 / u_geoN;
+    float a = mod(atan(q.y, q.x) + T * u_geoSpin * 0.4, seg);
+    a = abs(a - seg * 0.5);                          // every other wedge mirrored, so the seams meet
+    uv = vec2(cos(a), sin(a)) * r / vec2(ca, 1.0) + 0.5;
+  }
+  return uv;
+}
 vec2 distort(vec2 uv, float T) {
   float a = u_distort;
   if (u_dist == 1) {
@@ -1662,14 +1799,6 @@ vec2 distort(vec2 uv, float T) {
     float row = floor(uv.y * 18.0 / u_distSize), roll = floor(T * 2.0);
     float on = step(0.55, hash(row + roll * 5.1));
     uv.x += a * 0.3 * (hash(row * 3.7 + roll * 11.3) - 0.5) * on;
-  } else if (u_dist == 4) {
-    // mirror: fold the frame left-to-right, and top-to-bottom past half
-    if (a > 0.0) uv.x = 0.5 - abs(uv.x - 0.5);
-    if (a > 0.5) uv.y = 0.5 - abs(uv.y - 0.5);
-  } else if (u_dist == 5) {
-    // grid: repeat a crop of the frame 2 to 4 times across
-    float n = 1.0 + floor(a * 3.99);
-    uv = fract(uv * n);
   } else if (u_dist == 6) {
     // bleed: heat radiates from the picture. The image field is dilated and
     // softened around anything bright (in imgLum), so shapes glow outward like
@@ -1869,7 +1998,7 @@ vec3 pal(float t) {
 void main() {
   vec2 uv0 = gl_FragCoord.xy / u_res;          // untouched, for the feedback tap
   float T = u_time;
-  vec2 uv = distort(uv0, T);
+  vec2 uv = distort(geometry(uv0, T), T);
   vec2 p = (uv - 0.5) * vec2(u_res.x / u_res.y, 1.0);
   float v = 0.0;
   float ink = 1.0;           // 0 shows "paper", the first palette colour
@@ -1890,9 +2019,6 @@ void main() {
     v = 1.0 - exp(-f * 0.75);
   } else if (u_style == 1) {
     v = plasma(p * (2.0 + u_warp * 5.0) / u_scale, T);
-  } else if (u_style == 2) {
-    float band = p.y * (3.0 / u_scale) + sin(p.x * 4.0 + T) * u_warp * 1.6 + T * 0.25;
-    v = abs(fract(band * 0.5) * 2.0 - 1.0);
   } else if (u_style == 4) {
     // oscilloscope: the live waveform texture, drawn as a glowing trace
     float wv = wave(uv.x);
@@ -1949,69 +2075,41 @@ void main() {
     colv = pal(l2 * u_palEnd);
     colv = mix(colv, pal(fract(l1 * u_palEnd + 0.333)), clamp(abs(l1 - l2) * 3.0, 0.0, 1.0));
     colv = mix(colv, pal(fract(l3 * u_palEnd + 0.667)), clamp(abs(l3 - l2) * 3.0, 0.0, 1.0));
-  } else if (u_style >= 9 && u_style <= 12) {
-    // family 7: everything below comes from one Sobel gradient of the field.
-    // Scale sets the tap spacing (wider reads softer, larger features).
-    float ca = u_res.x / u_res.y;
-    vec2 e = 2.0 * u_scale / u_res;
-    vec2 gr = sobel(uv, e, T);
-    float l = fld(uv, T);
-    float m = clamp(length(gr) * 3.0, 0.0, 1.0);
-    if (u_style == 9) {
-      // edges: ink where the gradient is strong, coloured by its strength
-      ink = smoothstep(0.03, 0.4, m);
-      v = m * u_palEnd;
-    } else if (u_style == 10) {
-      // relief: luminance as height, lit from the direction Warp sets
-      float a = u_warp * 6.2832;
-      float sh = 0.5 + dot(gr, vec2(cos(a), sin(a))) * 10.0;
-      v = clamp(sh, 0.0, 1.0) * u_palEnd;
-    } else if (u_style == 11) {
-      // lines: a stack of horizontal traces, each lifted into a ridge by the
-      // brightness of the picture along its own row and jittering where it
-      // climbs. Nearer (lower) ridges hide the traces behind them, like a
-      // terrain plot. Line pitch sets the count, Lift the ridge height; traces
-      // colour up the palette with height.
-      float N = 40.0 / u_scale;
-      float amp = min(0.12 + 0.32 * u_warp, 22.0 / N);   // a ridge can climb at most 22 traces
-      float k0 = floor(uv.y * N - 0.5) - 22.0;           // the 24 nearest traces, front (lowest) first
-      float lineV = 0.0;
-      ink = 0.0;
-      for (int i = 0; i < 24; i++) {
-        float k = k0 + float(i);
-        float base = (k + 0.5) / N;
-        if (base > uv.y + 0.003) break;                // past the trace just above the pixel
-        if (base < 0.0) continue;
-        float lk = fld(vec2(uv.x, base), T);
-        float h = lk * amp;
-        float jit = (vnoise(vec2(uv.x * 120.0, k * 3.1 + T * 6.0)) - 0.5) * 0.03 * lk;
-        float y = base + h + jit;
-        float w = 0.0022;
-        if (uv.y <= y + w) {                            // on this trace, or beneath its ridge
-          ink = 1.0 - smoothstep(w * 0.4, w, abs(uv.y - y));
-          lineV = (0.15 + 0.85 * lk) * u_palEnd;
-          break;
-        }
+  } else if (u_style == 11) {
+    // lines: a stack of horizontal traces, each lifted into a ridge by the
+    // brightness of the picture along its own row and jittering where it
+    // climbs. Nearer (lower) ridges hide the traces behind them, like a
+    // terrain plot. Line pitch sets the count, Lift the ridge height,
+    // Thickness the line weight; traces colour up the palette with height.
+    // Each line is one crisp edge, antialiased over a single pixel.
+    float N = 40.0 / u_scale;
+    float amp = min(0.12 + 0.32 * u_warp, 22.0 / N);   // a ridge can climb at most 22 traces
+    float k0 = floor(uv.y * N - 0.5) - 22.0;           // the 24 nearest traces, front (lowest) first
+    float w = 0.5 * u_lineW / u_res.y, aa = 0.5 / u_res.y;    // one pixel of edge softening in all
+    float lineV = 0.0;
+    ink = 0.0;
+    for (int i = 0; i < 24; i++) {
+      float k = k0 + float(i);
+      float base = (k + 0.5) / N;
+      if (base > uv.y + w + aa) break;                 // past the trace just above the pixel
+      if (base < 0.0) continue;
+      float lk = fld(vec2(uv.x, base), T);
+      float h = lk * amp;
+      float jit = (vnoise(vec2(uv.x * 120.0, k * 3.1 + T * 6.0)) - 0.5) * 0.03 * lk;
+      float y = base + h + jit;
+      if (uv.y <= y + w * 4.0 + aa) {                  // near this trace, or beneath its ridge
+        // distance across the line, not straight down, so steep climbs keep their weight
+        float ex = 1.5 / u_res.x;
+        float y2 = base + fld(vec2(uv.x + ex, base), T) * amp + jit;
+        float slope = (y2 - y) * u_res.y / (ex * u_res.x);
+        float dist = abs(uv.y - y) / sqrt(1.0 + slope * slope);
+        if (uv.y > y && dist > w + aa) continue;      // above this ridge's line: a trace further back may still show
+        ink = 1.0 - smoothstep(w - aa, w + aa, dist);
+        lineV = (0.15 + 0.85 * lk) * u_palEnd;
+        break;
       }
-      v = lineV;
-    } else {
-      // hatch: pen cross-hatching, more line sets as the field darkens. Where
-      // the gradient is strong the first set follows it, rounded to 45 degrees,
-      // so strokes wrap around forms; flat areas use one fixed angle. Warp
-      // rotates the whole set.
-      vec2 q = (uv - 0.5) * vec2(ca, 1.0);
-      float freq = 42.0 / u_scale;
-      float aa = freq * 1.6 / u_res.y;
-      float follow = length(gr) > 0.03 ? floor((atan(gr.y, gr.x) + 6.2832) / 0.7854 + 0.5) * 0.7854 : 0.7854;
-      float base = u_warp * 3.14159 + follow;
-      float h = 0.0;
-      if (l < 0.85) h = max(h, hatch(q, base, freq, aa));
-      if (l < 0.6) h = max(h, hatch(q, base + 1.5708, freq, aa));
-      if (l < 0.35) h = max(h, hatch(q, base + 0.7854, freq, aa));
-      if (l < 0.15) h = max(h, hatch(q, base - 0.7854, freq, aa));
-      ink = h;
-      v = u_palEnd;
     }
+    v = lineV;
   } else if (u_style == 13) {
     // family 9: one glyph per cell from the atlas. With copy set, the copy is
     // spelled across the rows and its ink weighted by darkness; with no copy
@@ -2346,8 +2444,15 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-let shapeN = 1, customShapes = [];
+let shapeN = 1, customShapes = [], hiddenShapes = [];
 try { const c = JSON.parse(localStorage.getItem("vibe.shapes") || "[]"); customShapes = Array.isArray(c) ? c.filter(s => typeof s === "string") : []; } catch (e) { /* no storage */ }
+try { const h = JSON.parse(localStorage.getItem("vibe.shapesHidden") || "[]"); hiddenShapes = Array.isArray(h) ? h.filter(n => Number.isInteger(n)) : []; } catch (e) { /* no storage */ }
+function saveShapes() {
+  try {
+    localStorage.setItem("vibe.shapes", JSON.stringify(customShapes));
+    localStorage.setItem("vibe.shapesHidden", JSON.stringify(hiddenShapes));
+  } catch (e) { /* no storage */ }
+}
 const svgData = svg => "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 const builtinSvg = inner => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="#fff">' + inner + "</svg>";
 // give a user's SVG a size to render at, keeping its viewBox
@@ -2364,10 +2469,13 @@ function normaliseSvg(text) {
 }
 const loadImg = url => new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = url; });
 async function buildShapeAtlas() {
-  const urls = [...BUILTIN_SHAPES.map(s => svgData(builtinSvg(s))), ...customShapes.map(svgData)];
-  const imgs = await Promise.all(urls.map(loadImg));
+  // every shape in use: the built-ins not removed, then yours; each remembers where it came from
+  const src = [...BUILTIN_SHAPES.map((sv, i) => ({ kind: "b", i, svg: builtinSvg(sv) })).filter(x => !hiddenShapes.includes(x.i)),
+               ...customShapes.map((sv, i) => ({ kind: "c", i, svg: sv }))];
+  if (!src.length) src.push({ kind: "b", i: 0, svg: builtinSvg(BUILTIN_SHAPES[0]) });
+  const imgs = await Promise.all(src.map(x => loadImg(svgData(x.svg))));
   const cells = [];
-  imgs.forEach(im => {
+  imgs.forEach((im, k) => {
     const c = document.createElement("canvas");
     c.width = SHAPE_PX; c.height = SHAPE_PX;
     const x = c.getContext("2d");
@@ -2380,8 +2488,8 @@ async function buildShapeAtlas() {
     }
     const d = x.getImageData(0, 0, SHAPE_PX, SHAPE_PX).data;
     let cov = 0;
-    for (let k = 3; k < d.length; k += 4) cov += d[k];
-    cells.push({ c, cov });
+    for (let q = 3; q < d.length; q += 4) cov += d[q];
+    cells.push({ c, cov, src: src[k] });
   });
   cells.sort((a, b) => a.cov - b.cov);
   shapeN = cells.length;
@@ -2394,11 +2502,55 @@ async function buildShapeAtlas() {
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlas);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-  $("shapeCount").textContent = shapeN + " shapes" + (customShapes.length ? " (" + customShapes.length + " yours)" : "");
+  $("shapeCount").textContent = shapeN + " shapes" + (customShapes.length ? ", " + customShapes.length + " yours" : "");
+  renderShapeGrid(cells);
   if (typeof requeueTiles === "function") requeueTiles();
 }
+// the set as a grid of tiles in the order the pattern uses them
+let replacing = null;
+function renderShapeGrid(cells) {
+  const host = $("shapeGrid");
+  host.innerHTML = "";
+  cells.forEach(cell => {
+    const t = document.createElement("div");
+    t.className = "shape"; t.tabIndex = 0; t.setAttribute("role", "button");
+    t.title = (cell.src.kind === "c" ? "Your SVG" : "Built-in") + " \u2014 click to replace with an SVG";
+    const cv = document.createElement("canvas"); cv.width = SHAPE_PX; cv.height = SHAPE_PX;
+    cv.getContext("2d").drawImage(cell.c, 0, 0);
+    if (cell.cov === 0) t.classList.add("blank");
+    const del = document.createElement("button");
+    del.type = "button"; del.className = "shapedel"; del.textContent = "\u00d7"; del.setAttribute("aria-label", "Remove this shape");
+    del.addEventListener("click", e => { e.stopPropagation(); removeShape(cell.src); });
+    const pick = () => { replacing = cell.src; $("shapeReplace").click(); };
+    t.addEventListener("click", pick);
+    t.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+    t.append(cv, del);
+    host.append(t);
+  });
+  const add = document.createElement("button");
+  add.type = "button"; add.className = "shape shapeadd"; add.textContent = "+";
+  add.title = "Add your own SVG files; they sort into the set by ink coverage";
+  add.addEventListener("click", () => $("shapeFiles").click());
+  host.append(add);
+}
+function removeShape(src) {
+  if (shapeN <= 1) return;                            // the pattern needs at least one
+  if (src.kind === "c") customShapes.splice(src.i, 1);
+  else if (!hiddenShapes.includes(src.i)) hiddenShapes.push(src.i);
+  saveShapes(); buildShapeAtlas();
+}
+$("shapeReplace").addEventListener("change", async e => {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f || !replacing) return;
+  const svg = f.size <= 40000 ? normaliseSvg(await f.text()) : null;
+  if (!svg) { $("shapeCount").textContent = "That file isn\u2019t a usable SVG (an <svg> under 40 KB)."; return; }
+  if (replacing.kind === "c") customShapes[replacing.i] = svg;
+  else { hiddenShapes.push(replacing.i); customShapes.push(svg); }
+  replacing = null;
+  saveShapes(); buildShapeAtlas();
+});
 buildShapeAtlas();
-$("addShapes").addEventListener("click", () => $("shapeFiles").click());
 $("shapeFiles").addEventListener("change", async e => {
   const files = [...e.target.files];
   e.target.value = "";
@@ -2409,14 +2561,14 @@ $("shapeFiles").addEventListener("change", async e => {
     const svg = normaliseSvg(await f.text());
     if (svg) { customShapes.push(svg); added++; }
   }
-  try { localStorage.setItem("vibe.shapes", JSON.stringify(customShapes)); } catch (e) { /* no storage */ }
-  buildShapeAtlas();
+  saveShapes();
+  await buildShapeAtlas();
   if (!added) { $("shapeCount").textContent = "No usable SVGs (each must be an <svg> under 40 KB)."; }
 });
 $("resetShapes").addEventListener("click", () => {
-  customShapes = [];
-  try { localStorage.removeItem("vibe.shapes"); } catch (e) { /* no storage */ }
-  buildShapeAtlas();
+  if (customShapes.length && !confirm("Back to the built-in shapes? Your own SVGs are removed.")) return;
+  customShapes = []; hiddenShapes = [];
+  saveShapes(); buildShapeAtlas();
 });
 $("microText").addEventListener("input", buildGlyphAtlas);
 $("microFont").addEventListener("change", buildGlyphAtlas);
@@ -3329,9 +3481,49 @@ const segSrc = seg("srcSeg", "src", () => srcMode, v => {
 // cannot read the file.
 const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom", "fbSpin", "grain", "bands", "blur",
                    "dist", "distort", "screen", "screenAmt", "tex", "texAmt", "distSize", "screenSize", "texSize",
-                   "glass", "glassAngle", "glassSeam", "glassSeamW", "echoSpread", "echoDecay", "echoAngle", "echoDrift", "slitAngle"];
+                   "glass", "glassAngle", "glassSeam", "glassSeamW", "echoSpread", "echoDecay", "echoAngle", "echoDrift", "slitAngle",
+                   "geo", "geoN", "geoSpin", "lineW"];
 const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
-const GROUPS = { print: "Print", broadcast: "Broadcast", terminal: "Terminal", damaged: "Damaged", optical: "Optical", mine: "Mine" };
+// Groups (the library's categories), in display order. presets/library.json
+// may ship its own list; renames, additions and deletions made here are kept
+// in this browser and go out with Export and Publish. "mine" always exists:
+// it is where saved looks land and where a deleted group's looks move.
+const DEFAULT_GROUPS = { print: "Print", broadcast: "Broadcast", terminal: "Terminal", damaged: "Damaged", optical: "Optical", mine: "Mine" };
+let GROUPS = { ...DEFAULT_GROUPS }, shippedGroups = null;
+function loadGroups() {
+  let list = null;
+  try { const g = JSON.parse(localStorage.getItem("vibe.groups") || "null"); if (Array.isArray(g) && g.length) list = g; } catch (e) { /* no storage */ }
+  if (!list && shippedGroups) list = shippedGroups.map(g => [g.id, g.name]);
+  GROUPS = list ? Object.fromEntries(list.filter(x => Array.isArray(x) && typeof x[0] === "string" && typeof x[1] === "string")) : { ...DEFAULT_GROUPS };
+  if (!GROUPS.mine) GROUPS.mine = "Mine";
+}
+function saveGroups() {
+  try { localStorage.setItem("vibe.groups", JSON.stringify(Object.entries(GROUPS))); } catch (e) { /* no storage */ }
+}
+function renameGroup(g) {
+  const nm = (prompt("Rename this group", GROUPS[g]) || "").trim();
+  if (!nm) return;
+  GROUPS[g] = nm; saveGroups(); buildGrid();
+}
+function addGroup() {
+  const nm = (prompt("Name the new group", "") || "").trim();
+  if (!nm) return;
+  let id = slug(nm), n = 2;
+  while (GROUPS[id]) id = slug(nm) + "-" + n++;
+  // new groups go before Mine, which stays last
+  const entries = Object.entries(GROUPS).filter(([k]) => k !== "mine");
+  GROUPS = Object.fromEntries([...entries, [id, nm], ["mine", GROUPS.mine]]);
+  saveGroups(); buildGrid();
+}
+function deleteGroup(g) {
+  if (g === "mine") return;
+  const looks = groupList(g);
+  const msg = "Delete the group \u201c" + GROUPS[g] + "\u201d?" + (looks.length ? " Its " + looks.length + " look" + (looks.length > 1 ? "s move" : " moves") + " to " + GROUPS.mine + "." : "");
+  if (!confirm(msg)) return;
+  looks.forEach(p => setGroup(p.id, "mine"));
+  delete GROUPS[g]; delete presetOrder[g];
+  saveGroups(); saveLibraryEdits(); rebuildLibrary();
+}
 const BUILTIN_PRESETS = [
   { id: "newsprint", name: "Newsprint", group: "print",
     look: { style: 7, scale: 0.2, warp: 0.45, trails: 0, grain: 0.05 },
@@ -3398,6 +3590,10 @@ function setLook(L, m, w, h, pEnd, time = T) {
   gl.uniform2f(U("u_res"), w, h);
   gl.uniform1f(U("u_time"), time);
   gl.uniform1i(U("u_style"), L.style);
+  gl.uniform1i(U("u_geo"), L.geo);
+  gl.uniform1f(U("u_geoN"), L.geoN);
+  gl.uniform1f(U("u_geoSpin"), L.geoSpin);
+  gl.uniform1f(U("u_lineW"), Math.max(0.5, L.lineW * h / 1080));   // thickness is set for 1080 lines, so thumbnails match
   gl.uniform1f(U("u_trails"), Math.min(0.97, L.trails + m("trails") * 0.5));
   gl.uniform1f(U("u_fbZoom"), L.fbZoom + m("push") * 0.02);
   gl.uniform1f(U("u_fbSpin"), L.fbSpin + m("spin") * 0.02);
@@ -3473,7 +3669,7 @@ function renderTile(t) {
   gl.activeTexture(gl.TEXTURE0);
   const pal = palFor(P);
   gl.bindTexture(gl.TEXTURE_2D, pal.tex);
-  setLook(Object.assign({}, DEFAULT_LOOK, P.look, { trails: 0 }), zeroMod, TILE_W, TILE_H, pal.palEnd, TILE_T);
+  setLook(Object.assign({}, DEFAULT_LOOK, migrateLook(P.look), { trails: 0 }), zeroMod, TILE_W, TILE_H, pal.palEnd, TILE_T);
   gl.bindFramebuffer(gl.FRAMEBUFFER, tileFB.fb);
   gl.viewport(0, 0, TILE_W, TILE_H);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -3560,7 +3756,18 @@ function buildGrid() {
   Object.entries(GROUPS).forEach(([g, label]) => {
     const list = groupList(g);
     const grp = document.createElement("div"); grp.className = "ovgroup"; grp.dataset.group = g;
-    const h = document.createElement("h4"); h.className = "pgroup"; h.textContent = label;
+    const h = document.createElement("h4"); h.className = "pgroup";
+    const hn = document.createElement("span"); hn.textContent = label;
+    const hr = document.createElement("button"); hr.type = "button"; hr.className = "gbtn"; hr.textContent = "\u270e";
+    hr.title = "Rename this group"; hr.setAttribute("aria-label", "Rename " + label);
+    hr.addEventListener("click", () => renameGroup(g));
+    h.append(hn, hr);
+    if (g !== "mine") {
+      const hd = document.createElement("button"); hd.type = "button"; hd.className = "gbtn"; hd.textContent = "\u00d7";
+      hd.title = "Delete this group; its looks move to " + GROUPS.mine; hd.setAttribute("aria-label", "Delete " + label);
+      hd.addEventListener("click", () => deleteGroup(g));
+      h.append(hd);
+    }
     const wrap = document.createElement("div"); wrap.className = "ptiles";
     list.forEach(p => {
       const el = document.createElement("div");
@@ -3596,6 +3803,12 @@ function buildGrid() {
     grp.append(h, wrap);
     host.append(grp);
   });
+  const ng = document.createElement("div"); ng.className = "ovgroup";
+  const nh = document.createElement("h4"); nh.className = "pgroup"; nh.innerHTML = "&nbsp;";
+  const nb = document.createElement("button"); nb.type = "button"; nb.className = "ptile padd gadd"; nb.textContent = "+ Group";
+  nb.title = "Add a group to the library";
+  nb.addEventListener("click", addGroup);
+  ng.append(nh, nb); host.append(ng);
   renderActive();
   renderSetlist();
 }
@@ -3610,9 +3823,20 @@ function syncSliders() {
   });
 }
 // hard cut to a preset
+// Looks saved before 0.9.29 may name a pattern that is gone (Waves, Edges,
+// Relief, Hatch) or Mirror and Grid as Distort kinds; map them onto what
+// replaced them so an old look still loads as something close.
+const GONE_STYLES = { 2: 1, 9: 5, 10: 5, 12: 7 };
+function migrateLook(L) {
+  const o = Object.assign({}, L);
+  if (o.style in GONE_STYLES) o.style = GONE_STYLES[o.style];
+  if (o.dist === 4) { o.geo = (o.distort || 0) > 0.5 ? 2 : 1; o.dist = 0; }
+  else if (o.dist === 5) { o.geo = 3; o.geoN = 1 + Math.floor((o.distort || 0) * 3.99); o.dist = 0; }
+  return o;
+}
 function applyPreset(P) {
   if (fadeSec > 0 && activeId !== P.id) startFade(fadeSec);
-  const L = P.look;
+  const L = migrateLook(P.look);
   LOOK_KEYS.forEach(k => { state[k] = k in L ? L[k] : DEFAULT_LOOK[k]; });
   if ("microText" in L) $("microText").value = L.microText;
   if ("microFont" in L) $("microFont").value = L.microFont;
@@ -3620,10 +3844,10 @@ function applyPreset(P) {
   const pal = resolvePalette(P.palette);
   state.colors = [...pal.colors]; state.weights = [...pal.weights];
   buildPalette(); renderSwatches();
-  $("preset").value = pal.key;
+  syncActiveSwatch();
   state.routes = P.routes.map(r => ({ src: r.src, dst: r.dst, amt: +r.amt })).slice(0, ROUTE_MAX);
   saveRoutes(); renderRoutes();
-  syncSliders(); segStyle(); segDist(); segScreen(); segTex(); segGlass(); syncControls();
+  syncSliders(); segStyle(); segGeo(); segDist(); segScreen(); segTex(); segGlass(); syncControls();
   activeId = P.id; lastPresetId = P.id;               // after the rebuilds, which clear activeId
   renderActive();
 }
@@ -3695,7 +3919,8 @@ function libraryJSON() {
     "      \"palette\": " + (typeof p.palette === "string" ? JSON.stringify(p.palette) : line(p.palette)) + ",\n" +
     "      \"routes\": " + line(p.routes) + "\n" +
     "    }").join(",\n");
-  return "{\n  \"version\": 1,\n  \"presets\": [\n" + body + "\n  ]\n}\n";
+  const groups = Object.entries(GROUPS).map(([id, name]) => "{ \"id\": " + JSON.stringify(id) + ", \"name\": " + JSON.stringify(name) + " }").join(", ");
+  return "{\n  \"version\": 1,\n  \"groups\": [ " + groups + " ],\n  \"presets\": [\n" + body + "\n  ]\n}\n";
 }
 function exportLibrary() {
   const json = libraryJSON();
@@ -3758,7 +3983,9 @@ async function publishLibrary() {
     if (put.status === 409 || put.status === 422) throw new Error("GitHub had a newer library than this device knew about. Reload and publish again.");
     const res = await put.json();
     // the shipped library now equals this device's: fold the local copies in
-    libraryOriginal = JSON.parse(json).presets.filter(validPreset);
+    const pubd = JSON.parse(json);
+    libraryOriginal = pubd.presets.filter(validPreset);
+    shippedGroups = pubd.groups || shippedGroups;
     userPresets = []; saveUserPresets();
     overrides = {}; saveOverrides();
     hiddenPresets = []; presetOrder = {}; saveLibraryEdits();
@@ -3930,7 +4157,7 @@ function saveLibraryEdits() {
 }
 // the presets of one group in their saved order, new ones at the end
 function groupList(g) {
-  const list = allPresets().filter(p => (p.group || "mine") === g);
+  const list = allPresets().filter(p => (GROUPS[p.group] ? p.group : "mine") === g);   // a look in a group that is gone shows in Mine
   const order = presetOrder[g] || [];
   return list.sort((a, b) => {
     const ia = order.indexOf(a.id), ib = order.indexOf(b.id);
@@ -4068,10 +4295,15 @@ async function loadLibrary() {
   let list = BUILTIN_PRESETS, from = "built-in";
   try {
     const r = await fetch("presets/library.json", { cache: "no-cache" });
-    if (r.ok) { const j = await r.json(); if (j && Array.isArray(j.presets)) { list = j.presets; from = "presets/library.json"; } }
+    if (r.ok) {
+      const j = await r.json();
+      if (j && Array.isArray(j.presets)) { list = j.presets; from = "presets/library.json"; }
+      if (j && Array.isArray(j.groups)) shippedGroups = j.groups.filter(g => g && typeof g.id === "string" && typeof g.name === "string");
+    }
   } catch (e) { /* file:// or offline: the built-in list stands */ }
   libraryOriginal = list.filter(validPreset);
   libraryFrom = from;
+  loadGroups();
   loadOverrides(); loadLibraryEdits(); loadUserPresets(); loadSetlist(); rebuildLibrary();
 }
 let libraryFrom = "";
