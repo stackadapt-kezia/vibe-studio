@@ -526,6 +526,34 @@
     .panel .ovtl { flex-wrap: wrap; }
     .panel .tslot { flex: 1 1 calc(25% - 6px); }
   }
+  .stage canvas { position: absolute; inset: 0; }
+  .seg.seg3 { grid-template-columns: repeat(3, 1fr); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .chip {
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    padding: 5px 10px; border-radius: 999px; font: inherit; font-size: 12px; cursor: pointer;
+  }
+  .chip:hover { border-color: var(--accent); }
+  .chip.add::before { content: "+ "; color: var(--accent); }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); margin: 6px 0; cursor: pointer; }
+  .check input { accent-color: var(--accent); }
+  .pstats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+  .pstat { background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; min-width: 0; }
+  .pstat span { display: block; font-size: 11px; color: var(--muted); }
+  .pstat b { font: 500 14px/1.3 "Space Grotesk", sans-serif; font-variant-numeric: tabular-nums; }
+  .pstat.wide { grid-column: span 2; }
+  .selbox { border: 1px solid var(--accent); border-radius: 6px; padding: 10px; margin: 10px 0; background: var(--panel-2); }
+  .selbox .t { font: 500 13px/1.3 "Space Grotesk", sans-serif; margin-bottom: 8px; }
+  .row .num.wide { flex: 0 0 70px; width: 70px; }
+  .row input[type=color] { flex: 1; height: 28px; border: 1px solid var(--line); border-radius: 5px; background: none; padding: 0; cursor: pointer; }
+  label.pill { display: block; text-align: center; }
+  .pill.mini { width: auto; margin-top: 0; padding: 5px 12px; }
+  .btnrow { display: flex; gap: 6px; flex-wrap: wrap; }
+  .btnrow .pill { width: auto; flex: 1; }
+  textarea {
+    width: 100%; min-height: 60px; background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 5px; color: var(--text); font: inherit; font-size: 12px; padding: 6px 8px; margin-top: 8px; resize: vertical;
+  }
 </style>
 </head>
 <body>
@@ -802,19 +830,105 @@
 
     <fieldset>
       <legend>Output</legend>
-      <button class="pill" id="fsBtn">Fullscreen (projector)</button>
+      <div class="seg" id="previewSeg">
+        <button data-preview="full">Full frame</button>
+        <button data-preview="pile">TV pile</button>
+      </div>
+      <p class="note" id="previewNote">Full frame is what a single screen or projector shows.</p>
+      <button class="pill" id="fsBtn">Fullscreen — F</button>
       <button class="pill" id="hideBtn">Hide panel — H</button>
       <button class="pill" id="setBtn">Presets &amp; set list — S</button>
       <button class="pill" id="recBtn">Record performance</button>
       <p class="note" id="outNote">Drag this window to the projector display, then go fullscreen.</p>
       <p class="note" id="wakeNote"></p>
     </fieldset>
+
+    <div id="pileUI" hidden>
+      <fieldset>
+        <legend>Pile mapping</legend>
+        <div class="seg seg3" id="mapSeg">
+          <button data-map="unified">Unified</button>
+          <button data-map="mirror">Mirror</button>
+          <button data-map="scatter">Scatter</button>
+        </div>
+        <p class="note" id="mapNote"></p>
+        <div class="pstats">
+          <div class="pstat"><span>Screens</span><b id="psScreens">0</b></div>
+          <div class="pstat"><span>Glass coverage</span><b id="psCover">0%</b></div>
+          <div class="pstat"><span>Pi 5 boards</span><b id="psPis">0</b></div>
+          <div class="pstat"><span>Cabinets</span><b id="psCabs">0</b></div>
+          <div class="pstat wide"><span>Overall size</span><b id="psSize">&mdash;</b></div>
+          <div class="pstat wide"><span>Screen mix</span><b id="psMix">&mdash;</b></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Screens</legend>
+        <div class="chips" id="addSizes"></div>
+        <div class="chips"><button class="chip add" id="addCab">Speaker cabinet</button></div>
+        <div class="row"><label for="fillN">Auto-fill</label><input type="number" class="num" id="fillN" min="1" max="60" value="12"><button class="pill mini" id="fillBtn">Fill grid</button></div>
+        <label class="check"><input type="checkbox" id="snapX" checked> Snap to uprights</label>
+        <label class="check"><input type="checkbox" id="snapSize" checked> Snap to real TV sizes</label>
+        <label class="check"><input type="checkbox" id="pLabels"> Show sizes on screens</label>
+        <div class="selbox" id="pSel" hidden></div>
+        <div class="btnrow"><button class="pill" id="pUndo">Undo</button><button class="pill" id="pClear">Remove all screens</button></div>
+        <p class="note">Drag to move, drag a corner to resize. Delete removes, D duplicates, arrows nudge (Shift for 6&Prime;).</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Mounting grid</legend>
+        <div class="row"><label for="gW">Width (in)</label><input type="number" class="num wide" id="gW" min="24" max="720"><output id="gWft"></output></div>
+        <div class="row"><label for="gH">Height (in)</label><input type="number" class="num wide" id="gH" min="24" max="240"><output id="gHft"></output></div>
+        <div class="row"><label for="gP">Uprights (in)</label><input type="number" class="num wide" id="gP" min="12" max="96"><output id="gPn"></output></div>
+        <div class="row"><label for="gR">Rails (in)</label><input type="number" class="num wide" id="gR" min="12" max="120"><output></output></div>
+        <label class="check"><input type="checkbox" id="gShow" checked> Show the grid</label>
+        <p class="note">Drag the grid on the stage to slide it, or its white handles to resize. Uprights divide the width evenly.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Behind the pile</legend>
+        <div class="seg" id="wallSeg">
+          <button data-wall="plain">Plain wall</button>
+          <button data-wall="photo">Wall photo</button>
+        </div>
+        <div id="photoOpts" hidden>
+          <label class="pill">Load wall photo<input type="file" id="photoFile" accept="image/*" hidden></label>
+          <div class="row" style="margin-top:8px"><label for="photoFt">Photo shows</label><input type="number" class="num wide" id="photoFt" min="4" max="200"><output>ft</output></div>
+        </div>
+        <select id="bdSel" aria-label="Backdrop behind the grid" style="margin-top:12px">
+          <option value="none">No backdrop</option>
+          <option value="drape">Black drape</option>
+          <option value="gradient">Fabric: palette gradient</option>
+          <option value="tiles">Fabric: palette tiles</option>
+          <option value="solid">Solid colour</option>
+          <option value="image">Fabric: custom artwork</option>
+        </select>
+        <div class="row" id="solidRow" hidden style="margin-top:8px"><label for="solidCol">Colour</label><input type="color" id="solidCol"></div>
+        <label class="pill" id="bdImgRow" hidden>Load backdrop artwork<input type="file" id="bdFile" accept="image/*" hidden></label>
+        <div class="row" id="ohRow" style="margin-top:8px"><label for="overhang">Overhang</label><input type="number" class="num wide" id="overhang" min="0" max="96"><output>in</output></div>
+        <div class="seg" id="lightSeg" style="margin-top:10px">
+          <button data-light="bright">Bright lobby</button>
+          <button data-light="dim">Event dim</button>
+        </div>
+        <p class="note">Bright lobby lifts the screens' blacks and adds glare, the way consumer TVs look under chandeliers.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Pile layout</legend>
+        <div class="btnrow"><button class="pill" id="copySpec">Copy spec for AV</button><button class="pill" id="copyLayout">Copy layout code</button></div>
+        <textarea id="layoutBox" aria-label="Layout code" placeholder="Paste layout code here, then Load"></textarea>
+        <button class="pill" id="loadLayout">Load layout code</button>
+        <p class="note" id="pileToast" role="status">The layout saves in this browser automatically. Photos don&rsquo;t.</p>
+      </fieldset>
+    </div>
     </div>
   </aside>
   <div class="resizer" id="resizer" title="Drag to resize the panel. Double-click to reset."></div>
   <button class="pill showui" id="showBtn">Show panel</button>
   <main class="stage" id="stage">
+    <canvas id="pileBg" hidden></canvas>
     <canvas id="gl"></canvas>
+    <canvas id="pileFg" hidden aria-label="TV pile layout. Drag screens to move them, drag a corner to resize."></canvas>
     <div class="hint" id="hint">F — fullscreen · H — hide panel · 1–8 — set list · S — set list panel · Esc — exit</div>
     <div class="setlist-overlay" id="setOverlay" hidden>
       <div class="ovbar">
@@ -853,12 +967,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.33";  // Mesh pattern: the picture as a 3D wireframe relief
+const APP_VERSION = "0.9.34";  // TV pile preview under Output
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.34", "TV pile preview under Output. Switch from Full frame to TV pile and the current look plays across a wall of screens you lay out yourself: add screens by size, drag them, drag a corner to resize, add speaker cabinets, and resize the mounting grid behind them. Unified spreads one picture across the whole pile, Mirror puts the full frame on every screen, Scatter gives each screen its own drifting crop. Behind the pile sits a plain wall or a photo of the real wall scaled to feet, with a black drape, a palette fabric, a solid colour or your own artwork as a backdrop, in event-dim or bright-lobby light. Width and height scales run along the stage, and Copy spec for AV puts the grid, screen mix and every screen\u2019s position on the clipboard. The layout is remembered in this browser. The fullscreen button now reads Fullscreen \u2014 F."],
   ["0.9.33", "Mesh pattern: the picture raised into a 3D relief by its brightness and drawn as a wireframe grid, with a camera swinging slowly round it; nearer bumps hide the lines behind them. Point the camera at someone and their face becomes the relief. Grid sets the line count, Depth how far it stands out, Thickness the line weight."],
   ["0.9.32", "Fringe under Screen pulls the red and blue of the finished picture apart, wider toward the edges like a cheap lens, so any pattern can have a chromatic glow; Amount sets how far, Spread scales it. Prism is retired: looks that used it load as Heatmap with Fringe. Reactivity gains Zoom (the whole picture pushes in on the beat or the bass) and Fringe (the split jumps with the music, even when Fringe isn\u2019t the Screen mode). Shapes can be dragged into any order (or moved with the arrow keys); the help is now on the Shapes label\u2019s tooltip."],
   ["0.9.31", "Fractal has a Kind under Look: Fungus (the layered shelves) or Filament, a neon zoom into the Mandelbrot set\u2019s outskirts where colour bands crowd into glowing rivers round tiny copies of the set, with sharp fibres along the field lines. Seed picks one of six neighbourhoods and where in it you sit; Growth bends it. A Cyber Goth look in Optical starts it in neon green, cyan and violet on black. For more glow, add a little Blur and Trails under Look."],
@@ -2504,9 +2619,9 @@ function compile(src, type) {
   if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
   return s;
 }
-function program(fragSrc) {
+function program(fragSrc, vertSrc = VERT) {
   const p = gl.createProgram();
-  gl.attachShader(p, compile(VERT, gl.VERTEX_SHADER));
+  gl.attachShader(p, compile(vertSrc, gl.VERTEX_SHADER));
   gl.attachShader(p, compile(fragSrc, gl.FRAGMENT_SHADER));
   gl.linkProgram(p);
   if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
@@ -2825,20 +2940,33 @@ function clearRingUnits() {
   gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, null);
   gl.activeTexture(gl.TEXTURE0);
 }
-let A = null, B = null;
+let A = null, B = null, fin = null;
+const freeTarget = t => { if (t) { gl.deleteFramebuffer(t.fb); gl.deleteTexture(t.tex); } };
 function resize() {
   const dpr = Math.min(devicePixelRatio || 1, 2);
   let w = Math.max(2, Math.round(canvas.clientWidth * dpr));
   let h = Math.max(2, Math.round(canvas.clientHeight * dpr));
   const cap = 2600000;                       // keep the pixel budget sane on 4K panels
   if (w * h > cap) { const s = Math.sqrt(cap / (w * h)); w = Math.round(w * s); h = Math.round(h * s); }
-  if (canvas.width === w && canvas.height === h) return;
-  canvas.width = w; canvas.height = h;
-  [A, B].forEach(t => { if (t) { gl.deleteFramebuffer(t.fb); gl.deleteTexture(t.tex); } });   // each resize used to leak both
-  A = makeTarget(w, h); B = makeTarget(w, h);
+  if (canvas.width !== w || canvas.height !== h) {
+    canvas.width = w; canvas.height = h;
+    pileResize(w, h);
+  }
+  // Full frame renders at the canvas size. The TV pile preview renders one frame
+  // shaped like the whole installation, finishes it into `fin`, then slices that
+  // onto the screens (drawPileScreens).
+  let tw = canvas.width, th = canvas.height;
+  if (preview === "pile") {
+    th = Math.max(4, Math.round(Math.sqrt(1400000 / pileAR)));
+    tw = Math.max(4, Math.round(th * pileAR));
+  }
+  if (A && A.w === tw && A.h === th && !!fin === (preview === "pile")) return;
+  [A, B, fin].forEach(freeTarget);           // each resize used to leak both
+  A = makeTarget(tw, th); B = makeTarget(tw, th);
+  fin = preview === "pile" ? makeTarget(tw, th) : null;
   endFade();                                 // the outgoing look's targets are the old size
-  if (ring) { gl.deleteFramebuffer(ring.fb); gl.deleteTexture(ring.tex); }
-  ring = makeTarget(Math.max(4, w & ~3), Math.max(4, h & ~3));
+  freeTarget(ring);
+  ring = makeTarget(Math.max(4, tw & ~3), Math.max(4, th & ~3));
   ringHead = 0; ringN = 0;
 }
 let ring = null, ringHead = 0, ringN = 0, ringTick = 0, echoAngleT = 0;
@@ -4652,6 +4780,745 @@ function drawSparks() {
   }
 }
 
+/* ================= TV pile preview =================
+   An editable layout of flat panels on a mounting grid, with the room behind it.
+   Vibe studio renders one frame shaped like the whole installation (see resize()),
+   runs the Screen pass into `fin`, and drawPileScreens() slices that onto each screen.
+   Units are inches. World y is up from the floor; x is left to right. */
+const pileBg = $("pileBg"), pileFg = $("pileFg");
+const pbx = pileBg.getContext("2d"), pfx = pileFg.getContext("2d");
+const roomCv = document.createElement("canvas"), rmx = roomCv.getContext("2d");
+let preview = "full";
+let pileAR = 2;                                   // installation width / height, drives the render target
+const PSIZES = [24, 27, 32, 40, 43, 50, 55, 65, 75, 85];
+const PK = Math.hypot(16, 9), BEZEL = 0.7, PIPE = 1.9, PSTORE = "vibe-pile-layout-v1";
+const P = {
+  frame: { x0: 0, w: 240, h: 108, pitch: 30, rail: 48, show: true },
+  items: [],
+  bg: { wall: "plain", backdrop: "drape", solid: "#0061FF", overhang: 12, light: "dim", photoFt: 20 },
+  mapping: "unified",
+};
+const pui = { snapX: true, snapSize: true, labels: false };
+let pid = 1, psel = null, photoImg = null, bdImg = null, roomDirty = true, pdrag = null, phover = null;
+let pW = 0, pH = 0, pdpr = 1, psc = 1, pox = 0, pfloor = 0;
+const PX = v => pox + v * psc, PY = v => pfloor - v * psc;
+const MAP_NOTES = {
+  unified: "One image spans the whole pile. Each screen shows its own slice.",
+  mirror: "Every screen shows the whole frame, cropped to fit. This is what a plain HDMI splitter gives you.",
+  scatter: "Each screen shows a different drifting crop. A one-machine stand-in for every Pi running its own look.",
+};
+
+/* ---- model ---- */
+function pdims(it) {
+  if (it.type === "cab") return { w: it.w, h: it.h };
+  let gw = it.diag * 16 / PK, gh = it.diag * 9 / PK;
+  if (it.portrait) [gw, gh] = [gh, gw];
+  return { gw, gh, w: gw + 2 * BEZEL, h: gh + 2 * BEZEL };
+}
+function pmk(o) { const it = { ...o, id: pid++ }; it.seed = Math.random(); return it; }
+const pscreens = () => P.items.filter(i => i.type === "screen");
+const pr1 = v => Math.round(v * 10) / 10;
+function pgrid() {
+  const f = P.frame, n = Math.max(1, Math.round(f.w / f.pitch)), sp = f.w / n;
+  const rails = [f.h];
+  for (let y = f.h - f.rail; y > 14; y -= f.rail) rails.push(y);
+  rails.push(8);
+  return { n, sp, rails };
+}
+function pbounds() {
+  const f = P.frame;
+  let a = f.x0, b = f.x0 + f.w, t = f.h;
+  for (const it of P.items) {
+    const d = pdims(it);
+    a = Math.min(a, it.x - d.w / 2); b = Math.max(b, it.x + d.w / 2); t = Math.max(t, it.y + d.h);
+  }
+  return { minX: a, maxX: b, maxY: t, w: b - a, h: t };
+}
+
+/* ---- save, load, undo ---- */
+function pserialize() {
+  return JSON.stringify({
+    v: 1, frame: P.frame, bg: P.bg, mapping: P.mapping,
+    items: P.items.map(it => it.type === "cab"
+      ? { type: "cab", x: pr1(it.x), y: pr1(it.y), w: pr1(it.w), h: pr1(it.h), wood: !!it.wood }
+      : { type: "screen", diag: it.diag, portrait: !!it.portrait, x: pr1(it.x), y: pr1(it.y), dead: !!it.dead }),
+  });
+}
+function papply(d) {
+  if (!d || !d.frame || !Array.isArray(d.items)) throw new Error("not a pile layout");
+  Object.assign(P.frame, d.frame);
+  if (d.bg) Object.assign(P.bg, d.bg);
+  if (P.bg.wall !== "photo") P.bg.wall = "plain";
+  if (MAP_NOTES[d.mapping]) P.mapping = d.mapping;
+  P.items = d.items.filter(o => o && (o.type === "screen" || o.type === "cab")).map(pmk);
+  psel = null;
+}
+const phist = [];
+function psave() { try { localStorage.setItem(PSTORE, pserialize()); } catch (e) { /* storage blocked */ } }
+function pcommit() {
+  const s = pserialize();
+  if (phist[phist.length - 1] !== s) { phist.push(s); if (phist.length > 80) phist.shift(); }
+  psave(); prefresh();
+}
+function pundo() {
+  if (phist.length < 2) return ptoast("Nothing to undo.");
+  phist.pop(); papply(JSON.parse(phist[phist.length - 1])); psave(); prefresh();
+}
+
+/* ---- placement ---- */
+function poverlaps(a, m = 1) {
+  const da = pdims(a);
+  return P.items.some(b => {
+    if (b === a) return false;
+    const db = pdims(b);
+    return Math.abs(a.x - b.x) < (da.w + db.w) / 2 + m && a.y < b.y + db.h + m && a.y + da.h + m > b.y;
+  });
+}
+const pfits = (it, d) => it.x - d.w / 2 >= P.frame.x0 - 6 && it.x + d.w / 2 <= P.frame.x0 + P.frame.w + 6;
+function pfreeSpot(it) {
+  const f = P.frame, g = pgrid(), d = pdims(it), xs = [];
+  for (let k = 0; k <= g.n * 2; k++) xs.push(f.x0 + k * g.sp / 2);
+  for (let y = f.h - d.h - 4; y >= 4; y -= 6) {
+    for (const x of [...xs].sort(() => Math.random() - 0.5)) {
+      it.x = x; it.y = it.type === "cab" ? 0 : y;
+      if (pfits(it, d) && !poverlaps(it)) return;
+    }
+    if (it.type === "cab") break;
+  }
+  it.x = f.x0 + f.w / 2; it.y = it.type === "cab" ? 0 : Math.max(4, f.h / 2 - d.h / 2);
+}
+function paddScreen(diag) {
+  const it = pmk({ type: "screen", diag, portrait: false, dead: false, x: 0, y: 0 });
+  pfreeSpot(it); P.items.push(it); psel = { kind: "item", it }; pcommit();
+}
+function paddCab() {
+  const it = pmk({ type: "cab", w: 22, h: 34, wood: Math.random() < 0.5, x: 0, y: 0 });
+  pfreeSpot(it); P.items.push(it); psel = { kind: "item", it }; pcommit();
+}
+function pautoFill(n) {
+  P.items = P.items.filter(i => i.type === "cab");
+  const pick = [32, 40, 43, 43, 50, 55, 55, 65];
+  const f = P.frame, g = pgrid();
+  for (let i = 0; i < n; i++) {
+    const it = pmk({ type: "screen", diag: pick[Math.floor(Math.random() * pick.length)], portrait: Math.random() < 0.1, dead: false, x: 0, y: 0 });
+    const d = pdims(it);
+    for (let t = 0; t < 400; t++) {
+      it.x = f.x0 + Math.round(Math.random() * g.n * 2) * g.sp / 2;
+      it.y = 6 + Math.random() * Math.max(0, f.h - 6 - d.h);
+      if (pfits(it, d) && it.y + d.h <= f.h && !poverlaps(it, 3)) { P.items.push(it); break; }
+    }
+  }
+  psel = null; pcommit();
+  const placed = pscreens().length;
+  if (placed < n) ptoast(placed + " of " + n + " fit. Widen the grid or use smaller screens.");
+}
+
+/* ---- view ---- */
+// The sidebar floats over the stage's left side and the presets panel over its
+// bottom, so the pile is fitted into the space left between them.
+let pInsetKey = "";
+function pileInsets() {
+  const st = $("stage").getBoundingClientRect(), pn = $("panel"), ov = $("setOverlay");
+  let l = 0, b = 0;
+  if (pn && pn.offsetParent) {                   // slid out of view, its right edge is off-stage
+    const r = pn.getBoundingClientRect();
+    if (r.right > st.left + 1 && r.top < st.bottom) l = Math.max(0, r.right - st.left);
+  }
+  if (ov && !ov.hidden && ov.offsetParent) b = Math.max(0, st.bottom - ov.getBoundingClientRect().top);
+  return { l: l * pdpr, b: b * pdpr };
+}
+function pfit() {
+  if (!pW) return;
+  const ins = pileInsets();
+  pInsetKey = Math.round(ins.l) + "," + Math.round(ins.b);
+  const B = pbounds(), o = P.bg.backdrop !== "none" ? P.bg.overhang : 0;
+  const minX = Math.min(B.minX, P.frame.x0 - o) - 40, maxX = Math.max(B.maxX, P.frame.x0 + P.frame.w + o) + 30, top = B.maxY + o + 24;
+  const left = ins.l + 24 * pdpr, right = pW - 24 * pdpr;
+  // keep the bottom band clear for the presets panel even while it's closed,
+  // plus room under the pile for the width scale
+  pfloor = pH - Math.max(ins.b, 120 * pdpr) - 84 * pdpr;
+  psc = Math.max(0.1, Math.min((right - left) / (maxX - minX), (pfloor - 56 * pdpr) / top));
+  pox = (left + right) / 2 - ((minX + maxX) / 2) * psc;
+  pileAR = Math.max(0.3, Math.min(8, B.w / B.h));
+  roomDirty = true;
+}
+function pileResize(w, h) {
+  pW = w; pH = h; pdpr = w / Math.max(1, canvas.clientWidth);
+  for (const c of [pileBg, pileFg, roomCv]) { c.width = w; c.height = h; }
+  pfit();
+}
+
+/* ---- the room: wall, floor, backdrop (cached; redrawn only when it changes) ---- */
+function drawRoom() {
+  const c = rmx;
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, pW, pH);
+  const plain = () => {
+    const g = c.createLinearGradient(0, 0, 0, pfloor);
+    g.addColorStop(0, "#DADCE2"); g.addColorStop(1, "#C9CCD3");
+    c.fillStyle = g; c.fillRect(0, 0, pW, pfloor);
+  };
+  if (P.bg.wall === "photo" && photoImg) {
+    plain();
+    const B = pbounds(), cx = (B.minX + B.maxX) / 2, pw = P.bg.photoFt * 12, ph = pw * photoImg.height / photoImg.width;
+    c.drawImage(photoImg, PX(cx - pw / 2), PY(ph), pw * psc, ph * psc);
+  } else plain();
+
+  c.fillStyle = "#6E7178"; c.fillRect(0, pfloor, pW, pH - pfloor);
+  c.fillStyle = "rgba(0,0,0,0.25)"; c.fillRect(0, pfloor, pW, 3 * pdpr);
+
+  const f = P.frame, o = P.bg.overhang, bd = P.bg.backdrop;
+  const R = { x: PX(f.x0 - o), y: PY(f.h + o), w: (f.w + 2 * o) * psc, h: (f.h + o) * psc };
+  if (bd !== "none") {
+    c.save(); c.beginPath(); c.rect(R.x, R.y, R.w, R.h); c.clip();
+    if (bd === "drape") {
+      c.fillStyle = "#0C0C10"; c.fillRect(R.x, R.y, R.w, R.h);
+      const fw = 7 * psc;
+      for (let x = R.x; x < R.x + R.w; x += fw) {
+        const g = c.createLinearGradient(x, 0, x + fw, 0);
+        g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(0.45, "rgba(255,255,255,0.06)"); g.addColorStop(1, "rgba(0,0,0,0.35)");
+        c.fillStyle = g; c.fillRect(x, R.y, fw, R.h);
+      }
+    } else if (bd === "gradient") {
+      const g = c.createLinearGradient(R.x, R.y + R.h, R.x + R.w, R.y);
+      state.colors.forEach((h, i, a) => g.addColorStop(a.length > 1 ? i / (a.length - 1) : 0, h));
+      c.fillStyle = g; c.fillRect(R.x, R.y, R.w, R.h);
+    } else if (bd === "tiles") {
+      c.fillStyle = "#0A1430"; c.fillRect(R.x, R.y, R.w, R.h);
+      const cols = state.colors, cell = 10 * psc, sz = 7 * psc;
+      let j = 0;
+      for (let y = R.y + R.h - cell; y > R.y - cell; y -= cell, j++) {
+        let i = 0;
+        for (let x = R.x; x < R.x + R.w; x += cell, i++) {
+          c.fillStyle = cols[(i * 3 + j * 5) % cols.length]; c.globalAlpha = 0.85;
+          c.beginPath();
+          if (c.roundRect) c.roundRect(x + (cell - sz) / 2, y + (cell - sz) / 2, sz, sz, 1.6 * psc);
+          else c.rect(x + (cell - sz) / 2, y + (cell - sz) / 2, sz, sz);
+          c.fill();
+        }
+      }
+      c.globalAlpha = 1;
+    } else if (bd === "solid") { c.fillStyle = P.bg.solid; c.fillRect(R.x, R.y, R.w, R.h); }
+    else if (bd === "image") {
+      if (bdImg) {
+        const ia = bdImg.width / bdImg.height, ra = R.w / R.h;
+        let w = R.w, h = R.h; if (ia > ra) w = h * ia; else h = w / ia;
+        c.drawImage(bdImg, R.x + (R.w - w) / 2, R.y + (R.h - h) / 2, w, h);
+      } else {
+        c.fillStyle = "#1A2033"; c.fillRect(R.x, R.y, R.w, R.h);
+        c.fillStyle = "#85899a"; c.font = 13 * pdpr + 'px "Source Sans 3", sans-serif'; c.textAlign = "center";
+        c.fillText("Load backdrop artwork in the panel", R.x + R.w / 2, R.y + R.h / 2);
+      }
+    }
+    c.restore();
+  }
+  if (P.bg.light === "dim") { c.fillStyle = "rgba(4,6,12,0.76)"; c.fillRect(0, 0, pW, pH); }
+  roomDirty = false;
+}
+
+/* ---- per-frame drawing: grid, bezels, cabinets (behind the GL screens) ---- */
+function prr(c, x, y, w, h, r) { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); }
+let pileColorKey = "";
+function drawPileBg() {
+  if (!pdrag) { const ins = pileInsets(); if (Math.round(ins.l) + "," + Math.round(ins.b) !== pInsetKey) pfit(); }
+  const ck = state.colors.join();               // the backdrop fabric follows the palette
+  if (ck !== pileColorKey) { pileColorKey = ck; roomDirty = true; }
+  if (roomDirty) drawRoom();
+  const c = pbx, dim = P.bg.light === "dim";
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, pW, pH); c.drawImage(roomCv, 0, 0);
+  if (dim) {   // screen light spilling onto the backdrop
+    const B = pbounds(), i = Math.floor((T * 0.05 % 1) * 255) * 4;
+    const cx = PX((B.minX + B.maxX) / 2), cy = PY(B.maxY * 0.5);
+    const gr = c.createRadialGradient(cx, cy, 0, cx, cy, Math.max(B.w, B.h) * psc * 0.8);
+    gr.addColorStop(0, "rgba(" + palData[i] + "," + palData[i + 1] + "," + palData[i + 2] + "," + (0.1 + 0.14 * band.bass) + ")");
+    gr.addColorStop(1, "rgba(0,0,0,0)");
+    c.fillStyle = gr; c.fillRect(0, 0, pW, pH);
+  }
+  const f = P.frame;
+  if (f.show) {
+    const g = pgrid(), pw = Math.max(1.5 * pdpr, PIPE * psc);
+    c.fillStyle = dim ? "#20263A" : "#3A3F4C";
+    for (const y of g.rails) c.fillRect(PX(f.x0) - pw / 2, PY(y) - pw / 2, f.w * psc + pw, pw);
+    for (let i = 0; i <= g.n; i++) {
+      const x = PX(f.x0 + i * g.sp);
+      c.fillStyle = dim ? "#262D42" : "#454B59"; c.fillRect(x - pw / 2, PY(f.h) - pw / 2, pw, f.h * psc + pw / 2);
+      c.fillStyle = "rgba(255,255,255,0.10)"; c.fillRect(x - pw / 2, PY(f.h) - pw / 2, Math.max(pdpr, pw * 0.25), f.h * psc);
+      c.fillStyle = dim ? "#14182A" : "#2E323C"; c.fillRect(x - pw * 3, pfloor - pw * 0.6, pw * 6, pw * 0.6);
+    }
+  }
+  for (const it of P.items) {
+    const d = pdims(it), x = PX(it.x - d.w / 2), y = PY(it.y + d.h), w = d.w * psc, h = d.h * psc;
+    if (it.type === "cab") {
+      prr(c, x, y, w, h, 2 * pdpr); c.fillStyle = it.wood ? "#2C1C11" : "#121215"; c.fill();
+      c.strokeStyle = "rgba(255,255,255,0.08)"; c.lineWidth = pdpr; c.stroke();
+      const m = Math.min(w, h) * 0.08;
+      prr(c, x + m, y + m, w - 2 * m, h - 2 * m, pdpr); c.fillStyle = it.wood ? "#1B1612" : "#18181C"; c.fill();
+      const two = h > w * 1.3, R = (w - 2 * m) * 0.36, cx = x + w / 2;
+      const cones = two ? [[cx, y + h * 0.68, R], [cx, y + h * 0.24, R * 0.45]] : [[cx, y + h / 2, R]];
+      for (const [px, py, r] of cones) {
+        c.beginPath(); c.arc(px, py, r, 0, 7); c.fillStyle = "#0A0A0C"; c.fill();
+        c.strokeStyle = "rgba(255,255,255,0.10)"; c.lineWidth = 1.5 * pdpr; c.stroke();
+        c.beginPath(); c.arc(px, py, r * (0.3 + 0.08 * band.bass), 0, 7); c.fillStyle = "#1C1C21"; c.fill();
+      }
+    } else {
+      prr(c, x, y, w, h, 1.2 * pdpr); c.fillStyle = "#0B0C10"; c.fill();
+      c.strokeStyle = "rgba(255,255,255,0.10)"; c.lineWidth = pdpr; c.stroke();
+    }
+  }
+}
+
+/* ---- GL: slice the rendered frame onto each screen ---- */
+const PILE_VERT = `
+attribute vec2 a;
+uniform vec2 u_res;
+uniform vec4 u_rect;           // centre x, centre y (px, y down), width, height
+varying vec2 v_local;
+void main() {
+  v_local = a * 0.5 + 0.5;
+  vec2 pos = u_rect.xy + vec2(a.x * 0.5 * u_rect.z, -a.y * 0.5 * u_rect.w);
+  gl_Position = vec4(pos.x / u_res.x * 2.0 - 1.0, 1.0 - pos.y / u_res.y * 2.0, 0.0, 1.0);
+}`;
+const PILE_FRAG = `
+precision highp float;
+varying vec2 v_local;
+uniform sampler2D u_tex;
+uniform vec4 u_src;            // which part of the rendered frame this screen shows: x, y, w, h (0-1, y up)
+uniform float u_dead, u_ambient, u_time;
+float h2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+void main() {
+  vec3 c;
+  if (u_dead > 0.5) {
+    c = vec3(0.012, 0.016, 0.035) + h2(v_local * 300.0 + floor(u_time * 20.0)) * 0.012;
+  } else {
+    c = texture2D(u_tex, u_src.xy + v_local * u_src.zw).rgb;
+    vec2 v = v_local - 0.5;
+    c *= 1.0 - 0.4 * dot(v, v);                      // panel falloff
+  }
+  // bright room: lifted blacks, lower contrast, a glare streak
+  c = mix(c, c * 0.8 + vec3(0.20, 0.19, 0.17), u_ambient);
+  float s = smoothstep(0.09, 0.0, abs(v_local.x * 0.7 + (1.0 - v_local.y) - 1.05));
+  c += vec3(0.10) * s * u_ambient;
+  gl_FragColor = vec4(c, 1.0);
+}`;
+const pileProg = program(PILE_FRAG, PILE_VERT);
+function drawPileScreens() {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.useProgram(pileProg);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  gl.vertexAttribPointer(gl.getAttribLocation(pileProg, "a"), 2, gl.FLOAT, false, 0, 0);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, fin.tex);
+  const UP = n => gl.getUniformLocation(pileProg, n);
+  gl.uniform1i(UP("u_tex"), 0);
+  gl.uniform2f(UP("u_res"), canvas.width, canvas.height);
+  gl.uniform1f(UP("u_ambient"), P.bg.light === "bright" ? 1 : 0);
+  const now = performance.now() / 1000;
+  gl.uniform1f(UP("u_time"), now);
+  const B = pbounds(), tAR = fin.w / fin.h;
+  for (const s of pscreens()) {
+    const d = pdims(s), cy = s.y + d.h / 2;
+    gl.uniform4f(UP("u_rect"), PX(s.x), PY(cy), d.gw * psc, d.gh * psc);
+    let src;
+    if (P.mapping === "unified") {
+      src = [(s.x - d.gw / 2 - B.minX) / B.w, (cy - d.gh / 2) / B.h, d.gw / B.w, d.gh / B.h];
+    } else {
+      const sar = d.gw / d.gh;
+      let w = 1, h = 1;
+      if (sar < tAR) w = sar / tAR; else h = tAR / sar;
+      if (P.mapping === "scatter") {
+        const z = 0.35 + 0.3 * s.seed; w *= z; h *= z;
+        const cx = 0.5 + (0.5 - w / 2) * Math.sin(now * 0.07 + s.seed * 40);
+        const cyy = 0.5 + (0.5 - h / 2) * Math.cos(now * 0.05 + s.seed * 17);
+        src = [cx - w / 2, cyy - h / 2, w, h];
+      } else src = [(1 - w) / 2, (1 - h) / 2, w, h];
+    }
+    gl.uniform4f(UP("u_src"), src[0], src[1], src[2], src[3]);
+    gl.uniform1f(UP("u_dead"), s.dead ? 1 : 0);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+}
+
+/* ---- overlay: selection, handles, labels, dimension lines ---- */
+function phandles() {
+  if (!psel) return [];
+  if (psel.kind === "item") {
+    const it = psel.it, d = pdims(it), l = it.x - d.w / 2, r = it.x + d.w / 2, b = it.y, t = it.y + d.h;
+    return [{ k: "tl", x: l, y: t }, { k: "tr", x: r, y: t }, { k: "bl", x: l, y: b }, { k: "br", x: r, y: b }];
+  }
+  const f = P.frame;
+  return [{ k: "l", x: f.x0, y: f.h / 2 }, { k: "r", x: f.x0 + f.w, y: f.h / 2 }, { k: "t", x: f.x0 + f.w / 2, y: f.h },
+          { k: "tl", x: f.x0, y: f.h }, { k: "tr", x: f.x0 + f.w, y: f.h }];
+}
+function plabel(txt, x, y, font) {
+  const c = pfx;
+  c.font = font;
+  const tw = c.measureText(txt).width + 14 * pdpr;
+  c.fillStyle = "rgba(4,6,11,0.82)"; prr(c, x - tw / 2, y - 10 * pdpr, tw, 20 * pdpr, 10 * pdpr); c.fill();
+  c.fillStyle = "#eceef4"; c.fillText(txt, x, y + 0.5 * pdpr);
+}
+const fmtLen = inches => {
+  const t = Math.round(inches), ft = Math.floor(t / 12), i = t % 12;
+  return ft + "′ " + i + "″ · " + (inches * 0.0254).toFixed(2) + " m";
+};
+const ftHint = v => Math.floor(v / 12) + "′ " + Math.round(v % 12) + "″";
+function drawPileFg() {
+  const c = pfx;
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, pW, pH);
+  c.textAlign = "center"; c.textBaseline = "middle";
+  const lf = "600 " + 11 * pdpr + 'px "Space Grotesk", sans-serif';
+  for (const it of P.items) {
+    const d = pdims(it), isSel = psel && psel.kind === "item" && psel.it === it, isHov = phover === it;
+    if (isSel || isHov) {
+      c.strokeStyle = isSel ? "#7FDFFD" : "rgba(127,223,253,0.55)"; c.lineWidth = 2 * pdpr;
+      c.strokeRect(PX(it.x - d.w / 2), PY(it.y + d.h), d.w * psc, d.h * psc);
+    }
+    if (it.type === "screen" && (pui.labels || isSel || isHov))
+      plabel(it.diag + "″" + (it.portrait ? " portrait" : "") + (it.dead ? " · off" : ""), PX(it.x), PY(it.y + d.h / 2), lf);
+  }
+  if (psel && psel.kind === "frame") {
+    const f = P.frame;
+    c.setLineDash([6 * pdpr, 5 * pdpr]); c.strokeStyle = "#7FDFFD"; c.lineWidth = 1.5 * pdpr;
+    c.strokeRect(PX(f.x0), PY(f.h), f.w * psc, f.h * psc); c.setLineDash([]);
+  }
+  for (const h of phandles()) {
+    const s = 9 * pdpr;
+    c.fillStyle = "#fff"; c.strokeStyle = "#0061FF"; c.lineWidth = 2 * pdpr;
+    c.fillRect(PX(h.x) - s / 2, PY(h.y) - s / 2, s, s); c.strokeRect(PX(h.x) - s / 2, PY(h.y) - s / 2, s, s);
+  }
+  // overall width under the pile, height up the left side
+  const B = pbounds(), x1 = PX(B.minX), x2 = PX(B.maxX), yTop = PY(B.maxY), y = pfloor + 20 * pdpr;
+  const xs = PX(Math.min(B.minX, P.bg.backdrop !== "none" ? P.frame.x0 - P.bg.overhang : B.minX)) - 22 * pdpr;
+  const path = () => {
+    c.beginPath();
+    c.moveTo(x1, y); c.lineTo(x2, y);
+    c.moveTo(x1, y - 7 * pdpr); c.lineTo(x1, y + 7 * pdpr); c.moveTo(x2, y - 7 * pdpr); c.lineTo(x2, y + 7 * pdpr);
+    for (let f = 12; f < B.w; f += 12) { const x = x1 + f * psc; c.moveTo(x, y - (f % 60 === 0 ? 5 : 2.5) * pdpr); c.lineTo(x, y); }
+    c.moveTo(xs, pfloor); c.lineTo(xs, yTop);
+    c.moveTo(xs - 7 * pdpr, pfloor); c.lineTo(xs + 7 * pdpr, pfloor); c.moveTo(xs - 7 * pdpr, yTop); c.lineTo(xs + 7 * pdpr, yTop);
+    for (let f = 12; f < B.h; f += 12) { const yy = pfloor - f * psc; c.moveTo(xs, yy); c.lineTo(xs + (f % 60 === 0 ? 5 : 2.5) * pdpr, yy); }
+  };
+  path(); c.strokeStyle = "rgba(0,0,0,0.6)"; c.lineWidth = 3 * pdpr; c.stroke();
+  path(); c.strokeStyle = "#eceef4"; c.lineWidth = pdpr; c.stroke();
+  const font = "500 " + 12 * pdpr + 'px "Space Grotesk", sans-serif';
+  plabel("Overall width " + fmtLen(B.w), (x1 + x2) / 2, y + 22 * pdpr, font);
+  c.save(); c.translate(xs - 14 * pdpr, (pfloor + yTop) / 2); c.rotate(-Math.PI / 2);
+  plabel("Height " + fmtLen(B.h), 0, 0, font); c.restore();
+}
+
+/* ---- pointer editing ---- */
+const PCURS = { tl: "nwse-resize", br: "nwse-resize", tr: "nesw-resize", bl: "nesw-resize", l: "ew-resize", r: "ew-resize", t: "ns-resize" };
+function pev(e) { const rc = pileFg.getBoundingClientRect(); return { px: (e.clientX - rc.left) * pdpr, py: (e.clientY - rc.top) * pdpr }; }
+const pworld = (px, py) => ({ x: (px - pox) / psc, y: (pfloor - py) / psc });
+function pitemAt(w) {
+  for (let i = P.items.length - 1; i >= 0; i--) {
+    const it = P.items[i], d = pdims(it);
+    if (Math.abs(w.x - it.x) <= d.w / 2 && w.y >= it.y && w.y <= it.y + d.h) return it;
+  }
+  return null;
+}
+function phandleAt(px, py) {
+  for (const h of phandles()) if (Math.abs(PX(h.x) - px) <= 10 * pdpr && Math.abs(PY(h.y) - py) <= 10 * pdpr) return h;
+  return null;
+}
+const pinFrame = w => w.x >= P.frame.x0 - 2 && w.x <= P.frame.x0 + P.frame.w + 2 && w.y >= 0 && w.y <= P.frame.h + 2;
+
+pileFg.addEventListener("pointerdown", e => {
+  const { px, py } = pev(e), w = pworld(px, py), h = phandleAt(px, py);
+  if (h) {
+    if (psel.kind === "item") {
+      const it = psel.it, d = pdims(it);
+      pdrag = { type: "resize", it, k: h.k,
+        ax: h.k.includes("l") ? it.x + d.w / 2 : it.x - d.w / 2,
+        ay: h.k.includes("t") ? it.y : it.y + d.h };
+    } else pdrag = { type: "frame-edge", k: h.k, f0: { ...P.frame } };
+  } else {
+    const it = pitemAt(w);
+    if (it) { psel = { kind: "item", it }; pdrag = { type: "move", it, w0: w, x0: it.x, y0: it.y }; }
+    else if (pinFrame(w)) { psel = { kind: "frame" }; pdrag = { type: "frame-move", w0: w, f0: { ...P.frame } }; }
+    else { psel = null; pdrag = null; }
+  }
+  if (pdrag) { pdrag.moved = false; pileFg.setPointerCapture(e.pointerId); }
+  psyncSel();
+});
+pileFg.addEventListener("pointermove", e => {
+  const { px, py } = pev(e), w = pworld(px, py);
+  if (!pdrag) {
+    const h = phandleAt(px, py);
+    phover = h ? null : pitemAt(w);
+    pileFg.style.cursor = h ? PCURS[h.k] : phover ? "grab" : pinFrame(w) ? "move" : "default";
+    return;
+  }
+  pdrag.moved = true;
+  const f = P.frame, g = pgrid();
+  if (pdrag.type === "move") {
+    const it = pdrag.it;
+    let nx = pdrag.x0 + (w.x - pdrag.w0.x), ny = Math.max(0, pdrag.y0 + (w.y - pdrag.w0.y));
+    if (pui.snapX && it.type === "screen") {
+      const sx = f.x0 + Math.round((nx - f.x0) / (g.sp / 2)) * g.sp / 2;
+      if (Math.abs(sx - nx) * psc < 14 * pdpr) nx = sx;
+    }
+    if (ny * psc < 10 * pdpr) ny = 0;
+    it.x = Math.round(nx * 2) / 2; it.y = Math.round(ny * 2) / 2;
+    pileFg.style.cursor = "grabbing";
+  } else if (pdrag.type === "resize") {
+    const it = pdrag.it, sx = pdrag.k.includes("l") ? -1 : 1, sy = pdrag.k.includes("t") ? 1 : -1;
+    const ww = Math.max(6, (w.x - pdrag.ax) * sx), hh = Math.max(6, (w.y - pdrag.ay) * sy);
+    if (it.type === "cab") { it.w = Math.round(ww); it.h = Math.round(hh); }
+    else {
+      const ar = it.portrait ? 9 / 16 : 16 / 9;
+      const gw = Math.max(ww - 2 * BEZEL, (hh - 2 * BEZEL) * ar);
+      let diag = it.portrait ? gw * PK / 9 : gw * PK / 16;
+      diag = pui.snapSize ? PSIZES.reduce((a, b) => Math.abs(b - diag) < Math.abs(a - diag) ? b : a)
+                          : Math.max(15, Math.min(100, Math.round(diag)));
+      it.diag = diag;
+    }
+    const d = pdims(it);
+    it.x = pdrag.ax + sx * d.w / 2;
+    it.y = sy > 0 ? pdrag.ay : Math.max(0, pdrag.ay - d.h);
+  } else if (pdrag.type === "frame-move") {
+    P.frame.x0 = Math.round(pdrag.f0.x0 + (w.x - pdrag.w0.x)); roomDirty = true;
+  } else if (pdrag.type === "frame-edge") {
+    const f0 = pdrag.f0, k = pdrag.k;
+    if (k.includes("l")) { const right = f0.x0 + f0.w, nl = Math.min(right - 24, Math.round(w.x)); P.frame.x0 = nl; P.frame.w = right - nl; }
+    if (k.includes("r")) P.frame.w = Math.max(24, Math.round(w.x - f0.x0));
+    if (k.includes("t")) P.frame.h = Math.max(24, Math.round(w.y));
+    roomDirty = true; psyncGrid();
+  }
+  psyncSel(false);
+});
+function pendDrag() {
+  if (!pdrag) return;
+  const moved = pdrag.moved; pdrag = null;
+  if (moved) { pfit(); pcommit(); } else psyncSel();
+}
+pileFg.addEventListener("pointerup", pendDrag);
+pileFg.addEventListener("pointercancel", pendDrag);
+pileFg.addEventListener("pointerleave", () => { if (!pdrag) phover = null; });
+
+/* ---- panel ---- */
+function ptoast(msg) {
+  const el = $("pileToast"); el.textContent = msg;
+  clearTimeout(ptoast.t);
+  ptoast.t = setTimeout(() => { el.textContent = "The layout saves in this browser automatically. Photos don’t."; }, 5000);
+}
+function psyncGrid() {
+  const f = P.frame, g = pgrid();
+  const set = (id, v) => { if (document.activeElement !== $(id)) $(id).value = v; };
+  set("gW", Math.round(f.w)); set("gH", Math.round(f.h)); set("gP", f.pitch); set("gR", f.rail);
+  $("gWft").textContent = ftHint(f.w); $("gHft").textContent = ftHint(f.h); $("gPn").textContent = (g.n + 1) + " up";
+  $("gShow").checked = f.show;
+}
+function pstats() {
+  const all = pscreens(), live = all.filter(s => !s.dead), f = P.frame, B = pbounds();
+  let glass = 0; for (const s of live) { const d = pdims(s); glass += d.gw * d.gh; }
+  $("psScreens").textContent = live.length + (live.length < all.length ? " / " + all.length : "");
+  $("psCabs").textContent = P.items.length - all.length;
+  $("psCover").textContent = Math.round(glass / (f.w * f.h) * 100) + "%";
+  $("psPis").textContent = Math.ceil(all.length / 2);
+  $("psSize").textContent = fmtLen(B.w) + " × " + ftHint(B.h);
+  const mix = {}; all.forEach(s => mix[s.diag] = (mix[s.diag] || 0) + 1);
+  $("psMix").textContent = Object.keys(mix).sort((a, b) => b - a).map(k => mix[k] + "× " + k + "″").join(", ") || "No screens yet";
+}
+function pselTitle() {
+  if (!psel) return "";
+  if (psel.kind === "frame") return "Mounting grid";
+  const it = psel.it, d = pdims(it);
+  return it.type === "screen"
+    ? it.diag + "″ screen · " + d.w.toFixed(1) + "″ × " + d.h.toFixed(1) + "″ · " + ftHint(it.y) + " up"
+    : "Speaker cabinet · " + Math.round(it.w) + "″ × " + Math.round(it.h) + "″";
+}
+function psyncSel(full = true) {
+  const box = $("pSel");
+  if (!psel) { box.hidden = true; box.dataset.for = ""; return; }
+  box.hidden = false;
+  const key = psel.kind === "item" ? String(psel.it.id) : "frame";
+  if (!full && box.dataset.for === key) { const t = box.querySelector(".t"); if (t) t.textContent = pselTitle(); return; }
+  box.dataset.for = key;
+  if (psel.kind === "frame") {
+    box.innerHTML = '<div class="t"></div><p class="note" style="margin:0">Drag the white handles to change width and height, or drag inside the grid to slide it.</p>';
+    box.querySelector(".t").textContent = pselTitle();
+    return;
+  }
+  const it = psel.it;
+  if (it.type === "screen") {
+    const opts = PSIZES.map(s => '<option value="' + s + '"' + (s === it.diag ? " selected" : "") + ">" + s + "″</option>").join("")
+      + (PSIZES.includes(it.diag) ? "" : '<option selected value="' + it.diag + '">' + it.diag + "″</option>");
+    box.innerHTML = '<div class="t"></div>'
+      + '<div class="row"><label for="selSize">Size</label><select id="selSize">' + opts + "</select></div>"
+      + '<label class="check"><input type="checkbox" id="selPortrait"' + (it.portrait ? " checked" : "") + "> Portrait</label>"
+      + '<label class="check"><input type="checkbox" id="selDead"' + (it.dead ? " checked" : "") + "> Switched off (test a dead screen)</label>"
+      + '<div class="btnrow"><button class="pill" id="selDup">Duplicate</button><button class="pill" id="selDel">Remove</button></div>';
+    $("selSize").onchange = e => { it.diag = +e.target.value; pcommit(); };
+    $("selPortrait").onchange = e => { it.portrait = e.target.checked; pcommit(); };
+    $("selDead").onchange = e => { it.dead = e.target.checked; pcommit(); };
+  } else {
+    box.innerHTML = '<div class="t"></div>'
+      + '<div class="row"><label for="selW">Width (in)</label><input type="number" class="num wide" id="selW" min="8" max="96" value="' + Math.round(it.w) + '"></div>'
+      + '<div class="row"><label for="selH">Height (in)</label><input type="number" class="num wide" id="selH" min="8" max="120" value="' + Math.round(it.h) + '"></div>'
+      + '<label class="check"><input type="checkbox" id="selWood"' + (it.wood ? " checked" : "") + "> Wood finish</label>"
+      + '<div class="btnrow"><button class="pill" id="selDup">Duplicate</button><button class="pill" id="selDel">Remove</button></div>';
+    $("selW").onchange = e => { it.w = Math.max(8, +e.target.value || it.w); pcommit(); };
+    $("selH").onchange = e => { it.h = Math.max(8, +e.target.value || it.h); pcommit(); };
+    $("selWood").onchange = e => { it.wood = e.target.checked; pcommit(); };
+  }
+  box.querySelector(".t").textContent = pselTitle();
+  $("selDup").onclick = pdup; $("selDel").onclick = pdel;
+}
+function pdel() { if (!psel || psel.kind !== "item") return; P.items = P.items.filter(i => i !== psel.it); psel = null; pcommit(); }
+function pdup() {
+  if (!psel || psel.kind !== "item") return;
+  const src = psel.it, c = pmk({ ...src });
+  c.x = src.x + pdims(src).w + 4;
+  P.items.push(c); psel = { kind: "item", it: c }; pcommit();
+}
+function psyncBg() {
+  $("photoOpts").hidden = P.bg.wall !== "photo";
+  $("bdSel").value = P.bg.backdrop;
+  $("solidRow").hidden = P.bg.backdrop !== "solid";
+  $("bdImgRow").hidden = P.bg.backdrop !== "image";
+  $("ohRow").hidden = P.bg.backdrop === "none";
+  $("solidCol").value = P.bg.solid; $("overhang").value = P.bg.overhang; $("photoFt").value = P.bg.photoFt;
+  $("mapNote").textContent = MAP_NOTES[P.mapping];
+  syncWall(); syncLight(); syncMap();
+}
+function prefresh() { pfit(); psyncGrid(); pstats(); psyncSel(); psyncBg(); }
+
+PSIZES.filter(s => s <= 75).forEach(s => {
+  const b = document.createElement("button");
+  b.className = "chip add"; b.textContent = s + "″";
+  b.addEventListener("click", () => paddScreen(s));
+  $("addSizes").append(b);
+});
+$("addCab").addEventListener("click", paddCab);
+$("fillBtn").addEventListener("click", () => pautoFill(Math.max(1, Math.min(60, +$("fillN").value || 12))));
+$("pClear").addEventListener("click", () => {
+  P.items = P.items.filter(i => i.type === "cab"); psel = null; pcommit();
+  ptoast("Screens removed. Undo brings them back.");
+});
+$("pUndo").addEventListener("click", pundo);
+$("snapX").addEventListener("change", e => { pui.snapX = e.target.checked; });
+$("snapSize").addEventListener("change", e => { pui.snapSize = e.target.checked; });
+$("pLabels").addEventListener("change", e => { pui.labels = e.target.checked; });
+[["gW", "w", 24, 720], ["gH", "h", 24, 240], ["gP", "pitch", 12, 96], ["gR", "rail", 12, 120]].forEach(([id, key, min, max]) =>
+  $(id).addEventListener("change", e => {
+    const v = +e.target.value;
+    if (v >= min && v <= max) { P.frame[key] = v; pcommit(); }
+    else { ptoast("Enter a value from " + min + " to " + max + " inches."); psyncGrid(); }
+  }));
+$("gShow").addEventListener("change", e => { P.frame.show = e.target.checked; pcommit(); });
+
+const syncWall = seg("wallSeg", "wall", () => P.bg.wall, v => { P.bg.wall = v; pcommit(); });
+const syncLight = seg("lightSeg", "light", () => P.bg.light, v => { P.bg.light = v; pcommit(); });
+const syncMap = seg("mapSeg", "map", () => P.mapping, v => { P.mapping = v; pcommit(); });
+$("bdSel").addEventListener("change", e => { P.bg.backdrop = e.target.value; pcommit(); });
+$("solidCol").addEventListener("input", e => { P.bg.solid = e.target.value; roomDirty = true; });
+$("solidCol").addEventListener("change", () => pcommit());
+$("overhang").addEventListener("change", e => { P.bg.overhang = Math.max(0, Math.min(96, +e.target.value || 0)); pcommit(); });
+$("photoFt").addEventListener("change", e => { P.bg.photoFt = Math.max(4, Math.min(200, +e.target.value || 20)); pcommit(); });
+function ploadImg(file, cb) {
+  const img = new Image();
+  img.onload = () => cb(img);
+  img.onerror = () => ptoast("That image couldn't be opened. Try a JPG or PNG.");
+  img.src = URL.createObjectURL(file);
+}
+$("photoFile").addEventListener("change", e => {
+  const f = e.target.files[0]; if (!f) return;
+  ploadImg(f, img => { photoImg = img; P.bg.wall = "photo"; pcommit(); ptoast("Wall photo loaded. Set how many feet of wall it shows."); });
+});
+$("bdFile").addEventListener("change", e => {
+  const f = e.target.files[0]; if (!f) return;
+  ploadImg(f, img => { bdImg = img; roomDirty = true; ptoast("Backdrop artwork loaded."); });
+});
+
+async function pcopy(txt, label) {
+  try { await navigator.clipboard.writeText(txt); ptoast(label + " copied."); }
+  catch (e) {
+    const box = $("layoutBox"); box.value = txt; box.focus(); box.select();
+    ptoast("Copying was blocked here, so the " + label.toLowerCase() + " is in the box above. Select it and copy.");
+  }
+}
+$("copyLayout").addEventListener("click", () => pcopy(pserialize(), "Layout code"));
+$("copySpec").addEventListener("click", () => {
+  const f = P.frame, g = pgrid(), B = pbounds(), all = pscreens(), mix = {};
+  all.forEach(s => mix[s.diag] = (mix[s.diag] || 0) + 1);
+  const bdName = { none: "None", drape: "Black drape", gradient: "Printed fabric, palette gradient", tiles: "Printed fabric, palette tiles",
+                   solid: "Solid colour " + P.bg.solid, image: "Printed fabric, custom artwork" }[P.bg.backdrop];
+  const portraits = all.filter(s => s.portrait).length;
+  const lines = [
+    "TV pile installation, Conversion 2027",
+    "Overall: " + fmtLen(B.w) + " wide x " + fmtLen(B.h) + " tall",
+    "Mounting grid: " + fmtLen(f.w) + " wide x " + fmtLen(f.h) + " tall, " + (g.n + 1) + " uprights at " + g.sp.toFixed(1) + "\" centres, " + g.rails.length + " horizontal rails",
+    "Screens (" + all.length + "): " + Object.keys(mix).sort((a, b) => b - a).map(k => mix[k] + " x " + k + "\"").join(", ") + (portraits ? " (" + portraits + " portrait)" : ""),
+    "Speaker cabinets (props): " + (P.items.length - all.length),
+    "Backdrop: " + bdName + (P.bg.backdrop !== "none" ? ", " + P.bg.overhang + "\" past the grid on sides and top" : ""),
+    "Playback: " + Math.ceil(all.length / 2) + " Raspberry Pi 5 boards (2 HDMI outputs each), one shared mic and camera",
+    "",
+    "Screen positions (centre x from grid left edge, bottom edge height from floor, inches):",
+    ...all.slice().sort((a, b) => a.x - b.x).map((s, i) =>
+      "  " + (i + 1) + ". " + s.diag + "\"" + (s.portrait ? " portrait" : "") + "  x " + Math.round(s.x - f.x0) + "  bottom " + Math.round(s.y)),
+  ];
+  pcopy(lines.join("\n"), "Spec");
+});
+$("loadLayout").addEventListener("click", () => {
+  try { papply(JSON.parse($("layoutBox").value)); pcommit(); ptoast("Layout loaded."); }
+  catch (e) { ptoast("That isn't pile layout code. Copy it again with Copy layout code."); }
+});
+
+const syncPreview = seg("previewSeg", "preview", () => preview, v => {
+  preview = v;
+  const pile = v === "pile";
+  pileBg.hidden = pileFg.hidden = !pile;
+  $("pileUI").hidden = !pile;
+  $("previewNote").textContent = pile
+    ? "The current look, sliced across the screens of your layout. Pile controls are below."
+    : "Full frame is what a single screen or projector shows.";
+  if (pile) { prefresh(); $("hint").style.display = "none"; }
+  try { localStorage.setItem("vibe-preview", v); } catch (e) { /* storage blocked */ }
+});
+
+addEventListener("keydown", e => {
+  if (preview !== "pile" || e.target.matches("input, select, textarea")) return;
+  if (e.target !== document.body && e.target !== pileFg) return;   // leave shape tiles and other widgets their own keys
+  const k = e.key.toLowerCase();
+  if ((e.metaKey || e.ctrlKey) && k === "z") { e.preventDefault(); pundo(); return; }
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if ((k === "delete" || k === "backspace") && psel && psel.kind === "item") { e.preventDefault(); pdel(); }
+  else if (k === "d" && psel && psel.kind === "item") pdup();
+  else if (k === "escape") { psel = null; psyncSel(); }
+  else if (k.startsWith("arrow") && psel && psel.kind === "item") {
+    e.preventDefault();
+    const st = e.shiftKey ? 6 : 1, it = psel.it;
+    if (k === "arrowleft") it.x -= st;
+    if (k === "arrowright") it.x += st;
+    if (k === "arrowup") it.y += st;
+    if (k === "arrowdown") it.y = Math.max(0, it.y - st);
+    pcommit();
+  } else if (k === "l") { pui.labels = !pui.labels; $("pLabels").checked = pui.labels; }
+});
+
+(() => {   // restore the last layout, or start from an auto-filled 16 ft grid
+  let restored = false;
+  try { const s = localStorage.getItem(PSTORE); if (s) { papply(JSON.parse(s)); restored = true; } } catch (e) { /* start fresh */ }
+  if (!restored) {
+    for (let i = 0; i < 12; i++) {
+      const pick = [32, 40, 43, 43, 50, 55, 55, 65], f = P.frame, g = pgrid();
+      const it = pmk({ type: "screen", diag: pick[Math.floor(Math.random() * pick.length)], portrait: false, dead: false, x: 0, y: 0 }), d = pdims(it);
+      for (let t = 0; t < 400; t++) {
+        it.x = f.x0 + Math.round(Math.random() * g.n * 2) * g.sp / 2;
+        it.y = 6 + Math.random() * Math.max(0, f.h - 6 - d.h);
+        if (pfits(it, d) && it.y + d.h <= f.h && !poverlaps(it, 3)) { P.items.push(it); break; }
+      }
+    }
+  }
+  phist.push(pserialize()); psave(); psyncGrid(); pstats(); psyncBg();
+  let v = "full";
+  try { v = localStorage.getItem("vibe-preview") || "full"; } catch (e) { /* default */ }
+  if (v === "pile") $("previewSeg").querySelector('[data-preview="pile"]').click();
+  else syncPreview();
+})();
+
 /* ================= render loop ================= */
 let T = 0, last = performance.now(), lastMod = {};
 function frame(now) {
@@ -4774,8 +5641,10 @@ function frame(now) {
   }
   echoAngleT += dt * state.echoDrift * 0.5;
 
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  gl.viewport(0, 0, canvas.width, canvas.height);
+  // the Screen pass: straight to the canvas, or into `fin` for the TV pile preview
+  const outW = fin ? fin.w : canvas.width, outH = fin ? fin.h : canvas.height;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fin ? fin.fb : null);
+  gl.viewport(0, 0, outW, outH);
   gl.useProgram(copy);
   gl.bindBuffer(gl.ARRAY_BUFFER, quad);
   gl.vertexAttribPointer(gl.getAttribLocation(copy, "a"), 2, gl.FLOAT, false, 0, 0);
@@ -4793,7 +5662,7 @@ function frame(now) {
   gl.uniform1i(gl.getUniformLocation(copy, "u_rpal"), 3);
   gl.uniform1f(gl.getUniformLocation(copy, "u_mix"), mixK);
   gl.uniform1i(gl.getUniformLocation(copy, "u_fadeKind"), fadeKind);
-  gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), state.blur * state.blur * 24.0 * (canvas.height / 1080));
+  gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), state.blur * state.blur * 24.0 * (outH / 1080));
   gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), echoOn ? echoAmt : 0);
   gl.uniform1f(gl.getUniformLocation(copy, "u_slit"), slitOn ? state.screenAmt : 0);
   gl.uniform1f(gl.getUniformLocation(copy, "u_fringe"), state.screen === 6 ? Math.min(2, state.screenAmt + m("fringe")) : Math.min(2, m("fringe")));
@@ -4807,8 +5676,15 @@ function frame(now) {
   gl.uniform1f(gl.getUniformLocation(copy, "u_ringStep"), 1);
   gl.uniform1f(gl.getUniformLocation(copy, "u_etime"), T);
   gl.uniform2f(gl.getUniformLocation(copy, "u_off"), 0, 0);
-  gl.uniform2f(gl.getUniformLocation(copy, "u_res"), canvas.width, canvas.height);
+  gl.uniform2f(gl.getUniformLocation(copy, "u_res"), outW, outH);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  if (fin) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    clearRingUnits();
+    drawPileBg();
+    drawPileScreens();
+    drawPileFg();
+  }
 
   const t = A; A = B; B = t;      // ping-pong: this frame becomes next frame's history
   if (fade) { const u = fade.X; fade.X = fade.Y; fade.Y = u; }
@@ -4869,6 +5745,10 @@ setTimeout(() => { const el = $("hint"); if (el) el.style.display = "none"; }, 6
 let rec = null, chunks = [];
 $("recBtn").addEventListener("click", () => {
   if (rec) { rec.stop(); return; }
+  if (preview === "pile") {
+    $("outNote").textContent = "Recording captures the full frame. Switch the preview to Full frame first.";
+    return;
+  }
   const stream = canvas.captureStream(60);
   if (dest && dest.stream.getAudioTracks().length) {
     try { stream.addTrack(dest.stream.getAudioTracks()[0]); } catch (e) { /* video only */ }
