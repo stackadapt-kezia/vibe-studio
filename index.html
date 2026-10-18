@@ -846,12 +846,17 @@
     <div id="pileUI" hidden>
       <fieldset>
         <legend>Pile mapping</legend>
-        <div class="seg seg3" id="mapSeg">
+        <div class="seg" id="mapSeg">
           <button data-map="unified">Unified</button>
           <button data-map="mirror">Mirror</button>
           <button data-map="scatter">Scatter</button>
+          <button data-map="chaos">Chaos</button>
         </div>
         <p class="note" id="mapNote"></p>
+        <div id="chaosOpts" hidden>
+          <button class="pill" id="chaosShuffle">Shuffle presets</button>
+          <label class="check"><input type="checkbox" id="chaosAuto"> Keep shuffling (one screen every 6 s)</label>
+        </div>
         <div class="pstats">
           <div class="pstat"><span>Screens</span><b id="psScreens">0</b></div>
           <div class="pstat"><span>Glass coverage</span><b id="psCover">0%</b></div>
@@ -967,12 +972,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.34";  // TV pile preview under Output
+const APP_VERSION = "0.9.35";  // TV pile Chaos: a random saved preset on every screen
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.35", "Chaos joins the TV pile mappings: every screen plays a different saved preset at random, live and reacting to the music, each with its own trails. Shuffle presets deals them again; Keep shuffling swaps one screen for a new preset every six seconds. Up to eight different looks run at once, so on a bigger pile some screens share. Screen effects like Fringe and Echo stay with Unified, Mirror and Scatter."],
   ["0.9.34", "TV pile preview under Output. Switch from Full frame to TV pile and the current look plays across a wall of screens you lay out yourself: add screens by size, drag them, drag a corner to resize, add speaker cabinets, and resize the mounting grid behind them. Unified spreads one picture across the whole pile, Mirror puts the full frame on every screen, Scatter gives each screen its own drifting crop. Behind the pile sits a plain wall or a photo of the real wall scaled to feet, with a black drape, a palette fabric, a solid colour or your own artwork as a backdrop, in event-dim or bright-lobby light. Width and height scales run along the stage, and Copy spec for AV puts the grid, screen mix and every screen\u2019s position on the clipboard. The layout is remembered in this browser. The fullscreen button now reads Fullscreen \u2014 F."],
   ["0.9.33", "Mesh pattern: the picture raised into a 3D relief by its brightness and drawn as a wireframe grid, with a camera swinging slowly round it; nearer bumps hide the lines behind them. Point the camera at someone and their face becomes the relief. Grid sets the line count, Depth how far it stands out, Thickness the line weight."],
   ["0.9.32", "Fringe under Screen pulls the red and blue of the finished picture apart, wider toward the edges like a cheap lens, so any pattern can have a chromatic glow; Amount sets how far, Spread scales it. Prism is retired: looks that used it load as Heatmap with Fringe. Reactivity gains Zoom (the whole picture pushes in on the beat or the bass) and Fringe (the split jumps with the music, even when Fringe isn\u2019t the Screen mode). Shapes can be dragged into any order (or moved with the arrow keys); the help is now on the Shapes label\u2019s tooltip."],
@@ -4806,6 +4812,7 @@ const MAP_NOTES = {
   unified: "One image spans the whole pile. Each screen shows its own slice.",
   mirror: "Every screen shows the whole frame, cropped to fit. This is what a plain HDMI splitter gives you.",
   scatter: "Each screen shows a different drifting crop. A one-machine stand-in for every Pi running its own look.",
+  chaos: "Every screen plays a random saved preset, live, with its own trails. Up to 8 different looks run at once; past that, screens share. Screen effects (Fringe, Echo, Slit-scan, Blur) stay with the other mappings.",
 };
 
 /* ---- model ---- */
@@ -5100,6 +5107,80 @@ void main() {
   gl_FragColor = vec4(c, 1.0);
 }`;
 const pileProg = program(PILE_FRAG, PILE_VERT);
+/* ---- Chaos: each screen plays a random saved preset ----
+   Every distinct look renders live into its own small ping-pong pair, the same
+   way a crossfade runs its outgoing look, so trails and reactivity work per look.
+   Capped at CHAOS_MAX looks so a big pile can't swamp the GPU; screens beyond
+   that share one. Screen-layer effects only exist in the main copy pass, so
+   Chaos shows the scene, Distort and Texture layers. */
+const CHAOS_MAX = 8, CHAOS_W = 448, CHAOS_H = 252;
+let chaosSlots = [];            // { P, look, X, Y, tOff }
+let chaosDeal = new Map();      // screen id -> slot index
+let chaosAutoT = 0;
+function chaosLook(P) { return Object.assign({}, DEFAULT_LOOK, migrateLook(P.look)); }
+function chaosFree() {
+  chaosSlots.forEach(c => { freeTarget(c.X); freeTarget(c.Y); });
+  chaosSlots = []; chaosDeal = new Map();
+}
+function chaosPool() { return allPresets().filter(p => p && p.look); }
+function chaosSlotFor(P) {
+  return { P, look: chaosLook(P), X: makeTarget(CHAOS_W, CHAOS_H), Y: makeTarget(CHAOS_W, CHAOS_H), tOff: Math.random() * 60 };
+}
+// deal a random preset to every screen, reusing render pairs where they exist
+function chaosShuffle() {
+  const pool = chaosPool().sort(() => Math.random() - 0.5);
+  const scr = pscreens();
+  if (!pool.length || !scr.length) { chaosFree(); return; }
+  const n = Math.min(CHAOS_MAX, pool.length, scr.length);
+  while (chaosSlots.length > n) { const c = chaosSlots.pop(); freeTarget(c.X); freeTarget(c.Y); }
+  for (let i = 0; i < n; i++) {
+    if (chaosSlots[i]) { chaosSlots[i].P = pool[i]; chaosSlots[i].look = chaosLook(pool[i]); }
+    else chaosSlots.push(chaosSlotFor(pool[i]));
+  }
+  chaosDeal = new Map();
+  scr.slice().sort(() => Math.random() - 0.5).forEach((sc, i) => chaosDeal.set(sc.id, i % n));
+}
+// swap one screen's look for a preset that isn't on the wall yet
+function chaosSwapOne() {
+  const scr = pscreens(); if (!scr.length || !chaosSlots.length) return;
+  const onWall = new Set(chaosSlots.map(c => c.P.id));
+  const fresh = chaosPool().filter(p => !onWall.has(p.id));
+  const sc = scr[Math.floor(Math.random() * scr.length)];
+  const k = chaosDeal.get(sc.id);
+  if (k === undefined) return;
+  const P = fresh.length ? fresh[Math.floor(Math.random() * fresh.length)] : chaosPool()[Math.floor(Math.random() * chaosPool().length)];
+  const shared = [...chaosDeal.values()].filter(v => v === k).length > 1;
+  if (shared && chaosSlots.length < CHAOS_MAX) {      // give this screen its own new pair
+    chaosSlots.push(chaosSlotFor(P)); chaosDeal.set(sc.id, chaosSlots.length - 1);
+  } else { chaosSlots[k].P = P; chaosSlots[k].look = chaosLook(P); }
+}
+// once per frame, after the main pass: render every dealt look into its pair
+function renderChaos(now, dt) {
+  if (preview !== "pile" || P.mapping !== "chaos") { if (chaosSlots.length) chaosFree(); return; }
+  const scr = pscreens();
+  if (!chaosSlots.length || scr.some(sc => !chaosDeal.has(sc.id))) {
+    if (!chaosSlots.length) chaosShuffle();
+    else scr.forEach(sc => { if (!chaosDeal.has(sc.id)) chaosDeal.set(sc.id, Math.floor(Math.random() * chaosSlots.length)); });
+  }
+  if ($("chaosAuto").checked) { chaosAutoT += dt; if (chaosAutoT > 6) { chaosAutoT = 0; chaosSwapOne(); } }
+  gl.useProgram(scene);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  gl.vertexAttribPointer(gl.getAttribLocation(scene, "a"), 2, gl.FLOAT, false, 0, 0);
+  for (const c of chaosSlots) {
+    const pal = palFor(c.P);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, pal.tex);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, c.Y.tex);
+    setLook(c.look, modsFor(c.P.routes || []), CHAOS_W, CHAOS_H, pal.palEnd, T + c.tOff);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, c.X.fb);
+    gl.viewport(0, 0, CHAOS_W, CHAOS_H);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    const t = c.X; c.X = c.Y; c.Y = t;           // Y now holds this frame, and next frame's history
+  }
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, null);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+
 function drawPileScreens() {
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.viewport(0, 0, canvas.width, canvas.height);
@@ -5121,7 +5202,15 @@ function drawPileScreens() {
     const d = pdims(s), cy = s.y + d.h / 2;
     gl.uniform4f(UP("u_rect"), PX(s.x), PY(cy), d.gw * psc, d.gh * psc);
     let src;
-    if (P.mapping === "unified") {
+    const k = P.mapping === "chaos" ? chaosDeal.get(s.id) : undefined;
+    if (k !== undefined && chaosSlots[k]) {
+      gl.bindTexture(gl.TEXTURE_2D, chaosSlots[k].Y.tex);
+      const sar = d.gw / d.gh, tar = CHAOS_W / CHAOS_H;
+      let w = 1, h = 1;
+      if (sar < tar) w = sar / tar; else h = tar / sar;
+      src = [(1 - w) / 2, (1 - h) / 2, w, h];
+    } else if (P.mapping === "unified") {
+      gl.bindTexture(gl.TEXTURE_2D, fin.tex);
       src = [(s.x - d.gw / 2 - B.minX) / B.w, (cy - d.gh / 2) / B.h, d.gw / B.w, d.gh / B.h];
     } else {
       const sar = d.gw / d.gh;
@@ -5133,6 +5222,7 @@ function drawPileScreens() {
         const cyy = 0.5 + (0.5 - h / 2) * Math.cos(now * 0.05 + s.seed * 17);
         src = [cx - w / 2, cyy - h / 2, w, h];
       } else src = [(1 - w) / 2, (1 - h) / 2, w, h];
+      gl.bindTexture(gl.TEXTURE_2D, fin.tex);
     }
     gl.uniform4f(UP("u_src"), src[0], src[1], src[2], src[3]);
     gl.uniform1f(UP("u_dead"), s.dead ? 1 : 0);
@@ -5381,6 +5471,7 @@ function psyncBg() {
   $("ohRow").hidden = P.bg.backdrop === "none";
   $("solidCol").value = P.bg.solid; $("overhang").value = P.bg.overhang; $("photoFt").value = P.bg.photoFt;
   $("mapNote").textContent = MAP_NOTES[P.mapping];
+  $("chaosOpts").hidden = P.mapping !== "chaos";
   syncWall(); syncLight(); syncMap();
 }
 function prefresh() { pfit(); psyncGrid(); pstats(); psyncSel(); psyncBg(); }
@@ -5412,6 +5503,7 @@ $("gShow").addEventListener("change", e => { P.frame.show = e.target.checked; pc
 const syncWall = seg("wallSeg", "wall", () => P.bg.wall, v => { P.bg.wall = v; pcommit(); });
 const syncLight = seg("lightSeg", "light", () => P.bg.light, v => { P.bg.light = v; pcommit(); });
 const syncMap = seg("mapSeg", "map", () => P.mapping, v => { P.mapping = v; pcommit(); });
+$("chaosShuffle").addEventListener("click", () => { chaosShuffle(); ptoast("Presets shuffled across the screens."); });
 $("bdSel").addEventListener("change", e => { P.bg.backdrop = e.target.value; pcommit(); });
 $("solidCol").addEventListener("input", e => { P.bg.solid = e.target.value; roomDirty = true; });
 $("solidCol").addEventListener("change", () => pcommit());
@@ -5628,6 +5720,8 @@ function frame(now) {
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
   }
+
+  renderChaos(now, dt);
 
   // echo: capture the clean frame into the ring every few frames (Spacing sets
   // how many). A reactivity route to Echo adds to the strength, and wakes the
