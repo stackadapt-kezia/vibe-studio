@@ -643,11 +643,31 @@
       <legend>Video in
         <span class="headctl seg" id="vidSeg">
           <button data-vsrc="media" title="Load an image or a video file">Media</button>
+          <button data-vsrc="text" title="Set your own type on the stage">Text</button>
           <button data-vsrc="camera" title="Show a camera on the stage; faces it sees can drive the visuals">Camera</button>
           <button data-vsrc="tab" title="Show another browser tab or window on the stage">Tab</button>
         </span>
       </legend>
       <input type="file" id="imgFile" accept="image/*,video/*" hidden>
+      <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" hidden>
+      <div id="textRow" hidden>
+        <div class="row">
+          <label for="textCopy">Copy</label>
+          <input type="text" id="textCopy" value="CONVERSION" maxlength="48" spellcheck="false" aria-label="Stage copy">
+        </div>
+        <div class="row">
+          <label for="textFill">Size</label>
+          <input type="range" id="textFill" min="0.2" max="0.98" step="0.01" value="0.82" aria-label="Type size">
+        </div>
+        <div class="row">
+          <label for="textTrack">Tracking</label>
+          <input type="range" id="textTrack" min="-0.08" max="0.6" step="0.005" value="0" aria-label="Letter spacing">
+        </div>
+        <div class="pillrow">
+          <button class="pill" id="fontPick" title="Load a .ttf, .otf or .woff2 from this machine">Load font</button>
+          <span class="note" id="fontName">Space Grotesk</span>
+        </div>
+      </div>
       <div class="row" id="camRow" hidden>
         <label for="camSel">Camera</label>
         <select id="camSel" aria-label="Camera device"></select>
@@ -972,12 +992,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.35";  // TV pile Chaos: a random saved preset on every screen
+const APP_VERSION = "0.9.36";  // type on the stage as a source, with your own font
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.36", "Text is a Video in source: type your copy on the stage, set its size and tracking, and load any .ttf, .otf or .woff2 from your machine. Every pattern and every Distort, Screen and Texture mode then works on the letterforms."],
   ["0.9.35", "Chaos joins the TV pile mappings: every screen plays a different saved preset at random, live and reacting to the music, each with its own trails. Shuffle presets deals them again; Keep shuffling swaps one screen for a new preset every six seconds. Up to eight different looks run at once, so on a bigger pile some screens share. Screen effects like Fringe and Echo stay with Unified, Mirror and Scatter."],
   ["0.9.34", "TV pile preview under Output. Switch from Full frame to TV pile and the current look plays across a wall of screens you lay out yourself: add screens by size, drag them, drag a corner to resize, add speaker cabinets, and resize the mounting grid behind them. Unified spreads one picture across the whole pile, Mirror puts the full frame on every screen, Scatter gives each screen its own drifting crop. Behind the pile sits a plain wall or a photo of the real wall scaled to feet, with a black drape, a palette fabric, a solid colour or your own artwork as a backdrop, in event-dim or bright-lobby light. Width and height scales run along the stage, and Copy spec for AV puts the grid, screen mix and every screen\u2019s position on the clipboard. The layout is remembered in this browser. The fullscreen button now reads Fullscreen \u2014 F."],
   ["0.9.33", "Mesh pattern: the picture raised into a 3D relief by its brightness and drawn as a wireframe grid, with a camera swinging slowly round it; nearer bumps hide the lines behind them. Point the camera at someone and their face becomes the relief. Grid sets the line count, Depth how far it stands out, Thickness the line weight."],
@@ -3016,11 +3037,12 @@ function setImageSource(el, w, h, name, kind) {
   vidMode = kind === "image" || kind === "video" ? "media" : kind; segVid();
   const card = $("vplayer");
   card.hidden = false;
-  card.classList.toggle("still", kind === "image");
+  card.classList.toggle("still", kind === "image" || kind === "text");
   card.classList.toggle("live", kind === "tab" || kind === "camera");
   $("vTitle").textContent = name;
-  $("vSub").textContent = (kind === "image" ? "Image" : kind === "tab" ? "Live tab" : kind === "camera" ? "Camera" : "Video") + " \u00b7 " + w + "\u00d7" + h;
+  $("vSub").textContent = (kind === "image" ? "Image" : kind === "text" ? "Type" : kind === "tab" ? "Live tab" : kind === "camera" ? "Camera" : "Video") + " \u00b7 " + w + "\u00d7" + h;
   $("vFaces").hidden = kind !== "camera";
+  $("textRow").hidden = kind !== "text";
   lastShownTime = -1;
   drawVideoThumb();
   syncVideoUI();
@@ -3076,6 +3098,41 @@ function useImage(file) {
   im.onerror = () => { URL.revokeObjectURL(url); imgError("Couldn\u2019t read " + file.name + " as an image."); };
   im.src = url;
 }
+/* ================= text in ================= */
+// Type on the stage as a source. The copy is drawn white-on-black to a canvas
+// and handed to the same texture path as an image, so every pattern and every
+// Distort, Screen and Texture mode works on the letterforms for free.
+const TEXT_W = 2048;                  // texture width; 16:9 like the stage
+let textCanvas = null, textFamily = '"Space Grotesk", sans-serif';
+function renderTextSource() {
+  const copy = ($("textCopy").value || "").trim();
+  if (!copy) { if (imgKind === "text") clearImageSource(); return; }
+  const c = textCanvas || (textCanvas = document.createElement("canvas"));
+  c.width = TEXT_W; c.height = Math.round(TEXT_W * 9 / 16);
+  const x = c.getContext("2d");
+  x.fillStyle = "#000"; x.fillRect(0, 0, c.width, c.height);
+  x.fillStyle = "#fff"; x.textAlign = "center"; x.textBaseline = "middle";
+  try { x.letterSpacing = (+$("textTrack").value).toFixed(3) + "em"; } catch (e) { /* older browser */ }
+  // measure once at 100px, then scale so the copy fills the chosen width
+  x.font = "100px " + textFamily;
+  const w0 = x.measureText(copy).width || 1;
+  const px = Math.max(8, Math.min(c.height * 0.92, 100 * (c.width * (+$("textFill").value)) / w0));
+  x.font = px + "px " + textFamily;
+  x.fillText(copy, c.width / 2, c.height / 2);
+  setImageSource(c, c.width, c.height, copy, "text");
+}
+// any face the operator drops in, registered for this session only
+async function useFont(file) {
+  try {
+    const face = new FontFace("vibeFace" + Date.now(), await file.arrayBuffer());
+    await face.load();
+    document.fonts.add(face);
+    textFamily = '"' + face.family + '", sans-serif';
+    $("fontName").textContent = file.name.replace(/\.[^.]+$/, "");
+    renderTextSource();
+  } catch (err) { imgError("Couldn\u2019t read " + file.name + " as a font."); }
+}
+
 // show another tab or window on the stage, through the screen-share picker
 async function useTabVideo() {
   try {
@@ -3274,10 +3331,17 @@ const litFor = () => imgKind === "image" || imgKind === "video" ? "media" : imgK
 const segVid = seg("vidSeg", "vsrc", () => vidMode, v => {
   vidMode = litFor(); segVid();                     // the lit button is what is on the stage, not what was clicked
   if (v === "media") $("imgFile").click();
+  else if (v === "text") renderTextSource();
   else if (v === "camera") useCamera();
   else if (v === "tab") useTabVideo();
 });
 $("imgFile").addEventListener("change", e => { const f = e.target.files[0]; if (f) useImage(f); e.target.value = ""; });
+$("fontPick").addEventListener("click", () => $("fontFile").click());
+$("fontFile").addEventListener("change", e => { const f = e.target.files[0]; if (f) useFont(f); e.target.value = ""; });
+// redraw a beat after the last keystroke rather than on every one
+let textTimer = 0;
+const textLater = () => { clearTimeout(textTimer); textTimer = setTimeout(renderTextSource, 120); };
+["textCopy", "textFill", "textTrack"].forEach(id => $(id).addEventListener("input", textLater));
 // drop an image, video or audio file anywhere on the stage
 const stageEl = $("stage");
 stageEl.addEventListener("dragover", e => { e.preventDefault(); stageEl.classList.add("drop"); });
