@@ -1,11 +1,12 @@
 # TV pile: mapping and deployment
 
 Feature spec and design intent for the Conversion installation — a pile of
-20-plus mismatched HDMI screens. The previewer shipped in 0.9.34 and 0.9.35.
+20-plus mismatched HDMI screens. The previewer shipped in 0.9.34 and 0.9.35;
+groups with their own mapping in 0.9.37.
 
-**Only the first two sections are builds.** Everything from "Deployment model"
-onward is recorded intent for when the screen count is known, after the
-December site visit. Do not build the networking yet.
+**Only "Next build: source is a group property" is still a build.** Everything
+from "Deployment model" onward is recorded intent for when the screen count is
+known, after the December site visit. Do not build the networking yet.
 
 ## What exists
 
@@ -16,7 +17,8 @@ fabric, solid colour or artwork), event-dim or bright-lobby lighting, and
 **Copy spec for AV**. The layout persists in this browser.
 
 The renderer draws one frame into `fin` and `drawPileScreens()` slices it onto
-each screen. Four mappings, as a **global** switch:
+each screen. Every screen belongs to one **group** (up to five), and each group
+carries its own mapping:
 
 | Mapping | What it does |
 |---|---|
@@ -25,7 +27,17 @@ each screen. Four mappings, as a **global** switch:
 | Scatter | Each screen takes its own drifting crop |
 | Chaos | Each screen plays a different saved preset, up to 8 distinct |
 
-## Next build: groups carry source and mapping
+Unified spreads one picture across the outline of the Unified screens, so a
+central cluster can be Unified while the outer screens run Chaos. A Chaos group
+deals from its own set list, or from the whole library when the set list is
+empty; the eight-look budget is shared between Chaos groups by screen count.
+Screens are assigned with a group's **Assign** tool (click screens on the
+stage), the Group picker on a selected screen, or **G** to cycle. Groups save
+with the layout (`v: 2`); a `v: 1` layout loads as one group carrying its old
+global mapping. **Copy spec for AV** lists the groups. The app always opens on
+Full frame; the pile is a planning view you switch to.
+
+## Groups carry source and mapping (built in 0.9.37)
 
 The goal is to run **Unified and Chaos at the same time** — a unified picture
 across a central cluster, with outlier screens doing their own thing. That
@@ -46,7 +58,27 @@ the rest to Chaos in the previewer and look at it. If the mix reads well on
 the preview it will read well on the wall. **Build this before anything
 networked.**
 
-## Source is a group property too
+What shipped: the group shape is `{ id, name, mapping, source, presets }` on
+`P.groups`, with each screen holding its group id in `g`. `source` is written
+and read but fixed to `"stage"`, whichever held source is on the stage, so the
+next section lands without reworking the model. Chaos render state lives on the
+group at runtime (`g.ch`) and is never saved.
+
+## Source is a group property (built in 0.9.38 and 0.9.39)
+
+Sources are **held**, not swapped (0.9.38): Media, Text, Camera and Tab each
+add a row under Source and one row is on the stage; switching never tears the
+others down, so `setImageSource()` became `addSource()` (create and hold) plus
+`activateSource()` (put on the stage). Each group then picks what it shows
+(0.9.39): the stage source, or any held source, from the Source menu on its
+row. A held source gets its own texture (`srcTexFor`), and a group on Unified,
+Mirror or Scatter with its own source renders the current look from it into a
+per-group pair (`g.gr`, shaped like its screens for Unified); Chaos groups bind
+the source around their slot renders. Those renders show the scene, Distort and
+Texture layers, as Chaos does; Screen effects stay with groups on the stage
+source. Held sources are per session, so a loaded layout starts every group on
+the stage source. A Chaos group's picker also offers **Set list**, which deals
+the looks on timeline keys 1–8.
 
 Today the stage source is a singleton. `setImageSource()` does not add a
 source, it replaces one, and it tears down whatever was there: switching to
@@ -75,12 +107,10 @@ designing around it.
 It also matches the room: a camera sits at one physical spot and only makes
 sense for the screens near it, so camera is inherently zone-scoped.
 
-### Rename
+### Rename (done in 0.9.38)
 
 "Video in" stopped being accurate the moment Text landed under it. The section
-becomes **Source**, paired with "Sound in". Fold the rename into this redesign
-rather than doing it separately, since the section changes shape anyway once
-sources are assigned to groups instead of set globally.
+is now **Picture Source**, paired with "Audio Source".
 
 ## Why mixing is possible at all
 

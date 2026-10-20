@@ -211,7 +211,7 @@ looks saved with "Save look" go to `localStorage` under a "Mine" group, and
 **Thumbnails.** Not live (0.7.3). Every preset is rendered once through its
 look at a fixed moment, with trails off and no audio, from one shared source
 image; a queue spreads the renders over a few frames and the grid re-renders
-when the source changes. The source is whatever is loaded in Video in (the
+when the source changes. The source is whatever is on the stage under Source (the
 current frame, for a video), else `presets/thumb.jpg` if the repo ships one,
 else the plasma field (0.8.0). The name sits lower left inside the tile on a
 black-to-clear fade and shows on hover or when the preset is active. Tiles

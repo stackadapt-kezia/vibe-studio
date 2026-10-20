@@ -205,7 +205,7 @@ once on the show machine. The detector is isolated in `startFaces` /
 `detectFaces`; a vendored MediaPipe can replace it without touching the
 derived values or the routes.
 
-- **Source.** Camera is a Video in source beside Media and Tab; the feed is
+- **Source.** Camera is a source under Source beside Media, Text and Tab; the feed is
   also the picture behind the effects. Detection runs only on the camera.
 - **Tracking.** Boxes are matched to tracks by overlap each detection; a
   track arrives after 3 hits and is lost after 12 misses (asymmetric, as the

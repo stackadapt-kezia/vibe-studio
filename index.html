@@ -67,13 +67,15 @@
   .panel.glass .slot.filled, .panel.glass .track.now { background-color: rgba(20, 20, 24, .55); }
   .panel.away { transform: translateX(-110%); }
   .resizer.away { opacity: 0; pointer-events: none; }
-  /* Sound in and Video in stay put; everything else scrolls beneath them */
+  /* Audio Source and Picture Source stay put; everything else scrolls beneath them */
   .pinned {
     flex: 0 0 auto; padding: 16px 16px 0; border-bottom: 1px solid var(--line);
     max-height: 75%; overflow-y: auto;
   }
-  .scrolls { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; }
-  .scrolls fieldset + fieldset { border-top: 1px solid var(--line); padding-top: 14px; }
+  .scrolls { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 16px 84px; }
+  .scrolls fieldset + fieldset, #pileUI > fieldset:first-child { border-top: 1px solid var(--line); padding-top: 14px; }
+  /* the last section closes with a hairline too, so every section is boxed */
+  .scrolls:not(.pile) > fieldset:last-of-type, .scrolls.pile #pileUI > fieldset:last-child { border-bottom: 1px solid var(--line); padding-bottom: 14px; }
   .resizer {
     position: absolute; top: 0; bottom: 0; left: var(--panelW); z-index: 21; width: 8px;
     cursor: col-resize; background: transparent; transition: opacity .35s ease;
@@ -91,55 +93,97 @@
   }
   canvas { display: block; width: 100%; height: 100%; }
   body.hide-ui .panel, body.hide-ui .resizer, body.hide-ui header { display: none; }
-  .showui { display: none; }
-  body.hide-ui .showui {
-    display: block; position: fixed; top: 14px; left: 14px; z-index: 50;
-    width: auto; margin: 0; opacity: .35; background: rgba(0,0,0,.6);
+  /* show controls: a dock pinned bottom-left that appears when the pointer
+     reaches that corner (or a button in it has focus) */
+  .dock {
+    position: fixed; left: 12px; bottom: 12px; z-index: 60; display: flex; gap: 6px;
+    opacity: 0; pointer-events: none; transition: opacity .2s;
   }
-  body.hide-ui .showui:hover { opacity: 1; }
+  .dock.show, .dock:focus-within { opacity: 1; pointer-events: auto; }
+  .dock.show.dim { opacity: .3; }
+  .dock .mini { background: rgba(11, 11, 13, .88); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .mini.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  @media (hover: none) { .dock { opacity: 1; pointer-events: auto; } }
   fieldset {
     border: 0; padding: 0; margin: 0 0 20px;
     min-inline-size: 0; min-width: 0;   /* fieldsets default to min-content width */
   }
+  /* a floated legend makes the fieldset paint like a plain block: its top
+     hairline shows above the legend instead of running through it */
   legend {
     font: 500 10px/1 "Space Grotesk", sans-serif; letter-spacing: .12em;
     text-transform: uppercase; color: var(--muted); padding: 0 0 10px;
-    cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px; width: 100%;
+    cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px; width: 100%; float: left;
   }
+  fieldset::after { content: ""; display: block; clear: both; }
+  fieldset > :not(legend) { clear: both; }       /* flex children would otherwise sit beside the floated legend */
   legend::before {
-    content: ""; width: 5px; height: 5px; border-right: 1.5px solid currentColor;
-    border-bottom: 1.5px solid currentColor; transform: rotate(45deg) translate(-1px, -1px);
+    content: ""; width: 6px; height: 6px; flex: none; border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor; transform-origin: 50% 50%; transform: translateY(-2px) rotate(45deg);
     transition: transform .15s;
   }
   legend:hover { color: var(--text); }
   legend:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
-  fieldset.collapsed > legend::before { transform: rotate(-45deg) translate(-1px, 1px); }
+  fieldset.collapsed > legend::before { transform: translateX(-2px) rotate(-45deg); }
   fieldset.collapsed > :not(legend) { display: none; }
   fieldset.collapsed { margin-bottom: 14px; }
   fieldset.fixed > legend { cursor: default; min-height: 30px; align-items: center; padding-bottom: 8px; }
-  .headctl, .headctl.seg { margin-left: auto; display: flex; gap: 6px; letter-spacing: 0; text-transform: none; }
-  .headctl button {
-    background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); border-radius: 999px;
-    padding: 5px 12px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
+  .headctl, .headctl.seg { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; letter-spacing: 0; text-transform: none; }
+  legend .headctl button {                         /* scoped to the heading so the generic .seg rules don't win on order */
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--text); border-radius: 999px;
+    padding: 5px 10px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
   }
-  .headctl button:not(.active):hover { color: var(--text); background: #1b1b21; }
-  .headctl button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  legend .headctl button:not(.active):hover { color: var(--text); background: var(--panel-2); border-color: var(--accent); }
+  legend .headctl button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  legend .headctl button.add::before { content: "+ "; color: var(--accent); }
+  fieldset.fixed > legend { flex-wrap: wrap; row-gap: 8px; }
+  fieldset.fixed > legend > .headctl { flex-basis: 100%; margin-left: 0; justify-content: flex-start; }
   fieldset.fixed > legend::before { display: none; }
   fieldset.fixed > legend:hover { color: var(--muted); }
   .row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-  .row label { flex: 0 0 86px; font-size: 13px; color: var(--muted); }
+  .row label {
+    flex: 0 0 84px; color: var(--muted);
+    font: 500 10px/1.3 "Space Grotesk", sans-serif; text-transform: uppercase; letter-spacing: .05em;
+  }
   .row input[type=range] { flex: 1; accent-color: var(--accent); min-width: 0; }
   .row output {
-    flex: 0 0 38px; text-align: right; font-size: 12px; color: var(--muted);
+    flex: 0 0 38px; text-align: right; font-size: 12px; color: var(--text);
     font-variant-numeric: tabular-nums; cursor: text;
   }
   .row output:hover { color: var(--accent); }
-  .num {
-    flex: 0 0 54px; width: 54px; background: var(--panel-2);
-    border: 1px solid var(--line); border-radius: 4px; color: var(--text);
-    padding: 4px 6px; font: inherit; font-size: 12px; text-align: right;
+  /* Bar sliders, as in Pattern studio: a dark track with a white fill to the
+     value and a hairline thumb. --fill is kept in step with the value by a
+     small loop at the end of the script, so values set from code (presets,
+     the transport) fill correctly too. The vertical faders keep the native
+     control. */
+  :root { --bar-track: #26262d; --bar-fill: #e6e8ee; }
+  input[type=range]:not(.vfader) {
+    -webkit-appearance: none; appearance: none; min-width: 0; height: 16px; margin: 0;
+    background: transparent; cursor: ew-resize; --fill: 50%;
   }
-  .num:focus { outline: none; border-color: var(--accent); }
+  input[type=range]:not(.vfader):focus { outline: none; }
+  input[type=range]:not(.vfader)::-webkit-slider-runnable-track {
+    height: 16px; border-radius: 3px;
+    background: linear-gradient(to right, var(--bar-fill) 0 var(--fill), var(--bar-track) var(--fill) 100%);
+  }
+  input[type=range]:not(.vfader)::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 2px; height: 16px; border: 0; background: var(--bar-fill);
+  }
+  input[type=range]:not(.vfader):focus-visible::-webkit-slider-runnable-track { box-shadow: 0 0 0 1px var(--accent); }
+  input[type=range]:not(.vfader)::-moz-range-track { height: 16px; border-radius: 3px; background: var(--bar-track); }
+  input[type=range]:not(.vfader)::-moz-range-progress { height: 16px; border-radius: 3px 0 0 3px; background: var(--bar-fill); }
+  input[type=range]:not(.vfader)::-moz-range-thumb { width: 2px; height: 16px; border: 0; border-radius: 0; background: var(--bar-fill); }
+  .scrub input[type=range], .scrub input[type=range]::-webkit-slider-runnable-track, .scrub input[type=range]::-webkit-slider-thumb { height: 10px; }
+  /* numbers are plain values flush right, editable in place (Pattern studio) */
+  .num {
+    flex: 0 0 54px; width: 54px; background: none;
+    border: 0; border-bottom: 1px solid transparent; border-radius: 0; color: var(--text);
+    padding: 4px 0; font: inherit; font-size: 12px; text-align: right; font-variant-numeric: tabular-nums;
+    -moz-appearance: textfield;
+  }
+  .num::-webkit-inner-spin-button, .num::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .num:hover { border-bottom-color: var(--line); }
+  .num:focus { outline: none; border-bottom-color: var(--accent); }
   .seg { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
   .seg button, .pill {
     background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
@@ -159,7 +203,7 @@
   .gridseg > .lastcol { border-right: 0; }
   .gridseg > .lastrow { border-bottom: 0; }
   .gridseg > button:not(.active):hover { color: var(--text); background: rgba(255, 255, 255, .03); }
-  .gridseg > button.active { color: var(--text); background: rgba(61, 132, 255, .14); box-shadow: inset 0 -2px 0 var(--accent); }
+  .gridseg > button.active { color: var(--text); background: rgba(61, 132, 255, .14); }
   .gridseg > button:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
   .seglabel {
     font: 500 10px/1 "Space Grotesk", sans-serif; letter-spacing: .12em; text-transform: uppercase;
@@ -236,6 +280,15 @@
     background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px;
     color: var(--text); padding: 8px 10px; font: inherit; font-size: 13px; width: 100%;
   }
+  /* menus draw their own chevron, inset from the edge, so rounded menus read right */
+  select {
+    -webkit-appearance: none; appearance: none; padding-right: 28px; cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2385899a' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; background-size: 10px 6px;
+  }
+  select:hover { border-color: var(--muted); }
+  select:focus { outline: none; border-color: var(--accent); }
+  .route select { padding-right: 20px; background-position: right 6px center; }
   .pal-wrap { display: flex; gap: 12px; align-items: stretch; }
   .pal-pill { position: relative; width: 30px; flex: 0 0 30px; }
   .pal-pill canvas {
@@ -272,7 +325,7 @@
   }
   .swatch button:hover { color: var(--text); background: var(--panel-2); }
   .sep { height: 1px; background: var(--line); margin: 12px 0 0; }
-  .meters { display: flex; gap: 6px; margin: 20px 0 12px; }
+  .meters { display: flex; gap: 6px; margin: 0 0 12px; padding-top: 20px; }
   .meter { flex: 1; position: relative; min-width: 0; }
   .meter .bar { height: 26px; background: var(--panel-2); border-radius: 4px; position: relative; overflow: hidden; }
   .meter i {
@@ -486,10 +539,10 @@
     cursor: pointer; display: flex; align-items: center; gap: 6px;
   }
   .libtoggle::before {
-    content: ""; width: 5px; height: 5px; border-right: 1.5px solid currentColor;
-    border-bottom: 1.5px solid currentColor; transform: rotate(45deg) translate(-1px, -1px);
+    content: ""; width: 6px; height: 6px; flex: none; border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor; transform-origin: 50% 50%; transform: translateY(-2px) rotate(45deg);
   }
-  .libtoggle[aria-expanded="false"]::before { transform: rotate(-45deg) translate(-1px, 1px); }
+  .libtoggle[aria-expanded="false"]::before { transform: translateX(-2px) rotate(-45deg); }
   .libtoggle:hover { color: var(--text); }
   .libline button {
     background: none; border: 1px solid var(--line); color: var(--text); border-radius: 999px;
@@ -498,12 +551,59 @@
   .libline button:hover { background: #1b1b21; }
   .player { margin-top: 2px; }
   .tracks:empty { display: none; }
-  .vplayer { margin-top: 10px; }
-  .vthumb { object-fit: cover; }
-  #vidPlay.playing .ic-play, #vidPlay:not(.playing) .ic-pause { display: none; }
-  .vplayer.still .transport #vidPlay, .vplayer.still .scrub, .vplayer.live .scrub, .vplayer.live .transport #vidPlay { display: none; }
-  .vplayer.still, .vplayer.live { grid-template-areas: "cover text transport"; }
   .note.warn { color: #ffb37a; }
+  /* held picture sources: a strip of thumbnails that scrolls sideways */
+  .srclist { list-style: none; margin: 8px 0 0; padding: 0 0 4px; display: flex; gap: 6px; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+  .srclist:empty { display: none; }
+  .srclist .track {
+    flex: 0 0 92px; display: block; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+    background: var(--panel-2); position: relative; cursor: pointer;
+  }
+  .srclist .track:hover { background: var(--panel-2); border-color: var(--muted); }
+  .srclist .track.now { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: var(--panel-2); }
+  .srclist .thumb { width: 100%; height: 52px; border: 0; border-radius: 0; display: block; }
+  .srclist .tmeta { padding: 4px 6px 5px; }
+  .srclist .tmeta b { font-size: 11px; }
+  .srclist .tmeta small { font-size: 10px; }
+  .srclist .track > button { position: absolute; top: 2px; right: 2px; background: rgba(0, 0, 0, .65); border-radius: 999px; font-size: 12px; line-height: 1; padding: 2px 6px; opacity: 0; }
+  .srclist .track:hover > button, .srclist .track > button:focus-visible { opacity: 1; }
+  .srclist .track > .tplay { right: auto; left: 2px; }
+  /* eye toggles on the pile headings */
+  .eye { margin-left: auto; background: none; border: 0; color: var(--muted); cursor: pointer; padding: 0 2px; display: flex; letter-spacing: 0; }
+  .eye svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .eye:hover { color: var(--text); }
+  .eye[aria-pressed="true"] .eye-off, .eye[aria-pressed="false"] .eye-on { display: none; }
+  .eye[aria-pressed="false"] { color: var(--accent); }
+  /* mounting grid fields in one row that follows the panel width */
+  .gfields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .gfields label { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .gfields span { font: 500 10px/1.3 "Space Grotesk", sans-serif; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .gfields .num { width: 100%; flex: none; text-align: left; }
+  .gfields output { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  input[type=number].num { cursor: ew-resize; }
+  /* dividers are thin bars at half strength; a shortcut key in the dock sits past one at the same strength */
+  .bar { display: inline-block; width: 1px; height: .85em; background: currentColor; opacity: .5; margin: 0 7px; vertical-align: -1px; }
+  .key { opacity: .5; }
+  .key::before { content: ""; display: inline-block; width: 1px; height: .85em; background: currentColor; margin: 0 8px; vertical-align: -1px; }
+  .track .tplay { font-size: 12px; }
+  #fontRow select { flex: 1; min-width: 0; }
+  .brandlib { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+  .brandlib summary {
+    font: 500 10px/1 "Space Grotesk", sans-serif; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--muted); cursor: pointer; padding: 2px 0; list-style: none; display: flex; align-items: center; gap: 6px;
+  }
+  .brandlib summary::-webkit-details-marker { display: none; }
+  .brandlib summary::before {                        /* the same chevron as the sections */
+    content: ""; width: 6px; height: 6px; flex: none; border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor; transform-origin: 50% 50%; transform: translateX(-2px) rotate(-45deg);
+    transition: transform .15s;
+  }
+  .brandlib[open] summary::before { transform: translateY(-2px) rotate(45deg); }
+  .brandlib summary:hover { color: var(--text); }
+  .brandlib[open] summary { margin-bottom: 8px; }
+  .brand-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
+  .sw-chip { width: 100%; aspect-ratio: 1; border-radius: 4px; border: 1px solid var(--line); cursor: pointer; padding: 0; }
+  .sw-chip:hover { border-color: var(--text); }
   .hint {
     position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
     color: var(--muted); font-size: 12px; background: rgba(0,0,0,.55);
@@ -550,6 +650,21 @@
   .pill.mini { width: auto; margin-top: 0; padding: 5px 12px; }
   .btnrow { display: flex; gap: 6px; flex-wrap: wrap; }
   .btnrow .pill { width: auto; flex: 1; }
+  .grow { border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin-bottom: 8px; }
+  .grow.paint { border-color: var(--accent); }
+  .ghead { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .gdot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .ghead input[type=text] { flex: 1; min-width: 0; padding: 5px 8px; font-size: 13px; }
+  .gcount { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .grow .seg button { padding: 6px 8px; font-size: 12px; }
+  .gbody { display: flex; flex-direction: column; gap: 8px; }
+  .gmap.gridseg > button { padding: 7px 2px; font-size: 12px; }
+  .gside { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .gside select { padding: 5px 30px 5px 10px; font-size: 12px; border-radius: 999px; background-position: right 12px center; }
+  .gpickrow { display: flex; gap: 6px; align-items: center; }
+  .gpickrow select { flex: 1; min-width: 0; }
+  .gchaos .chips { margin: 8px 0 0; }
+  .mini.active { background: var(--accent); color: #fff; border-color: var(--accent); }
   textarea {
     width: 100%; min-height: 60px; background: var(--panel-2); border: 1px solid var(--line);
     border-radius: 5px; color: var(--text); font: inherit; font-size: 12px; padding: 6px 8px; margin-top: 8px; resize: vertical;
@@ -602,14 +717,14 @@
   <aside class="panel" id="panel">
     <div class="pinned">
     <fieldset class="fixed">
-      <legend>Sound in
+      <legend>Audio Source
         <span class="headctl seg" id="srcSeg">
           <button data-src="mic">Mic</button>
           <button data-src="music">Music</button>
           <button data-src="tab" title="React to the audio of another browser tab, such as Spotify or Apple Music">Tab</button>
         </span>
       </legend>
-      <p class="note" id="srcNote" hidden>Idle — pick a sound source to react to audio.</p>
+      <p class="note" id="srcNote" hidden></p>
       <div class="row" id="micRow" hidden>
         <label for="micSel">Input</label>
         <select id="micSel" aria-label="Microphone input device"></select>
@@ -630,30 +745,47 @@
           <span id="tTime">0:00 / 0:00</span>
         </div>
       </div>
+      <div id="songLib" hidden>
       <ol class="tracks" id="trackList"></ol>
       <div class="libline">
         <button class="libtoggle" id="libCount" aria-expanded="true" aria-controls="trackList">No songs yet</button>
         <button id="addSongs">+ Add songs</button>
+      </div>
       </div>
       <input type="file" id="songFiles" accept="audio/*,.mp3,.m4a,.aac,.flac,.wav,.ogg,.opus" multiple hidden>
       <p class="note" id="libNote" hidden></p>
     </fieldset>
 
     <fieldset class="fixed">
-      <legend>Video in
-        <span class="headctl seg" id="vidSeg">
-          <button data-vsrc="media" title="Load an image or a video file">Media</button>
-          <button data-vsrc="text" title="Set your own type on the stage">Text</button>
-          <button data-vsrc="camera" title="Show a camera on the stage; faces it sees can drive the visuals">Camera</button>
-          <button data-vsrc="tab" title="Show another browser tab or window on the stage">Tab</button>
+      <legend>Picture Source
+        <span class="headctl" id="srcAdd">
+          <button class="add" data-add="media" title="Load image or video files">Media</button>
+          <button class="add" data-add="text" title="Set your own type on the stage">Text</button>
+          <button class="add" data-add="camera" title="Show a camera on the stage; faces it sees can drive the visuals">Camera</button>
+          <button class="add" data-add="tab" title="Show another browser tab or window on the stage">Tab</button>
         </span>
       </legend>
-      <input type="file" id="imgFile" accept="image/*,video/*" hidden>
+      <input type="file" id="imgFile" accept="image/*,video/*" multiple hidden>
       <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" hidden>
+      <ol class="srclist" id="srcList"></ol>
+      <div class="row scrub" id="vidScrubRow" hidden>
+        <input type="range" id="vidScrub" min="0" max="1000" value="0" step="1" aria-label="Video position">
+        <span id="vidTime">0:00 / 0:00</span>
+      </div>
+      <p class="note" id="vFaces" hidden></p>
+      <div class="row" id="camRow" hidden>
+        <label for="camSel">Camera</label>
+        <select id="camSel" aria-label="Camera device"></select>
+      </div>
       <div id="textRow" hidden>
         <div class="row">
           <label for="textCopy">Copy</label>
           <input type="text" id="textCopy" value="CONVERSION" maxlength="48" spellcheck="false" aria-label="Stage copy">
+        </div>
+        <div class="row" id="fontRow">
+          <label for="fontSel">Font</label>
+          <select id="fontSel" aria-label="Typeface"></select>
+          <button class="mini" id="fontDel" type="button" hidden title="Remove this font from your fonts">×</button>
         </div>
         <div class="row">
           <label for="textFill">Size</label>
@@ -663,32 +795,8 @@
           <label for="textTrack">Tracking</label>
           <input type="range" id="textTrack" min="-0.08" max="0.6" step="0.005" value="0" aria-label="Letter spacing">
         </div>
-        <div class="pillrow">
-          <button class="pill" id="fontPick" title="Load a .ttf, .otf or .woff2 from this machine">Load font</button>
-          <span class="note" id="fontName">Space Grotesk</span>
-        </div>
       </div>
-      <div class="row" id="camRow" hidden>
-        <label for="camSel">Camera</label>
-        <select id="camSel" aria-label="Camera device"></select>
-      </div>
-      <div class="player vplayer" id="vplayer" hidden>
-        <canvas class="cover vthumb" id="vThumb" width="112" height="112" aria-hidden="true"></canvas>
-        <div class="np-text">
-          <div class="np-title" id="vTitle">Nothing loaded</div>
-          <div class="np-sub" id="vSub"></div>
-          <div class="np-sub" id="vFaces" hidden></div>
-        </div>
-        <div class="transport">
-          <button id="vidPlay" class="big" aria-label="Play or pause the video"><svg class="ic-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><svg class="ic-pause" viewBox="0 0 24 24"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg></button>
-          <button id="vidClear" aria-label="Clear the stage" title="Clear"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" fill="none"/></svg></button>
-        </div>
-        <div class="row scrub" id="vidScrubRow">
-          <input type="range" id="vidScrub" min="0" max="1000" value="0" step="1" aria-label="Video position">
-          <span id="vidTime">0:00 / 0:00</span>
-        </div>
-      </div>
-      <p class="note" id="imgNote">Nothing loaded — image patterns use a plasma field. Drop a file on the stage to load one.</p>
+      <p class="note warn" id="imgNote" hidden></p>
     </fieldset>
     </div>
     <div class="scrolls">
@@ -700,15 +808,19 @@
         <button class="pill" id="mixColors" title="Shuffle the order of the colours">Mix order</button>
         <button class="pill" id="saveSwatch" title="Save these colours as a set in your library">Save set</button>
       </div>
-      <div class="libline" style="margin-top:12px">
-        <button class="libtoggle" id="swlibCount" aria-expanded="true" aria-controls="swlib">No saved sets</button>
-        <button class="mini" id="swRestore" type="button" title="Bring back the stock colour sets you deleted" hidden>Restore stock</button>
-        <div class="seg mini-seg" id="swViewSeg">
-          <button data-swview="tiles" title="Tiles">▦</button>
-          <button data-swview="list" title="List">☰</button>
+      <details class="brandlib">
+        <summary>Brand colours</summary>
+        <div class="brand-grid" id="brandGrid"></div>
+        <div class="libline" style="margin-top:12px">
+          <button class="libtoggle" id="swlibCount" aria-expanded="true" aria-controls="swlib">No saved sets</button>
+          <button class="mini" id="swRestore" type="button" title="Bring back the stock colour sets you deleted" hidden>Restore stock</button>
+          <div class="seg mini-seg" id="swViewSeg">
+            <button data-swview="tiles" title="Tiles">▦</button>
+            <button data-swview="list" title="List">☰</button>
+          </div>
         </div>
-      </div>
-      <div id="swlib" class="swlib tiles"></div>
+        <div id="swlib" class="swlib tiles"></div>
+      </details>
     </fieldset>
 
     <fieldset>
@@ -843,7 +955,6 @@
       </div>
       <div id="routeRows"></div>
       <div class="libline">
-        <span class="note">Each row sends one band to one control.</span>
         <button id="addRoute">+ Add route</button>
       </div>
     </fieldset>
@@ -854,64 +965,40 @@
         <button data-preview="full">Full frame</button>
         <button data-preview="pile">TV pile</button>
       </div>
-      <p class="note" id="previewNote">Full frame is what a single screen or projector shows.</p>
-      <button class="pill" id="fsBtn">Fullscreen — F</button>
-      <button class="pill" id="hideBtn">Hide panel — H</button>
-      <button class="pill" id="setBtn">Presets &amp; set list — S</button>
-      <button class="pill" id="recBtn">Record performance</button>
-      <p class="note" id="outNote">Drag this window to the projector display, then go fullscreen.</p>
-      <p class="note" id="wakeNote"></p>
+      <p class="note warn" id="outNote" hidden></p>
     </fieldset>
+    <div id="dockPad" style="height:72px" aria-hidden="true"></div>
 
     <div id="pileUI" hidden>
       <fieldset>
-        <legend>Pile mapping</legend>
-        <div class="seg" id="mapSeg">
-          <button data-map="unified">Unified</button>
-          <button data-map="mirror">Mirror</button>
-          <button data-map="scatter">Scatter</button>
-          <button data-map="chaos">Chaos</button>
-        </div>
-        <p class="note" id="mapNote"></p>
-        <div id="chaosOpts" hidden>
-          <button class="pill" id="chaosShuffle">Shuffle presets</button>
-          <label class="check"><input type="checkbox" id="chaosAuto"> Keep shuffling (one screen every 6 s)</label>
-        </div>
-        <div class="pstats">
-          <div class="pstat"><span>Screens</span><b id="psScreens">0</b></div>
-          <div class="pstat"><span>Glass coverage</span><b id="psCover">0%</b></div>
-          <div class="pstat"><span>Pi 5 boards</span><b id="psPis">0</b></div>
-          <div class="pstat"><span>Cabinets</span><b id="psCabs">0</b></div>
-          <div class="pstat wide"><span>Overall size</span><b id="psSize">&mdash;</b></div>
-          <div class="pstat wide"><span>Screen mix</span><b id="psMix">&mdash;</b></div>
-        </div>
+        <legend>Groups</legend>
+        <div id="gList"></div>
+        <div class="btnrow"><button class="pill" id="gAdd">+ Group</button></div>
+        <label class="check"><input type="checkbox" id="chaosAuto"> Keep shuffling Chaos groups (one screen every 6 s)</label>
       </fieldset>
 
       <fieldset>
-        <legend>Screens</legend>
+        <legend>Devices<button class="eye" type="button" data-vis="devices" aria-pressed="true" aria-label="Show or hide the devices" title="Show or hide the devices"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
         <div class="chips" id="addSizes"></div>
-        <div class="chips"><button class="chip add" id="addCab">Speaker cabinet</button></div>
-        <div class="row"><label for="fillN">Auto-fill</label><input type="number" class="num" id="fillN" min="1" max="60" value="12"><button class="pill mini" id="fillBtn">Fill grid</button></div>
+        <div class="chips"><button class="chip add" id="addCab">Speaker cabinet</button><button class="chip add" id="addCamera">Camera</button></div>
         <label class="check"><input type="checkbox" id="snapX" checked> Snap to uprights</label>
         <label class="check"><input type="checkbox" id="snapSize" checked> Snap to real TV sizes</label>
         <label class="check"><input type="checkbox" id="pLabels"> Show sizes on screens</label>
         <div class="selbox" id="pSel" hidden></div>
-        <div class="btnrow"><button class="pill" id="pUndo">Undo</button><button class="pill" id="pClear">Remove all screens</button></div>
-        <p class="note">Drag to move, drag a corner to resize. Delete removes, D duplicates, arrows nudge (Shift for 6&Prime;).</p>
       </fieldset>
 
       <fieldset>
-        <legend>Mounting grid</legend>
-        <div class="row"><label for="gW">Width (in)</label><input type="number" class="num wide" id="gW" min="24" max="720"><output id="gWft"></output></div>
-        <div class="row"><label for="gH">Height (in)</label><input type="number" class="num wide" id="gH" min="24" max="240"><output id="gHft"></output></div>
-        <div class="row"><label for="gP">Uprights (in)</label><input type="number" class="num wide" id="gP" min="12" max="96"><output id="gPn"></output></div>
-        <div class="row"><label for="gR">Rails (in)</label><input type="number" class="num wide" id="gR" min="12" max="120"><output></output></div>
-        <label class="check"><input type="checkbox" id="gShow" checked> Show the grid</label>
-        <p class="note">Drag the grid on the stage to slide it, or its white handles to resize. Uprights divide the width evenly.</p>
+        <legend>Mounting grid<button class="eye" type="button" data-vis="grid" aria-pressed="true" aria-label="Show or hide the mounting grid" title="Show or hide the mounting grid"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
+        <div class="gfields">
+          <label><span>Width in</span><input type="number" class="num" id="gW" min="24" max="720"><output id="gWft"></output></label>
+          <label><span>Height in</span><input type="number" class="num" id="gH" min="24" max="240"><output id="gHft"></output></label>
+          <label><span>Uprights in</span><input type="number" class="num" id="gP" min="12" max="96"><output id="gPn"></output></label>
+          <label><span>Rails in</span><input type="number" class="num" id="gR" min="12" max="120"><output>spacing</output></label>
+        </div>
       </fieldset>
 
       <fieldset>
-        <legend>Behind the pile</legend>
+        <legend>Behind the pile<button class="eye" type="button" data-vis="bg" aria-pressed="true" aria-label="Show or hide what is behind the pile" title="Show or hide what is behind the pile"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
         <div class="seg" id="wallSeg">
           <button data-wall="plain">Plain wall</button>
           <button data-wall="photo">Wall photo</button>
@@ -935,26 +1022,38 @@
           <button data-light="bright">Bright lobby</button>
           <button data-light="dim">Event dim</button>
         </div>
-        <p class="note">Bright lobby lifts the screens' blacks and adds glare, the way consumer TVs look under chandeliers.</p>
       </fieldset>
 
       <fieldset>
         <legend>Pile layout</legend>
+        <div class="pstats" style="margin:0 0 10px">
+          <div class="pstat"><span>Screens</span><b id="psScreens">0</b></div>
+          <div class="pstat"><span>Glass coverage</span><b id="psCover">0%</b></div>
+          <div class="pstat"><span>Pi 5 boards</span><b id="psPis">0</b></div>
+          <div class="pstat"><span>Cabinets</span><b id="psCabs">0</b></div>
+          <div class="pstat"><span>Cameras</span><b id="psCams">0</b></div>
+          <div class="pstat"><span>Overall size</span><b id="psSize">&mdash;</b></div>
+          <div class="pstat wide"><span>Screen mix</span><b id="psMix">&mdash;</b></div>
+        </div>
         <div class="btnrow"><button class="pill" id="copySpec">Copy spec for AV</button><button class="pill" id="copyLayout">Copy layout code</button></div>
         <textarea id="layoutBox" aria-label="Layout code" placeholder="Paste layout code here, then Load"></textarea>
         <button class="pill" id="loadLayout">Load layout code</button>
-        <p class="note" id="pileToast" role="status">The layout saves in this browser automatically. Photos don&rsquo;t.</p>
+        <p class="note" id="pileToast" role="status" hidden></p>
       </fieldset>
     </div>
     </div>
   </aside>
   <div class="resizer" id="resizer" title="Drag to resize the panel. Double-click to reset."></div>
-  <button class="pill showui" id="showBtn">Show panel</button>
+  <div class="dock" id="dock" aria-label="Show controls">
+    <button class="mini" id="fsBtn" title="Fullscreen (F)">Fullscreen<span class="key">F</span></button>
+    <button class="mini" id="hideBtn" title="Hide or show the panel (P)">Hide panel<span class="key">P</span></button>
+    <button class="mini" id="setBtn" title="Presets and set list (S)">Presets<span class="key">S</span></button>
+    <button class="mini" id="recBtn" title="Record the performance (R)">Record<span class="key">R</span></button>
+  </div>
   <main class="stage" id="stage">
     <canvas id="pileBg" hidden></canvas>
     <canvas id="gl"></canvas>
     <canvas id="pileFg" hidden aria-label="TV pile layout. Drag screens to move them, drag a corner to resize."></canvas>
-    <div class="hint" id="hint">F — fullscreen · H — hide panel · 1–8 — set list · S — set list panel · Esc — exit</div>
     <div class="setlist-overlay" id="setOverlay" hidden>
       <div class="ovbar">
         <span class="ovtitle">Presets</span>
@@ -992,12 +1091,24 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.36";  // type on the stage as a source, with your own font
+const APP_VERSION = "0.9.48";  // sources as a thumbnail strip; eye toggles; drag-to-adjust numbers; grid fields in a row
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.48", "Picture sources are a strip of thumbnails that scrolls sideways, and the Audio Source and Picture Source buttons sit under their headings. In the TV pile, Devices, Mounting grid and Behind the pile each have an eye on their heading to hide or show them on the stage, so you can isolate what you are placing. Mounting grid fields run in one row that follows the panel width, and every number box can be dragged left or right to scrub its value (Shift for bigger steps). The orientation pills and Portrait checkbox are gone: use the rotate button that appears on a hovered screen. The Reactivity meters have their room back under the heading."],
+  ["0.9.47", "Sound in is now Audio Source and Source is Picture Source. Both carry their buttons on the heading, flush right, in one compact style: Mic, Music and Tab for audio; + Media, + Text, + Camera and + Tab for pictures."],
+  ["0.9.46", "TV pile: Screens is now Devices and can place a camera on the wall (a small box with a lens, included in the AV spec); the counts and coverage moved under Pile layout; Undo, Remove all and Auto-fill left the panel (Cmd-Z still undoes). Every section is boxed by hairlines, Brand colours and the saved-sets fold use the same chevron as the sections, and Chaos set-list chips sit clear of the picker."],
+  ["0.9.45", "Hover a screen in the TV pile and a round rotate button appears beside its size; click it to turn the screen upright or flat. R now starts and stops recording."],
+  ["0.9.44", "Screens can be added upright: a Landscape / Portrait toggle above the size chips sets the orientation of new screens. In Full frame the panel leaves room under Output so the corner dock never covers it."],
+  ["0.9.43", "Panel polish: the collapsed chevron lines up with the open one, the shortcut hint on the stage is gone, dot dividers are thin bars at half strength (and the shortcut keys in the dock match), the panel leaves room at the bottom for the dock, Saved sets live under Brand colours so they fold with it, and the gap above Groups in the TV pile matches the other sections."],
+  ["0.9.42", "Every tip is gone from the panel; status and warnings only appear when there is something to say. The corner dock fades after two seconds away from it and leaves after five, and goes away after you press a button in it. P now hides and shows the panel (the dock button reads Show panel while it is hidden), and the spare Show panel button is gone. StackAdapt Light and Dark are no longer colour sets, the palette starts on Horizon, and the extended gradients drop their illustration-only tag."],
+  ["0.9.41", "A tidier panel: the tips under Palette and Output are gone, and Fullscreen, Hide panel, Presets and Record now live in a small dock that appears when the pointer reaches the bottom-left corner of the page. Warnings about fullscreen, recording or the screen staying awake still show under Output when there is something to say."],
+  ["0.9.40", "In the TV pile, hold Option (Alt) and drag a screen or cabinet to pull off a copy: same size, orientation and group as the original, dropped wherever you let go. Cmd-Z steps back one change per press; holding the keys no longer runs through the whole history. Undo keeps each group\u2019s source."],
+  ["0.9.39", "Each TV pile group can now show its own source: pick any held source (or the stage) in the group\u2019s Source menu, so a camera can run on one cluster while type runs on another. The group\u2019s mappings run in one row, Shuffle sits beside the preset picker, and that picker has a Set list option that deals the looks on timeline keys 1\u20138. Drop-down arrows no longer crowd the edge of rounded menus."],
+  ["0.9.38", "Sources are held, not swapped. Media, Text, Camera and Tab each add a row under Source (which replaces Video in); click a row to put it on the stage while the others stay loaded, so a camera keeps running while you show type. Several media files can load at once. The text source has a Font picker with Google Fonts, and any font file you load is kept in your fonts for next time. Colours from the 2026 StackAdapt brand system: every brand gradient is a stock colour set, and a Brand colours grid under Palette adds single swatches. Sliders are now bars with a white fill and labels match Pattern studio, pattern tiles lose their underline, and the song library only shows while Music is the sound source."],
+  ["0.9.37", "TV pile screens now belong to groups, and each group has its own mapping, so one Unified picture can run across a central cluster while the outer screens play Chaos. Add up to five groups under Output, press Assign on a group and click screens to move them in, or pick a group on a selected screen (G cycles it). A Chaos group can carry its own set list of presets to deal from; leave it empty to draw from the whole library. Unified now spreads its picture across just the Unified screens, not the whole wall. The app always opens on Full frame; the TV pile is a planning view you switch to."],
   ["0.9.36", "Text is a Video in source: type your copy on the stage, set its size and tracking, and load any .ttf, .otf or .woff2 from your machine. Every pattern and every Distort, Screen and Texture mode then works on the letterforms."],
   ["0.9.35", "Chaos joins the TV pile mappings: every screen plays a different saved preset at random, live and reacting to the music, each with its own trails. Shuffle presets deals them again; Keep shuffling swaps one screen for a new preset every six seconds. Up to eight different looks run at once, so on a bigger pile some screens share. Screen effects like Fringe and Echo stay with Unified, Mirror and Scatter."],
   ["0.9.34", "TV pile preview under Output. Switch from Full frame to TV pile and the current look plays across a wall of screens you lay out yourself: add screens by size, drag them, drag a corner to resize, add speaker cabinets, and resize the mounting grid behind them. Unified spreads one picture across the whole pile, Mirror puts the full frame on every screen, Scatter gives each screen its own drifting crop. Behind the pile sits a plain wall or a photo of the real wall scaled to feet, with a black drape, a palette fabric, a solid colour or your own artwork as a backdrop, in event-dim or bright-lobby light. Width and height scales run along the stage, and Copy spec for AV puts the grid, screen mix and every screen\u2019s position on the clipboard. The layout is remembered in this browser. The fullscreen button now reads Fullscreen \u2014 F."],
@@ -1087,10 +1198,66 @@ const PRESETS = {
   "sa-dark": ["#0061FF", "#7FDFFD", "#000000", "#EE5714"],
   "cv27-miami": ["#FD6D73", "#06BDE0", "#0061FF", "#EE5FE6", "#006C67", "#FBBE49", "#FF9BF9"],
 };
+/* ================ BRAND COLOURS (2026 brand system) ================
+   The same block as Pattern studio's, imported once from the Figma file
+   "2026_StackAdapt-Brand-System" (paint styles + Primitives variables). If
+   the brand system changes, replace this block from Pattern studio rather
+   than editing colours elsewhere. Motion/* styles are shaders, not colours. */
+const BRAND_RAMPS = [ // 50, 100, 200 ... 900
+  ["Ion Blue",     ["#EBF8FF","#D9ECFF","#BDDAFF","#99C3FF","#6FA7FF","#3F87FF","#0061FF","#0045D8","#002BB1","#000F87"]],
+  ["Comet Cyan",   ["#CCFDFF","#A1F3FF","#7FDFFD","#50CEF2","#3CB6D8","#269EBD","#00809C","#00657E","#004C63","#003345"]],
+  ["Flare Orange", ["#FFEFE5","#FFE0D0","#FFC6AE","#FFA480","#FF7742","#EE5714","#C83C00","#A22500","#7E1200","#580300"]],
+  ["Sol Yellow",   ["#FEF6E7","#FDE8C3","#FCD387","#F4B732","#D59F2A","#B58622","#926C19","#725411","#553E0A","#392805"]],
+  ["Terra Olive",  ["#F1FCDF","#E1F4C0","#CAE694","#B0D266","#95B936","#7D9D27","#647E1E","#4E6315","#39490D","#253006"]],
+  ["Nebula Lilac", ["#FDF0FF","#F6E2FF","#EACBFF","#D5B4FA","#BE96E8","#A17DC7","#8261A5","#674986","#4F3369","#361D4D"]],
+  ["Lunar Grey",   ["#F8F9FC","#EEF0F4","#DEE1E7","#C7CBD1","#A0A5AC","#7C8089","#5E636D","#464B52","#2F3339","#1B1E23"]],
+];
+const BRAND_BASE = [["Photon White", "#FFFFFF"], ["Void Black", "#000000"]];
+const RAMP_STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
+/* Brand gradients as [hex, position] stops. Two-stop gradients carry the
+   Figma file's own midpoint so the blend matches its perceptual ramp.
+   mirror: the palette loops, so short gradients run there and back
+   (seamless). Earthrise has too many stops to mirror, so it loops back
+   through Void Black instead, matching its fade to black. */
+const BRAND_GRADIENTS = [
+  ["Core", null, [
+    ["core-horizon",    "Horizon",    [["#0061FF",0],["#7FDFFD",.46],["#FFFFFF",.57],["#FFC6AE",.68],["#EE5714",1]], true],
+    ["core-earthrise",  "Earthrise",  [["#002BB1",0],["#0061FF",.2],["#50CEF2",.36],["#000000",.5],["#FF7742",.64],["#C83C00",.82],["#7E1200",1]], "#000000"],
+    ["core-orbit",      "Orbit",      [["#0061FF",0],["#00AAFF",.5],["#7FDFFD",1]], true],
+    ["core-deep-space", "Deep Space", [["#000F87",0],["#0039C1",.5],["#0061FF",1]], true],
+    ["core-aurora",     "Aurora",     [["#1B1E23",0],["#0F2A61",.25],["#002BB1",.55],["#005CA2",.75],["#00809C",1]], true],
+    ["core-atmosphere", "Atmosphere", [["#FFFFFF",0],["#D9ECFF",.5],["#BDDAFF",1]], true],
+  ]],
+  ["Accent", null, [
+    ["acc-solar-flare", "Solar Flare", [["#A22500",0],["#D04F24",.5],["#FF7742",1]], true],
+    ["acc-first-light", "First Light", [["#FFFFFF",0],["#FFF0E7",.5],["#FFE0D0",1]], true],
+  ]],
+  ["Extended", "illustration only", [
+    ["ext-ignition",  "Ignition",  [["#EE5714",0],["#F37100",.25],["#F68900",.5],["#F6A107",.75],["#F4B732",1]], true],
+    ["ext-sol",       "Sol",       [["#FDE8C3",0],["#FEE0BB",.25],["#FFD7B5",.5],["#FFCFB1",.75],["#FFC6AE",1]], true],
+    ["ext-terraform", "Terraform", [["#95B936",0],["#B5BE42",.25],["#D1C455",.5],["#E8CB6D",.75],["#FCD387",1]], true],
+    ["ext-biosphere", "Biosphere", [["#4E6315",0],["#657D2A",.25],["#7D993D",.5],["#96B552",.75],["#B0D266",1]], true],
+    ["ext-supernova", "Supernova", [["#D5B4FA",0],["#F98DBC",.25],["#FF7742",.5],["#FE9727",.75],["#F4B732",1]], true],
+    ["ext-re-entry",  "Re-entry",  [["#D5B4FA",0],["#E499DF",.25],["#F07FB2",.5],["#F56777",.75],["#EE5714",1]], true],
+    ["ext-pulsar",    "Pulsar",    [["#674986",0],["#8668A3",.25],["#A688C1",.5],["#C8A9E0",.75],["#EACBFF",1]], true],
+  ]],
+];
+/* gradient stops -> cyclic palette: colours plus segment weights */
+function gradientPreset(stops, mirror) {
+  const colors = stops.map(st => st[0]);
+  const gaps = stops.slice(1).map((st, i) => (st[1] - stops[i][1]) * 100);
+  if (mirror === true) return { colors: [...colors, ...colors.slice(1, -1).reverse()], weights: [...gaps, ...gaps.slice().reverse()] };
+  return { colors: [...colors, mirror], weights: [...gaps, 10, 10] };   // loop back through a named colour
+}
+const PRESET_WEIGHTS = {};
+for (const [, , list] of BRAND_GRADIENTS) for (const [key, , stops, mirror] of list) {
+  const g = gradientPreset(stops, mirror);
+  PRESETS[key] = g.colors; PRESET_WEIGHTS[key] = g.weights;
+}
 const state = {
   style: 0,
-  colors: [...PRESETS["sa-light"]],
-  weights: [],
+  colors: [...PRESETS["core-horizon"]],
+  weights: [...PRESET_WEIGHTS["core-horizon"]],
   scale: 1, speed: 1, warp: 0.4, blobs: 5,
   trails: 0.45, fbZoom: 0.004, fbSpin: 0.002,
   grain: 0.08, bands: 0, blur: 0,
@@ -1174,7 +1341,7 @@ function buildFaders(host, spec) {
     const cell = document.createElement("div");
     cell.className = "fader";
     const input = document.createElement("input");
-    input.type = "range"; input.min = min; input.max = max; input.step = step; input.value = state[key];
+    input.type = "range"; input.className = "vfader"; input.min = min; input.max = max; input.step = step; input.value = state[key];
     input.setAttribute("aria-label", label);
     const lb = document.createElement("label"); lb.textContent = label;
     const out = document.createElement("output"); out.textContent = fmt(state[key]);
@@ -1545,16 +1712,18 @@ $("mixColors").addEventListener("click", () => {
 // gone until Restore stock. Presets that name a palette by key still read the
 // fixed definitions in PRESETS, so editing a set never changes a preset.
 const STOCK_SETS = [
-  { id: "sa-light", name: "StackAdapt Light" },
-  { id: "sa-dark", name: "StackAdapt Dark" },
   { id: "cv27-miami", name: "Conversion 2027: Miami" },
+  ...BRAND_GRADIENTS.flatMap(([, , list]) => list.map(([id, name]) => ({ id, name }))),   // the brand gradients, with their weights
 ];
 let swatchLib = [], swView = "tiles", activeSwatch = null, stockSeen = [];
 try { swatchLib = (JSON.parse(localStorage.getItem("vibe.swatches") || "[]") || []).filter(s => s && Array.isArray(s.colors) && s.colors.length >= 2); } catch (e) { swatchLib = []; }
+// retired sets leave the library, and the extended gradients lose their tag (0.9.42)
+swatchLib = swatchLib.filter(x => x.id !== "sa-light" && x.id !== "sa-dark");
+swatchLib.forEach(x => { if (typeof x.name === "string") x.name = x.name.replace(/\s*\u00b7\s*illustration only$/, ""); });
 try { stockSeen = JSON.parse(localStorage.getItem("vibe.swStock") || "[]") || []; } catch (e) { stockSeen = []; }
 function seedStock(ids) {
   const add = STOCK_SETS.filter(st => ids.includes(st.id) && !swatchLib.some(x => x.id === st.id))
-    .map(st => ({ id: st.id, name: st.name, colors: [...PRESETS[st.id]], weights: PRESETS[st.id].map(() => 100), stock: true }));
+    .map(st => ({ id: st.id, name: st.name, colors: [...PRESETS[st.id]], weights: PRESET_WEIGHTS[st.id] ? [...PRESET_WEIGHTS[st.id]] : PRESETS[st.id].map(() => 100), stock: true }));
   swatchLib.unshift(...add);
   stockSeen = [...new Set([...stockSeen, ...ids])];
   try { localStorage.setItem("vibe.swStock", JSON.stringify(stockSeen)); } catch (e) { /* no storage */ }
@@ -1638,6 +1807,25 @@ const segSwView = seg("swViewSeg", "swview", () => swView, v => {
   swView = v; try { localStorage.setItem("vibe.swView", v); } catch (e) { /* no storage */ }
   renderSwatchLib();
 });
+// the brand colour grid: click a colour to add it to the palette
+{
+  const grid = $("brandGrid");
+  const chip = (name, hex) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "sw-chip"; b.style.background = hex;
+    b.title = name + "  " + hex; b.setAttribute("aria-label", "Add " + name + " to the palette");
+    b.addEventListener("click", () => {
+      if (state.colors.length >= 8) return;
+      state.colors.push(hex);
+      if (state.weights.length === state.colors.length - 1) state.weights.push(100); else state.weights = state.colors.map(() => 100);
+      buildPalette(); renderSwatches(); syncActiveSwatch();
+    });
+    return b;
+  };
+  for (const [name, hex] of BRAND_BASE) grid.append(chip(name, hex));
+  for (let i = BRAND_BASE.length; i < 10; i++) grid.append(document.createElement("span"));
+  for (const [ramp, hexes] of BRAND_RAMPS) hexes.forEach((hex, i) => grid.append(chip(ramp + " " + RAMP_STEPS[i], hex)));
+}
 $("swRestore").addEventListener("click", () => { seedStock(STOCK_SETS.map(st => st.id)); syncActiveSwatch(); renderSwatchLib(); });
 syncActiveSwatch();
 renderSwatchLib();
@@ -3023,64 +3211,128 @@ function captureRing(srcTex, j) {
 }
 addEventListener("resize", resize);
 
-/* ================= image in ================= */
+// text parts joined by thin bar dividers (text stays text, never markup)
+function barJoin(el, parts) {
+  el.replaceChildren();
+  parts.filter(x => x !== "" && x != null).forEach((t, i) => {
+    if (i) { const b = document.createElement("span"); b.className = "bar"; el.append(b); }
+    el.append(document.createTextNode(String(t)));
+  });
+}
+/* ================= source ================= */
+// Sources are held, not swapped: every image, video, camera, tab and the text
+// canvas stays loaded with its own row under Source, and one of them is on the
+// stage. Switching never tears the others down (a live camera or tab keeps
+// running, a video pauses), so a later build can hand a source to a pile group.
 const IMG_MAX = 2048;                 // longest side uploaded to the GPU
-let imgSrc = null, imgVideo = null, imgAspect = 1, imgDirty = false, imgName = "", imgKind = "none", tabStream = null;
-let vidMode = "none";                                     // the Video in source button that is lit
-// the stage card: thumbnail, name and size, play/pause and scrub for a video,
-// a stop for a shared tab, a clear for everything
-function setImageSource(el, w, h, name, kind) {
-  if (imgVideo && imgVideo !== el) { imgVideo.pause(); imgVideo = null; }
-  if (tabStream && kind !== "tab" && kind !== "camera") { tabStream.getTracks().forEach(t => t.stop()); tabStream = null; }
-  if (kind !== "camera") { stopFaces(); $("camRow").hidden = true; }
-  imgSrc = el; imgAspect = w / h; imgDirty = true; imgName = name; imgKind = kind;
-  vidMode = kind === "image" || kind === "video" ? "media" : kind; segVid();
-  const card = $("vplayer");
-  card.hidden = false;
-  card.classList.toggle("still", kind === "image" || kind === "text");
-  card.classList.toggle("live", kind === "tab" || kind === "camera");
-  $("vTitle").textContent = name;
-  $("vSub").textContent = (kind === "image" ? "Image" : kind === "text" ? "Type" : kind === "tab" ? "Live tab" : kind === "camera" ? "Camera" : "Video") + " \u00b7 " + w + "\u00d7" + h;
-  $("vFaces").hidden = kind !== "camera";
-  $("textRow").hidden = kind !== "text";
+let sources = [], srcSeq = 1;         // { id, kind, name, el, w, h, video, stream, thumb, wasPlaying }
+let imgSrc = null, imgVideo = null, imgAspect = 1, imgDirty = false, imgName = "", imgKind = "none", tabStream = null;   // the stage source
+const KIND_NAME = { image: "Image", video: "Video", text: "Type", tab: "Live tab", camera: "Camera" };
+const activeSource = () => sources.find(sc => sc.el === imgSrc) || null;
+// hold a source and put it on the stage. Media files add up; there is one
+// text, one camera and one tab, and a new one replaces the old.
+function addSource(el, w, h, name, kind, extra = {}) {
+  if (kind !== "image" && kind !== "video") {
+    const old = sources.find(sc => sc.kind === kind);
+    if (old && old.el === el) { old.w = w; old.h = h; old.name = name; old.dirty = true; activateSource(old); return old; }
+    if (old) removeSource(old, true);
+  }
+  const live = kind === "video" || kind === "tab" || kind === "camera";
+  const sc = { id: srcSeq++, kind, name, el, w, h, video: live ? el : null, stream: extra.stream || null, thumb: null, wasPlaying: true };
+  sources.push(sc);
+  activateSource(sc);
+  return sc;
+}
+function activateSource(sc) {
+  const prev = activeSource();
+  if (prev && prev !== sc) {
+    if (prev.kind === "video") { prev.wasPlaying = !prev.el.paused; if (!P.groups.some(g => g.source === prev.id)) prev.el.pause(); }
+    if (prev.kind === "camera") stopFaces();
+  }
+  imgSrc = sc.el; imgAspect = sc.w / sc.h; imgDirty = true; imgName = sc.name; imgKind = sc.kind;
+  imgVideo = sc.video; tabStream = sc.stream;
+  if (sc.kind === "video" && sc.wasPlaying) sc.el.play().catch(() => {});
+  if (sc.kind === "camera") { startFaces(sc.el); listCams(); }
   lastShownTime = -1;
-  drawVideoThumb();
-  syncVideoUI();
+  syncSourceUI();
   if (typeof requeueTiles === "function") setTimeout(requeueTiles, 50);   // thumbnails follow the source
-  $("imgNote").hidden = true;
 }
-function clearImageSource() {
-  if (imgVideo) { imgVideo.pause(); imgVideo = null; }
-  if (tabStream) { tabStream.getTracks().forEach(t => t.stop()); tabStream = null; }
-  stopFaces(); $("camRow").hidden = true;
-  imgSrc = null; imgKind = "none"; vidMode = "none"; segVid();
-  $("vplayer").hidden = true;
-  $("imgNote").hidden = false; $("imgNote").className = "note";
-  $("imgNote").textContent = "Nothing loaded \u2014 image patterns use a plasma field. Drop a file on the stage to load one.";
-  if (typeof requeueTiles === "function") setTimeout(requeueTiles, 50);
+function removeSource(sc, quiet) {
+  const was = sc.el === imgSrc;
+  if (sc.stream) sc.stream.getTracks().forEach(t => t.stop());
+  if (sc.video) { sc.video.pause(); if (sc.kind === "video") { sc.video.removeAttribute("src"); sc.video.load(); } }
+  if (sc.kind === "camera" && was) stopFaces();
+  sources = sources.filter(x => x !== sc);
+  if (sc.tex) { gl.deleteTexture(sc.tex); sc.tex = null; }
+  P.groups.forEach(g => { if (g.source === sc.id) g.source = "stage"; });
+  if (typeof gsync === "function") gsync();
+  if (was) {
+    imgSrc = null; imgVideo = null; tabStream = null; imgKind = "none";
+    const next = sources[sources.length - 1];
+    if (next && !quiet) activateSource(next);
+    else { syncSourceUI(); if (typeof requeueTiles === "function") setTimeout(requeueTiles, 50); }
+  } else syncSourceUI();
 }
+function clearImageSource() { const sc = activeSource(); if (sc) removeSource(sc); }
+function imgNoteDefault() { const n = $("imgNote"); n.hidden = true; n.textContent = ""; }   // the line only carries errors
 let thumbTick = 0;
-function drawVideoThumb() {
-  if (!imgSrc) return;
-  const c = $("vThumb"), x = c.getContext("2d");
+// each row carries a small cover-fitted thumbnail; live rows refresh now and then
+function drawThumb(sc) {
+  const c = sc.thumb; if (!c) return;
+  const x = c.getContext("2d"), a = sc.w / sc.h;
   x.fillStyle = "#000"; x.fillRect(0, 0, c.width, c.height);
-  // cover-fit the source into the square
-  const sw = imgAspect >= 1 ? c.height * imgAspect : c.width, sh = imgAspect >= 1 ? c.height : c.width / imgAspect;
-  try { x.drawImage(imgSrc, (c.width - sw) / 2, (c.height - sh) / 2, sw, sh); } catch (e) { /* frame not ready */ }
+  const sw = a >= 1 ? c.height * a : c.width, sh = a >= 1 ? c.height : c.width / a;
+  try { x.drawImage(sc.el, (c.width - sw) / 2, (c.height - sh) / 2, sw, sh); } catch (e) { /* frame not ready */ }
 }
-function imgError(msg) {
-  $("imgNote").hidden = false; $("imgNote").className = "note warn"; $("imgNote").textContent = msg;
-  vidMode = litFor(); segVid();
+function drawVideoThumb() { const sc = activeSource(); if (sc) drawThumb(sc); }
+function syncSourceUI() {
+  const host = $("srcList"), act = activeSource();
+  host.innerHTML = "";
+  for (const sc of sources) {
+    const li = document.createElement("li");
+    li.className = "track" + (sc === act ? " now" : "");
+    li.title = sc === act ? "On the stage" : "Put this source on the stage";
+    const th = document.createElement("canvas"); th.className = "thumb"; th.width = 184; th.height = 104;
+    sc.thumb = th; drawThumb(sc);
+    const meta = document.createElement("div"); meta.className = "tmeta";
+    const b = document.createElement("b"); b.textContent = sc.name;
+    const sm = document.createElement("small"); barJoin(sm, [KIND_NAME[sc.kind], sc.w + "\u00d7" + sc.h]);
+    meta.append(b, sm);
+    li.append(th, meta);
+    if (sc.kind === "video") {
+      const pl = document.createElement("button");
+      pl.type = "button"; pl.className = "tplay"; pl.textContent = sc.el.paused ? "\u25B6" : "\u2016";
+      pl.title = "Play or pause"; pl.setAttribute("aria-label", "Play or pause " + sc.name);
+      pl.addEventListener("click", e => {
+        e.stopPropagation();
+        if (sc !== act) { activateSource(sc); return; }
+        if (sc.el.paused) sc.el.play().catch(() => {}); else sc.el.pause();
+        sc.wasPlaying = !sc.el.paused; syncSourceUI();
+      });
+      li.append(pl);
+    }
+    const del = document.createElement("button");
+    del.type = "button"; del.textContent = "\u00d7"; del.title = sc.kind === "camera" || sc.kind === "tab" ? "Stop and remove" : "Remove";
+    del.setAttribute("aria-label", "Remove " + sc.name);
+    del.addEventListener("click", e => { e.stopPropagation(); removeSource(sc); });
+    li.append(del);
+    li.addEventListener("click", () => { if (sc !== act) activateSource(sc); });
+    host.append(li);
+  }
+  $("vidScrubRow").hidden = !(act && act.kind === "video");
+  $("vFaces").hidden = !(act && act.kind === "camera");
+  $("textRow").hidden = !(act && act.kind === "text");
+  if (!(act && act.kind === "camera")) $("camRow").hidden = true;
+  imgNoteDefault();
+  if (typeof gsync === "function" && preview === "pile") gsync();   // the group Source menus list the held sources
 }
+function imgError(msg) { $("imgNote").hidden = false; $("imgNote").className = "note warn"; $("imgNote").textContent = msg; }
 function useImage(file) {
   const url = URL.createObjectURL(file);
   if (file.type.startsWith("video/")) {
     const v = document.createElement("video");
     v.src = url; v.muted = true; v.loop = true; v.playsInline = true;
-    v.addEventListener("loadeddata", () => {
-      imgVideo = v;
-      setImageSource(v, v.videoWidth, v.videoHeight, file.name, "video");
-    }, { once: true });
+    v.addEventListener("loadeddata", () => addSource(v, v.videoWidth, v.videoHeight, file.name, "video"), { once: true });
     v.play().catch(err => imgError("Couldn\u2019t play " + file.name + ": " + err.message));
     return;
   }
@@ -3093,7 +3345,7 @@ function useImage(file) {
     c.width = Math.max(1, Math.round(im.width * s));
     c.height = Math.max(1, Math.round(im.height * s));
     c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
-    setImageSource(c, im.width, im.height, file.name, "image");
+    addSource(c, im.width, im.height, file.name, "image");
   };
   im.onerror = () => { URL.revokeObjectURL(url); imgError("Couldn\u2019t read " + file.name + " as an image."); };
   im.src = url;
@@ -3119,18 +3371,7 @@ function renderTextSource() {
   const px = Math.max(8, Math.min(c.height * 0.92, 100 * (c.width * (+$("textFill").value)) / w0));
   x.font = px + "px " + textFamily;
   x.fillText(copy, c.width / 2, c.height / 2);
-  setImageSource(c, c.width, c.height, copy, "text");
-}
-// any face the operator drops in, registered for this session only
-async function useFont(file) {
-  try {
-    const face = new FontFace("vibeFace" + Date.now(), await file.arrayBuffer());
-    await face.load();
-    document.fonts.add(face);
-    textFamily = '"' + face.family + '", sans-serif';
-    $("fontName").textContent = file.name.replace(/\.[^.]+$/, "");
-    renderTextSource();
-  } catch (err) { imgError("Couldn\u2019t read " + file.name + " as a font."); }
+  addSource(c, c.width, c.height, copy, "text");
 }
 
 // show another tab or window on the stage, through the screen-share picker
@@ -3141,11 +3382,8 @@ async function useTabVideo() {
     const track = stream.getVideoTracks()[0];
     const v = document.createElement("video");
     v.srcObject = stream; v.muted = true; v.playsInline = true;
-    v.addEventListener("loadeddata", () => {
-      imgVideo = v; tabStream = stream;
-      setImageSource(v, v.videoWidth, v.videoHeight, track.label || "Shared tab", "tab");
-    }, { once: true });
-    track.addEventListener("ended", () => { if (imgKind === "tab" && tabStream === stream) clearImageSource(); });
+    v.addEventListener("loadeddata", () => addSource(v, v.videoWidth, v.videoHeight, track.label || "Shared tab", "tab", { stream }), { once: true });
+    track.addEventListener("ended", () => { const sc = sources.find(x => x.stream === stream); if (sc) removeSource(sc); });
     await v.play();
   } catch (err) {
     imgError(err.name === "NotAllowedError" ? "Tab sharing was cancelled." : "Couldn\u2019t capture the tab: " + err.message);
@@ -3190,14 +3428,8 @@ async function useCamera() {
     const track = stream.getVideoTracks()[0];
     const v = document.createElement("video");
     v.srcObject = stream; v.muted = true; v.playsInline = true;
-    v.addEventListener("loadeddata", () => {
-      if (tabStream && tabStream !== stream) tabStream.getTracks().forEach(t => t.stop());   // the camera being switched away from
-      imgVideo = v; tabStream = stream;
-      setImageSource(v, v.videoWidth, v.videoHeight, track.label || "Camera", "camera");
-      startFaces(v);
-      listCams();
-    }, { once: true });
-    track.addEventListener("ended", () => { if (imgKind === "camera" && tabStream === stream) clearImageSource(); });
+    v.addEventListener("loadeddata", () => addSource(v, v.videoWidth, v.videoHeight, track.label || "Camera", "camera", { stream }), { once: true });
+    track.addEventListener("ended", () => { const sc = sources.find(x => x.stream === stream); if (sc) removeSource(sc); });
     await v.play();
   } catch (err) {
     imgError(err.name === "NotAllowedError" ? "Camera permission was denied." : "Couldn\u2019t open the camera: " + err.message);
@@ -3284,37 +3516,60 @@ function updateFaceDerived() {
   FACE.spread += (spread - FACE.spread) * kp;
   FACE.boxes = live.slice(0, 8).map(t => t.box);
   if (imgKind === "camera" && (faceTick % 15) === 0) {
-    $("vFaces").textContent = faceStatus || (n ? n + (n > 1 ? " faces" : " face") + " \u00b7 presence " + FACE.presence.toFixed(2) + " \u00b7 near " + FACE.largest.toFixed(2) + " \u00b7 spread " + FACE.spread.toFixed(2) : "No faces \u00b7 presence " + FACE.presence.toFixed(2));
+    if (faceStatus) $("vFaces").textContent = faceStatus;
+    else barJoin($("vFaces"), n ? [n + (n > 1 ? " faces" : " face"), "presence " + FACE.presence.toFixed(2), "near " + FACE.largest.toFixed(2), "spread " + FACE.spread.toFixed(2)] : ["No faces", "presence " + FACE.presence.toFixed(2)]);
   }
 }
 /* video playback: play/pause, a scrubber and a clock, only for a file video */
 const fmtTime = s => isFinite(s) ? Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0") : "0:00";
 let scrubbing = false, lastShownTime = -1;
 function syncVideoUI() {
-  const v = imgVideo;
-  if (!v) return;
-  $("vidPlay").classList.toggle("playing", !v.paused);
-  if ((imgKind === "tab" || imgKind === "camera") && (thumbTick++ % 30) === 0) drawVideoThumb();
+  const v = imgVideo, sc = activeSource();
+  if (!v || !sc) return;
+  if ((sc.kind === "tab" || sc.kind === "camera") && (thumbTick++ % 30) === 0) drawThumb(sc);
+  if (sc.kind !== "video") return;
   const t = Math.floor(v.currentTime * 10);
   if (t === lastShownTime) return;
   lastShownTime = t;
   if (!scrubbing && v.duration) $("vidScrub").value = String(Math.round(v.currentTime / v.duration * 1000));
   $("vidTime").textContent = fmtTime(v.currentTime) + " / " + fmtTime(v.duration);
-  if ((thumbTick++ % 10) === 0 && imgKind === "video") drawVideoThumb();
+  if ((thumbTick++ % 10) === 0) drawThumb(sc);
 }
 function toggleVideo() {
-  if (!imgVideo || imgKind !== "video") return;
-  if (imgVideo.paused) imgVideo.play().catch(() => {}); else imgVideo.pause();
-  syncVideoUI();
+  const sc = activeSource(); if (!sc || sc.kind !== "video") return;
+  if (sc.el.paused) sc.el.play().catch(() => {}); else sc.el.pause();
+  sc.wasPlaying = !sc.el.paused; syncSourceUI();
 }
-$("vidPlay").addEventListener("click", toggleVideo);
-$("vidClear").addEventListener("click", clearImageSource);
 $("vidScrub").addEventListener("pointerdown", () => { scrubbing = true; });
 $("vidScrub").addEventListener("input", () => {
   if (imgVideo && imgVideo.duration) imgVideo.currentTime = +$("vidScrub").value / 1000 * imgVideo.duration;
 });
 $("vidScrub").addEventListener("change", () => { scrubbing = false; });
+// a texture per held source, for groups that show something other than the
+// stage. Uploaded when it changes, or every frame while live; the stage
+// source keeps using imgTex, uploaded by the main pass.
+let srcFrame = 0;
+function srcTexFor(sc) {
+  if (!sc.tex) {
+    sc.tex = gl.createTexture(); sc.dirty = true;
+    gl.bindTexture(gl.TEXTURE_2D, sc.tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  }
+  const live = !!sc.video;
+  if ((sc.dirty || live) && sc.upFrame !== srcFrame && !(live && sc.el.readyState < 2)) {
+    gl.bindTexture(gl.TEXTURE_2D, sc.tex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sc.el);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    sc.dirty = false; sc.upFrame = srcFrame;
+  }
+  return sc.tex;
+}
 function uploadImage() {
+  srcFrame++;
   const video = imgVideo && imgSrc === imgVideo;
   if (!imgSrc || !(imgDirty || video)) return;
   if (video) syncVideoUI();
@@ -3325,18 +3580,17 @@ function uploadImage() {
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
   imgDirty = false;
 }
-// the Video in buttons: Image and Video open a picker, Tab opens the share
-// picker; the lit button is whatever is on the stage
-const litFor = () => imgKind === "image" || imgKind === "video" ? "media" : imgKind;
-const segVid = seg("vidSeg", "vsrc", () => vidMode, v => {
-  vidMode = litFor(); segVid();                     // the lit button is what is on the stage, not what was clicked
+// the Source chips: Media opens a picker (several files at once), Text renders
+// the copy, Camera and Tab ask the browser; each adds a row and takes the stage
+$("srcAdd").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const v = b.dataset.add;
   if (v === "media") $("imgFile").click();
   else if (v === "text") renderTextSource();
   else if (v === "camera") useCamera();
   else if (v === "tab") useTabVideo();
 });
-$("imgFile").addEventListener("change", e => { const f = e.target.files[0]; if (f) useImage(f); e.target.value = ""; });
-$("fontPick").addEventListener("click", () => $("fontFile").click());
+$("imgFile").addEventListener("change", e => { [...e.target.files].forEach(useImage); e.target.value = ""; });
 $("fontFile").addEventListener("change", e => { const f = e.target.files[0]; if (f) useFont(f); e.target.value = ""; });
 // redraw a beat after the last keystroke rather than on every one
 let textTimer = 0;
@@ -3691,20 +3945,23 @@ function parseFLAC(u8) {
 // with the tags read once when a file is added. Falls back to a session-only
 // list if storage is unavailable.
 const LIB_MAX = 12;
-const DB_NAME = "vibe-studio", DB_STORE = "tracks";
+const DB_NAME = "vibe-studio", DB_STORE = "tracks", DB_FONTS = "fonts";
 let lib = [], cur = -1, audioURL = null, coverURL = null;
 function dbOpen() {
   return new Promise((res, rej) => {
     if (!window.indexedDB) return rej(new Error("no IndexedDB"));
-    const r = indexedDB.open(DB_NAME, 1);
-    r.onupgradeneeded = () => r.result.createObjectStore(DB_STORE, { keyPath: "id" });
+    const r = indexedDB.open(DB_NAME, 2);
+    r.onupgradeneeded = () => {
+      const db = r.result;
+      for (const st of [DB_STORE, DB_FONTS]) if (!db.objectStoreNames.contains(st)) db.createObjectStore(st, { keyPath: "id" });
+    };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
   });
 }
-function dbRun(mode, fn) {
+function dbRun(mode, fn, store = DB_STORE) {
   return dbOpen().then(db => new Promise((res, rej) => {
-    const r = fn(db.transaction(DB_STORE, mode).objectStore(DB_STORE));
+    const r = fn(db.transaction(store, mode).objectStore(store));
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
   }));
@@ -3712,6 +3969,84 @@ function dbRun(mode, fn) {
 const dbAll = () => dbRun("readonly", s => s.getAll());
 const dbPut = t => dbRun("readwrite", s => s.put(t));
 const dbDel = id => dbRun("readwrite", s => s.delete(id));
+const fontsAll = () => dbRun("readonly", s => s.getAll(), DB_FONTS);
+const fontPut = f => dbRun("readwrite", s => s.put(f), DB_FONTS);
+const fontDel = id => dbRun("readwrite", s => s.delete(id), DB_FONTS);
+
+/* ================= fonts ================= */
+// The text source's typeface: a Google Font by name (its stylesheet is
+// fetched the first time it is picked; Google Fonts are the one remote
+// resource this app uses) or a font file, which is kept in this browser's
+// IndexedDB under "Your fonts" so it is there next time.
+const GOOGLE_FONTS = ["Space Grotesk", "Anton", "Archivo Black", "Bebas Neue", "Black Ops One", "Bungee", "DM Serif Display", "Fredoka",
+  "IBM Plex Mono", "Inter", "Lobster", "Major Mono Display", "Monoton", "Orbitron", "Oswald", "Pacifico", "Permanent Marker",
+  "Playfair Display", "Press Start 2P", "Righteous", "Rubik Mono One", "Source Sans 3", "Space Mono", "Syne", "Unbounded", "Zen Dots"];
+const gfLoaded = new Set(["Space Grotesk", "Source Sans 3"]);
+let fontLib = [], fontChoice = { kind: "google", name: "Space Grotesk" };
+try { fontChoice = JSON.parse(localStorage.getItem("vibe.font")) || fontChoice; } catch (e) { /* default */ }
+const fontFamilyFor = ch => '"' + (ch.kind === "lib" ? "vibeFont" + ch.id : ch.name) + '", sans-serif';
+async function applyFont(ch) {
+  if (ch.kind === "lib" && !fontLib.some(f => f.id === ch.id)) ch = { kind: "google", name: "Space Grotesk" };
+  if (ch.kind === "google" && !GOOGLE_FONTS.includes(ch.name)) ch = { kind: "google", name: "Space Grotesk" };
+  fontChoice = ch;
+  try { localStorage.setItem("vibe.font", JSON.stringify(ch)); } catch (e) { /* no storage */ }
+  if (ch.kind === "google" && !gfLoaded.has(ch.name)) {
+    const l = document.createElement("link"); l.rel = "stylesheet";
+    l.href = "https://fonts.googleapis.com/css2?family=" + encodeURIComponent(ch.name).replace(/%20/g, "+") + "&display=swap";
+    document.head.append(l); gfLoaded.add(ch.name);
+  }
+  textFamily = fontFamilyFor(ch);
+  syncFontSel();
+  try { await document.fonts.load("100px " + textFamily); } catch (e) { /* draw with the fallback */ }
+  if (sources.some(sc => sc.kind === "text")) renderTextSource();
+}
+function syncFontSel() {
+  const sel = $("fontSel");
+  sel.innerHTML = "";
+  if (fontLib.length) {
+    const og = document.createElement("optgroup"); og.label = "Your fonts";
+    fontLib.forEach(f => { const o = document.createElement("option"); o.value = "lib:" + f.id; o.textContent = f.name; og.append(o); });
+    sel.append(og);
+  }
+  const og = document.createElement("optgroup"); og.label = "Google Fonts";
+  GOOGLE_FONTS.forEach(n => { const o = document.createElement("option"); o.value = "google:" + n; o.textContent = n; og.append(o); });
+  sel.append(og);
+  const file = document.createElement("option"); file.value = "file"; file.textContent = "Load a font file\u2026"; sel.append(file);
+  sel.value = fontChoice.kind === "lib" ? "lib:" + fontChoice.id : "google:" + fontChoice.name;
+  $("fontDel").hidden = fontChoice.kind !== "lib";
+}
+$("fontSel").addEventListener("change", e => {
+  const v = e.target.value;
+  if (v === "file") { $("fontFile").click(); syncFontSel(); return; }
+  if (v.startsWith("lib:")) { const f = fontLib.find(x => x.id === +v.slice(4)); if (f) applyFont({ kind: "lib", id: f.id, name: f.name }); }
+  else applyFont({ kind: "google", name: v.slice(7) });
+});
+$("fontDel").addEventListener("click", () => {
+  const f = fontLib.find(x => x.id === fontChoice.id); if (!f) return;
+  if (!confirm("Remove \u201c" + f.name + "\u201d from your fonts?")) return;
+  fontLib = fontLib.filter(x => x !== f);
+  fontDel(f.id).catch(() => {});
+  applyFont({ kind: "google", name: "Space Grotesk" });
+});
+async function registerFont(f) {
+  const face = new FontFace("vibeFont" + f.id, f.data);
+  await face.load(); document.fonts.add(face);
+}
+// a font file is registered now and kept in the library for next time
+async function useFont(file) {
+  try {
+    const f = { id: Date.now(), name: file.name.replace(/\.[^.]+$/, ""), data: await file.arrayBuffer(), added: Date.now() };
+    await registerFont(f);
+    fontLib.push(f);
+    await fontPut(f).catch(() => imgError("The font works for this session but couldn\u2019t be kept in your fonts."));
+    applyFont({ kind: "lib", id: f.id, name: f.name });
+  } catch (err) { imgError("Couldn\u2019t read " + file.name + " as a font."); }
+}
+fontsAll().then(async rows => {
+  fontLib = rows.sort((a, b) => a.added - b.added);
+  for (const f of fontLib) { try { await registerFont(f); } catch (e) { /* a broken file stays listed but falls back */ } }
+  applyFont(fontChoice);
+}).catch(() => applyFont(fontChoice));
 
 const fmtClock = s => isFinite(s) ? Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0") : "0:00";
 const niceName = n => n.replace(/\.[^.]+$/, "").replace(/_+/g, " ").trim();
@@ -3804,7 +4139,8 @@ function renderNowPlaying() {
   cov.classList.toggle("empty", !(t && t.cover));
   if (t && t.cover) { coverURL = URL.createObjectURL(t.cover); cov.style.backgroundImage = "url(" + coverURL + ")"; }
   $("npTitle").textContent = t ? t.title : "Nothing playing";
-  $("npSub").textContent = t ? ([t.artist, t.album].filter(Boolean).join(" · ") || t.name)
+  if (t && (t.artist || t.album)) barJoin($("npSub"), [t.artist, t.album]);
+  else $("npSub").textContent = t ? t.name
                              : (lib.length ? "Pick a song below" : "Add songs to build the library");
   $("tPlay").classList.toggle("playing", !!(audioEl && !audioEl.paused));
 }
@@ -3833,12 +4169,13 @@ function renderLibrary() {
     host.append(li);
   });
   const mb = lib.reduce((a, t) => a + t.size, 0) / 1048576;
-  $("libCount").textContent = lib.length ? lib.length + " of " + LIB_MAX + " songs · " + mb.toFixed(mb < 10 ? 1 : 0) + " MB" : "No songs yet";
+  if (lib.length) barJoin($("libCount"), [lib.length + " of " + LIB_MAX + " songs", mb.toFixed(mb < 10 ? 1 : 0) + " MB"]); else $("libCount").textContent = "No songs yet";
   renderNowPlaying();
 }
 let scrubT = false, lastT = -1;
 function syncPlayerUI() {
-  $("player").hidden = srcMode !== "music";          // the music card belongs to the Music source
+  $("player").hidden = srcMode !== "music";          // the music card and library belong to the Music source
+  $("songLib").hidden = srcMode !== "music";
   if (!audioEl) { $("tPlay").classList.remove("playing"); return; }
   const c = Math.floor(audioEl.currentTime * 10);
   if (c === lastT) return;
@@ -4055,7 +4392,7 @@ function setLook(L, m, w, h, pEnd, time = T) {
 
 // Thumbnails: every preset rendered once through its look, at a fixed moment
 // with trails off and no audio, from one shared source image: whatever is
-// loaded in Video in (the current frame, for a video), else presets/thumb.jpg
+// on the stage under Source (the current frame, for a video), else presets/thumb.jpg
 // if the repo ships one, else the plasma field. A queue spreads the renders
 // over a few frames, and the grid re-renders when the source changes.
 const TILE_T = 3.0;
@@ -4179,6 +4516,7 @@ function slotIndexAt(x, y) {
   return -1;
 }
 function buildGrid() {
+  queueMicrotask(() => { if (typeof gsync === "function") gsync(); });   // the group set lists show these presets too
   const host = $("presetGrid");
   host.innerHTML = "";
   tiles.length = 0;
@@ -4560,6 +4898,24 @@ function toggleOverlay(force) {
 }
 $("ovGain").addEventListener("input", () => { state.gain = +$("ovGain").value; syncSliders(); });
 $("setBtn").addEventListener("click", () => toggleOverlay());
+// the dock shows while the pointer is in the bottom-left corner. Once it
+// leaves, or a button in the dock is pressed, the dock goes translucent after
+// 2 s and away after 5 s; it comes back when the pointer re-enters the corner.
+const dock = $("dock");
+let dockT1 = 0, dockT2 = 0, dockHold = false;
+function dockShow() { clearTimeout(dockT1); clearTimeout(dockT2); dock.classList.add("show"); dock.classList.remove("dim"); }
+function dockArm() {
+  clearTimeout(dockT1); clearTimeout(dockT2);
+  dockT1 = setTimeout(() => dock.classList.add("dim"), 2000);
+  dockT2 = setTimeout(() => dock.classList.remove("show", "dim"), 5000);
+}
+addEventListener("mousemove", e => {
+  const inCorner = e.clientX < 300 && e.clientY > innerHeight - 110;
+  if (inCorner) { if (!dockHold) dockShow(); }
+  else { dockHold = false; if (dock.classList.contains("show")) dockArm(); }
+});
+document.addEventListener("mouseleave", () => { if (dock.classList.contains("show")) dockArm(); });
+dock.addEventListener("click", e => { if (e.target.closest("button")) { dockHold = true; dockArm(); } });
 // on a phone the lower third lives at the top of the sidebar instead of over the stage
 (() => {
   const mq = matchMedia("(max-width: 640px)"), ov = $("setOverlay");
@@ -4852,7 +5208,7 @@ function drawSparks() {
 
 /* ================= TV pile preview =================
    An editable layout of flat panels on a mounting grid, with the room behind it.
-   Vibe studio renders one frame shaped like the whole installation (see resize()),
+   Vibe studio renders one frame shaped like the Unified screens' outline (see resize()),
    runs the Screen pass into `fin`, and drawPileScreens() slices that onto each screen.
    Units are inches. World y is up from the floor; x is left to right. */
 const pileBg = $("pileBg"), pileFg = $("pileFg");
@@ -4862,14 +5218,33 @@ let preview = "full";
 let pileAR = 2;                                   // installation width / height, drives the render target
 const PSIZES = [24, 27, 32, 40, 43, 50, 55, 65, 75, 85];
 const PK = Math.hypot(16, 9), BEZEL = 0.7, PIPE = 1.9, PSTORE = "vibe-pile-layout-v1";
+/* Groups: every screen belongs to one, and the group carries what it shows:
+   { screens, source, mapping, set list }. Mapping and the set list are live.
+   `source` is held in the shape now ("stage", whichever held source is on the stage)
+   so per-group sources can follow without reworking this. */
+const GROUP_MAX = 5, GCOLS = ["#3d84ff", "#EE5714", "#ECEEF4", "#FFB37A", "#7FDFFD"];
+let gid = 1;
+function gmk(o = {}) {
+  return { id: o.id != null ? o.id : gid++, name: o.name || "", mapping: o.mapping || "unified",
+           source: o.source != null ? o.source : "stage", presets: Array.isArray(o.presets) ? o.presets.slice() : [] };
+}
 const P = {
   frame: { x0: 0, w: 240, h: 108, pitch: 30, rail: 48, show: true },
   items: [],
   bg: { wall: "plain", backdrop: "drape", solid: "#0061FF", overhang: 12, light: "dim", photoFt: 20 },
-  mapping: "unified",
+  vis: { devices: true, bg: true },                // the grid's own flag is frame.show
+  groups: [gmk()],
 };
+const gof = s => P.groups.find(g => g.id === s.g) || P.groups[0];
+const gscreens = g => pscreens().filter(s => gof(s) === g);
+const gname = g => g.name || "Group " + (P.groups.indexOf(g) + 1);
+const gcol = g => GCOLS[Math.max(0, P.groups.indexOf(g)) % GCOLS.length];
+// the held source a group shows, or null for whatever is on the stage
+const gsrc = g => g.source === "stage" ? null : (sources.find(sc => sc.id === g.source) || null);
+let gpaint = null;                                // id of the group whose Assign tool is on
 const pui = { snapX: true, snapSize: true, labels: false };
 let pid = 1, psel = null, photoImg = null, bdImg = null, roomDirty = true, pdrag = null, phover = null;
+let protBtn = null;                               // the rotate button drawn this frame: { it, x, y, r } in canvas px
 let pW = 0, pH = 0, pdpr = 1, psc = 1, pox = 0, pfloor = 0;
 const PX = v => pox + v * psc, PY = v => pfloor - v * psc;
 const MAP_NOTES = {
@@ -4878,9 +5253,11 @@ const MAP_NOTES = {
   scatter: "Each screen shows a different drifting crop. A one-machine stand-in for every Pi running its own look.",
   chaos: "Every screen plays a random saved preset, live, with its own trails. Up to 8 different looks run at once; past that, screens share. Screen effects (Fringe, Echo, Slit-scan, Blur) stay with the other mappings.",
 };
+const MAP_NAMES = { unified: "Unified", mirror: "Mirror", scatter: "Scatter", chaos: "Chaos" };
 
 /* ---- model ---- */
 function pdims(it) {
+  if (it.type === "camera") return { w: 6, h: 4 };
   if (it.type === "cab") return { w: it.w, h: it.h };
   let gw = it.diag * 16 / PK, gh = it.diag * 9 / PK;
   if (it.portrait) [gw, gh] = [gh, gw];
@@ -4905,23 +5282,48 @@ function pbounds() {
   }
   return { minX: a, maxX: b, maxY: t, w: b - a, h: t };
 }
+// the extent the Unified picture spreads across: the Unified screens' outline,
+// or every screen while no group is Unified
+function pubounds() {
+  const all = pscreens(), uni = all.filter(s => gof(s).mapping === "unified");
+  const list = uni.length ? uni : all;
+  if (!list.length) return pbounds();
+  let a = Infinity, b = -Infinity, lo = Infinity, hi = -Infinity;
+  for (const it of list) {
+    const d = pdims(it);
+    a = Math.min(a, it.x - d.w / 2); b = Math.max(b, it.x + d.w / 2); lo = Math.min(lo, it.y); hi = Math.max(hi, it.y + d.h);
+  }
+  return { minX: a, maxX: b, minY: lo, maxY: hi, w: b - a, h: hi - lo };
+}
 
 /* ---- save, load, undo ---- */
 function pserialize() {
   return JSON.stringify({
-    v: 1, frame: P.frame, bg: P.bg, mapping: P.mapping,
-    items: P.items.map(it => it.type === "cab"
+    v: 2, frame: P.frame, bg: P.bg, vis: P.vis,
+    groups: P.groups.map(g => ({ id: g.id, name: g.name, mapping: g.mapping, source: g.source, presets: g.presets })),   // source ids are per session
+    items: P.items.map(it => it.type === "camera" ? { type: "camera", x: pr1(it.x), y: pr1(it.y) } : it.type === "cab"
       ? { type: "cab", x: pr1(it.x), y: pr1(it.y), w: pr1(it.w), h: pr1(it.h), wood: !!it.wood }
-      : { type: "screen", diag: it.diag, portrait: !!it.portrait, x: pr1(it.x), y: pr1(it.y), dead: !!it.dead }),
+      : { type: "screen", diag: it.diag, portrait: !!it.portrait, x: pr1(it.x), y: pr1(it.y), dead: !!it.dead, g: it.g }),
   });
 }
-function papply(d) {
+function papply(d, keepSources) {
   if (!d || !d.frame || !Array.isArray(d.items)) throw new Error("not a pile layout");
   Object.assign(P.frame, d.frame);
   if (d.bg) Object.assign(P.bg, d.bg);
+  P.vis = { devices: true, bg: true }; if (d.vis) Object.assign(P.vis, d.vis);
   if (P.bg.wall !== "photo") P.bg.wall = "plain";
-  if (MAP_NOTES[d.mapping]) P.mapping = d.mapping;
-  P.items = d.items.filter(o => o && (o.type === "screen" || o.type === "cab")).map(pmk);
+  chaosFreeAll();
+  // a v1 layout had one global mapping: it becomes the single group
+  const gs = Array.isArray(d.groups) ? d.groups.filter(g => g && typeof g === "object").slice(0, GROUP_MAX) : [];
+  P.groups = gs.length
+    ? gs.map(g => gmk({ id: +g.id || undefined, name: String(g.name || "").slice(0, 24), mapping: MAP_NOTES[g.mapping] ? g.mapping : "unified",
+                        presets: Array.isArray(g.presets) ? g.presets.filter(x => typeof x === "string") : [],
+                        source: keepSources && sources.some(sc => sc.id === g.source) ? g.source : "stage" }))   // held sources don't survive a reload
+    : [gmk({ mapping: MAP_NOTES[d.mapping] ? d.mapping : "unified" })];
+  gid = Math.max(gid, ...P.groups.map(g => g.id)) + 1;
+  P.items = d.items.filter(o => o && (o.type === "screen" || o.type === "cab" || o.type === "camera")).map(pmk);
+  for (const it of P.items) if (it.type === "screen" && !P.groups.some(g => g.id === it.g)) it.g = P.groups[0].id;
+  if (gpaint !== null && !P.groups.some(g => g.id === gpaint)) gpaint = null;
   psel = null;
 }
 const phist = [];
@@ -4933,7 +5335,7 @@ function pcommit() {
 }
 function pundo() {
   if (phist.length < 2) return ptoast("Nothing to undo.");
-  phist.pop(); papply(JSON.parse(phist[phist.length - 1])); psave(); prefresh();
+  phist.pop(); papply(JSON.parse(phist[phist.length - 1]), true); psave(); prefresh();
 }
 
 /* ---- placement ---- */
@@ -4959,31 +5361,17 @@ function pfreeSpot(it) {
   it.x = f.x0 + f.w / 2; it.y = it.type === "cab" ? 0 : Math.max(4, f.h / 2 - d.h / 2);
 }
 function paddScreen(diag) {
-  const it = pmk({ type: "screen", diag, portrait: false, dead: false, x: 0, y: 0 });
+  const it = pmk({ type: "screen", diag, portrait: false, dead: false, x: 0, y: 0, g: gpaint !== null ? gpaint : P.groups[0].id });
+  pfreeSpot(it); P.items.push(it); psel = { kind: "item", it }; pcommit();
+}
+function paddCamera() {
+  const it = pmk({ type: "camera", x: 0, y: 0 });
   pfreeSpot(it); P.items.push(it); psel = { kind: "item", it }; pcommit();
 }
 function paddCab() {
   const it = pmk({ type: "cab", w: 22, h: 34, wood: Math.random() < 0.5, x: 0, y: 0 });
   pfreeSpot(it); P.items.push(it); psel = { kind: "item", it }; pcommit();
 }
-function pautoFill(n) {
-  P.items = P.items.filter(i => i.type === "cab");
-  const pick = [32, 40, 43, 43, 50, 55, 55, 65];
-  const f = P.frame, g = pgrid();
-  for (let i = 0; i < n; i++) {
-    const it = pmk({ type: "screen", diag: pick[Math.floor(Math.random() * pick.length)], portrait: Math.random() < 0.1, dead: false, x: 0, y: 0 });
-    const d = pdims(it);
-    for (let t = 0; t < 400; t++) {
-      it.x = f.x0 + Math.round(Math.random() * g.n * 2) * g.sp / 2;
-      it.y = 6 + Math.random() * Math.max(0, f.h - 6 - d.h);
-      if (pfits(it, d) && it.y + d.h <= f.h && !poverlaps(it, 3)) { P.items.push(it); break; }
-    }
-  }
-  psel = null; pcommit();
-  const placed = pscreens().length;
-  if (placed < n) ptoast(placed + " of " + n + " fit. Widen the grid or use smaller screens.");
-}
-
 /* ---- view ---- */
 // The sidebar floats over the stage's left side and the presets panel over its
 // bottom, so the pile is fitted into the space left between them.
@@ -5010,7 +5398,8 @@ function pfit() {
   pfloor = pH - Math.max(ins.b, 120 * pdpr) - 84 * pdpr;
   psc = Math.max(0.1, Math.min((right - left) / (maxX - minX), (pfloor - 56 * pdpr) / top));
   pox = (left + right) / 2 - ((minX + maxX) / 2) * psc;
-  pileAR = Math.max(0.3, Math.min(8, B.w / B.h));
+  const UB = pubounds();
+  pileAR = Math.max(0.3, Math.min(8, UB.w / Math.max(1, UB.h)));
   roomDirty = true;
 }
 function pileResize(w, h) {
@@ -5028,7 +5417,7 @@ function drawRoom() {
     g.addColorStop(0, "#DADCE2"); g.addColorStop(1, "#C9CCD3");
     c.fillStyle = g; c.fillRect(0, 0, pW, pfloor);
   };
-  if (P.bg.wall === "photo" && photoImg) {
+  if (P.bg.wall === "photo" && photoImg && P.vis.bg) {
     plain();
     const B = pbounds(), cx = (B.minX + B.maxX) / 2, pw = P.bg.photoFt * 12, ph = pw * photoImg.height / photoImg.width;
     c.drawImage(photoImg, PX(cx - pw / 2), PY(ph), pw * psc, ph * psc);
@@ -5039,7 +5428,7 @@ function drawRoom() {
 
   const f = P.frame, o = P.bg.overhang, bd = P.bg.backdrop;
   const R = { x: PX(f.x0 - o), y: PY(f.h + o), w: (f.w + 2 * o) * psc, h: (f.h + o) * psc };
-  if (bd !== "none") {
+  if (bd !== "none" && P.vis.bg) {
     c.save(); c.beginPath(); c.rect(R.x, R.y, R.w, R.h); c.clip();
     if (bd === "drape") {
       c.fillStyle = "#0C0C10"; c.fillRect(R.x, R.y, R.w, R.h);
@@ -5116,7 +5505,7 @@ function drawPileBg() {
       c.fillStyle = dim ? "#14182A" : "#2E323C"; c.fillRect(x - pw * 3, pfloor - pw * 0.6, pw * 6, pw * 0.6);
     }
   }
-  for (const it of P.items) {
+  if (P.vis.devices) for (const it of P.items) {
     const d = pdims(it), x = PX(it.x - d.w / 2), y = PY(it.y + d.h), w = d.w * psc, h = d.h * psc;
     if (it.type === "cab") {
       prr(c, x, y, w, h, 2 * pdpr); c.fillStyle = it.wood ? "#2C1C11" : "#121215"; c.fill();
@@ -5130,6 +5519,14 @@ function drawPileBg() {
         c.strokeStyle = "rgba(255,255,255,0.10)"; c.lineWidth = 1.5 * pdpr; c.stroke();
         c.beginPath(); c.arc(px, py, r * (0.3 + 0.08 * band.bass), 0, 7); c.fillStyle = "#1C1C21"; c.fill();
       }
+    } else if (it.type === "camera") {                 // a small box with a lens
+      prr(c, x, y, w, h, 1.5 * pdpr); c.fillStyle = "#1A1A20"; c.fill();
+      c.strokeStyle = "rgba(255,255,255,0.14)"; c.lineWidth = pdpr; c.stroke();
+      const r = Math.min(w, h) * 0.34, cx = x + w / 2, cy = y + h / 2;
+      c.beginPath(); c.arc(cx, cy, r, 0, 7); c.fillStyle = "#3A3F4C"; c.fill();
+      c.beginPath(); c.arc(cx, cy, r * 0.68, 0, 7); c.fillStyle = "#06070A"; c.fill();
+      c.beginPath(); c.arc(cx - r * 0.25, cy - r * 0.25, r * 0.16, 0, 7); c.fillStyle = "rgba(255,255,255,0.35)"; c.fill();
+      c.beginPath(); c.arc(x + w - 3 * pdpr, y + 3 * pdpr, 1.2 * pdpr, 0, 7); c.fillStyle = "#3d84ff"; c.fill();
     } else {
       prr(c, x, y, w, h, 1.2 * pdpr); c.fillStyle = "#0B0C10"; c.fill();
       c.strokeStyle = "rgba(255,255,255,0.10)"; c.lineWidth = pdpr; c.stroke();
@@ -5178,59 +5575,131 @@ const pileProg = program(PILE_FRAG, PILE_VERT);
    that share one. Screen-layer effects only exist in the main copy pass, so
    Chaos shows the scene, Distort and Texture layers. */
 const CHAOS_MAX = 8, CHAOS_W = 448, CHAOS_H = 252;
-let chaosSlots = [];            // { P, look, X, Y, tOff }
-let chaosDeal = new Map();      // screen id -> slot index
 let chaosAutoT = 0;
 function chaosLook(P) { return Object.assign({}, DEFAULT_LOOK, migrateLook(P.look)); }
-function chaosFree() {
-  chaosSlots.forEach(c => { freeTarget(c.X); freeTarget(c.Y); });
-  chaosSlots = []; chaosDeal = new Map();
+const chaosGroups = () => P.groups.filter(g => g.mapping === "chaos");
+const gch = g => g.ch || (g.ch = { slots: [], deal: new Map() });   // a group's render state; never saved
+function chaosFree(g) {
+  if (!g.ch) return;
+  g.ch.slots.forEach(c => { freeTarget(c.X); freeTarget(c.Y); });
+  g.ch = null;
 }
-function chaosPool() { return allPresets().filter(p => p && p.look); }
+function chaosFreeAll() { P.groups.forEach(g => { chaosFree(g); grFree(g); }); }
+/* A group whose source isn't the stage's, on Unified, Mirror or Scatter, gets
+   its own render of the current look from that source: a ping-pong pair shaped
+   like its screens (Unified) or the stage frame (Mirror, Scatter). Like Chaos
+   it shows the scene, Distort and Texture layers; Screen effects stay with
+   groups on the stage source. */
+function grFree(g) { if (g.gr) { freeTarget(g.gr.X); freeTarget(g.gr.Y); g.gr = null; } }
+function gbounds(g) {
+  const list = gscreens(g); if (!list.length) return pubounds();
+  let a = Infinity, b = -Infinity, lo = Infinity, hi = -Infinity;
+  for (const it of list) { const d = pdims(it); a = Math.min(a, it.x - d.w / 2); b = Math.max(b, it.x + d.w / 2); lo = Math.min(lo, it.y); hi = Math.max(hi, it.y + d.h); }
+  return { minX: a, maxX: b, minY: lo, maxY: hi, w: b - a, h: hi - lo };
+}
+function grFor(g) {
+  const ar = g.mapping === "unified" ? (() => { const b = gbounds(g); return Math.max(0.3, Math.min(8, b.w / Math.max(1, b.h))); })() : fin.w / fin.h;
+  const h = Math.max(4, Math.round(Math.sqrt(520000 / ar))), w = Math.max(4, Math.round(h * ar));
+  if (g.gr && (g.gr.w !== w || g.gr.h !== h)) grFree(g);
+  if (!g.gr) g.gr = { X: makeTarget(w, h), Y: makeTarget(w, h), w, h };
+  return g.gr;
+}
+// bind a held source at unit 3 in place of the stage source, or put the stage source back
+function bindSource(sc) {
+  const U = n => gl.getUniformLocation(scene, n);
+  gl.activeTexture(gl.TEXTURE3);
+  if (sc) { gl.bindTexture(gl.TEXTURE_2D, srcTexFor(sc)); gl.uniform1f(U("u_hasImg"), 1); gl.uniform1f(U("u_imgAspect"), sc.w / sc.h); }
+  else { gl.bindTexture(gl.TEXTURE_2D, imgTex); gl.uniform1f(U("u_hasImg"), imgSrc ? 1 : 0); gl.uniform1f(U("u_imgAspect"), imgAspect); }
+  gl.activeTexture(gl.TEXTURE0);
+}
+// the group's set list, or the whole library when it has none (or none of them exist any more)
+function chaosPool(g) {
+  const all = allPresets().filter(p => p && p.look);
+  let own = g.presets.length ? all.filter(p => g.presets.includes(p.id)) : [];
+  if (g.presets.includes("@setlist"))                 // the looks on timeline keys 1-8
+    setlist.forEach(sl => { const p = findPreset(sl.id); if (p && p.look && !own.includes(p)) own.push(p); });
+  return own.length ? own : all;
+}
+// the render pairs this group may hold: its share of CHAOS_MAX by screen count
+function chaosBudget(g) {
+  const total = chaosGroups().reduce((n, x) => n + gscreens(x).length, 0);
+  return Math.max(1, Math.floor(CHAOS_MAX * gscreens(g).length / Math.max(1, total)));
+}
 function chaosSlotFor(P) {
   return { P, look: chaosLook(P), X: makeTarget(CHAOS_W, CHAOS_H), Y: makeTarget(CHAOS_W, CHAOS_H), tOff: Math.random() * 60 };
 }
-// deal a random preset to every screen, reusing render pairs where they exist
-function chaosShuffle() {
-  const pool = chaosPool().sort(() => Math.random() - 0.5);
-  const scr = pscreens();
-  if (!pool.length || !scr.length) { chaosFree(); return; }
-  const n = Math.min(CHAOS_MAX, pool.length, scr.length);
-  while (chaosSlots.length > n) { const c = chaosSlots.pop(); freeTarget(c.X); freeTarget(c.Y); }
+// deal a random preset to every screen in the group, reusing render pairs where they exist
+function chaosShuffle(g) {
+  const ch = gch(g), pool = chaosPool(g).sort(() => Math.random() - 0.5), scr = gscreens(g);
+  if (!pool.length || !scr.length) { chaosFree(g); return; }
+  const n = Math.min(chaosBudget(g), pool.length, scr.length);
+  while (ch.slots.length > n) { const c = ch.slots.pop(); freeTarget(c.X); freeTarget(c.Y); }
   for (let i = 0; i < n; i++) {
-    if (chaosSlots[i]) { chaosSlots[i].P = pool[i]; chaosSlots[i].look = chaosLook(pool[i]); }
-    else chaosSlots.push(chaosSlotFor(pool[i]));
+    if (ch.slots[i]) { ch.slots[i].P = pool[i]; ch.slots[i].look = chaosLook(pool[i]); }
+    else ch.slots.push(chaosSlotFor(pool[i]));
   }
-  chaosDeal = new Map();
-  scr.slice().sort(() => Math.random() - 0.5).forEach((sc, i) => chaosDeal.set(sc.id, i % n));
+  ch.deal = new Map();
+  scr.slice().sort(() => Math.random() - 0.5).forEach((sc, i) => ch.deal.set(sc.id, i % n));
 }
-// swap one screen's look for a preset that isn't on the wall yet
-function chaosSwapOne() {
-  const scr = pscreens(); if (!scr.length || !chaosSlots.length) return;
-  const onWall = new Set(chaosSlots.map(c => c.P.id));
-  const fresh = chaosPool().filter(p => !onWall.has(p.id));
+// swap one of the group's screens for a preset that isn't on the wall yet
+function chaosSwapOne(g) {
+  const ch = gch(g), scr = gscreens(g); if (!scr.length || !ch.slots.length) return;
+  const pool = chaosPool(g), onWall = new Set(ch.slots.map(c => c.P.id));
+  const fresh = pool.filter(p => !onWall.has(p.id));
   const sc = scr[Math.floor(Math.random() * scr.length)];
-  const k = chaosDeal.get(sc.id);
-  if (k === undefined) return;
-  const P = fresh.length ? fresh[Math.floor(Math.random() * fresh.length)] : chaosPool()[Math.floor(Math.random() * chaosPool().length)];
-  const shared = [...chaosDeal.values()].filter(v => v === k).length > 1;
-  if (shared && chaosSlots.length < CHAOS_MAX) {      // give this screen its own new pair
-    chaosSlots.push(chaosSlotFor(P)); chaosDeal.set(sc.id, chaosSlots.length - 1);
-  } else { chaosSlots[k].P = P; chaosSlots[k].look = chaosLook(P); }
+  const k = ch.deal.get(sc.id);
+  if (k === undefined || !ch.slots[k]) return;
+  const P = fresh.length ? fresh[Math.floor(Math.random() * fresh.length)] : pool[Math.floor(Math.random() * pool.length)];
+  if (!P) return;
+  const shared = [...ch.deal.values()].filter(v => v === k).length > 1;
+  if (shared && fresh.length && ch.slots.length < chaosBudget(g)) {      // give this screen its own new pair
+    ch.slots.push(chaosSlotFor(P)); ch.deal.set(sc.id, ch.slots.length - 1);
+  } else { ch.slots[k].P = P; ch.slots[k].look = chaosLook(P); }
 }
-// once per frame, after the main pass: render every dealt look into its pair
-function renderChaos(now, dt) {
-  if (preview !== "pile" || P.mapping !== "chaos") { if (chaosSlots.length) chaosFree(); return; }
-  const scr = pscreens();
-  if (!chaosSlots.length || scr.some(sc => !chaosDeal.has(sc.id))) {
-    if (!chaosSlots.length) chaosShuffle();
-    else scr.forEach(sc => { if (!chaosDeal.has(sc.id)) chaosDeal.set(sc.id, Math.floor(Math.random() * chaosSlots.length)); });
+// once per frame, after the main pass: render every dealt look of every Chaos group into its pair
+function renderChaos(now, dt, m, palEnd) {
+  const live = preview === "pile" ? chaosGroups() : [];
+  for (const g of P.groups) if (g.ch && !live.includes(g)) chaosFree(g);
+  // groups showing their own source on the other mappings render the current look from it
+  const own = preview === "pile" ? P.groups.filter(g => g.mapping !== "chaos" && gsrc(g) && gscreens(g).length) : [];
+  for (const g of P.groups) if (g.gr && !own.includes(g)) grFree(g);
+  if (own.length) {
+    gl.useProgram(scene);
+    gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+    gl.vertexAttribPointer(gl.getAttribLocation(scene, "a"), 2, gl.FLOAT, false, 0, 0);
+    for (const g of own) {
+      const gr = grFor(g);
+      bindSource(gsrc(g));
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, palTex);
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, gr.Y.tex);
+      setLook(state, m, gr.w, gr.h, palEnd);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, gr.X.fb);
+      gl.viewport(0, 0, gr.w, gr.h);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      const t = gr.X; gr.X = gr.Y; gr.Y = t;
+    }
+    bindSource(null);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
-  if ($("chaosAuto").checked) { chaosAutoT += dt; if (chaosAutoT > 6) { chaosAutoT = 0; chaosSwapOne(); } }
+  if (!live.length) return;
+  const active = [];
+  for (const g of live) {
+    const scr = gscreens(g);
+    if (!scr.length) { chaosFree(g); continue; }
+    const ch = gch(g), want = Math.min(chaosBudget(g), chaosPool(g).length, scr.length);
+    if (ch.slots.length !== want) chaosShuffle(g);     // first deal, the library arriving, screens or set list changed
+    else scr.forEach(sc => { if (!ch.slots[ch.deal.get(sc.id)]) ch.deal.set(sc.id, Math.floor(Math.random() * ch.slots.length)); });
+    if (ch.slots.length) active.push(g);
+  }
+  if (!active.length) return;
+  if ($("chaosAuto").checked) { chaosAutoT += dt; if (chaosAutoT > 6) { chaosAutoT = 0; chaosSwapOne(active[Math.floor(Math.random() * active.length)]); } }
   gl.useProgram(scene);
   gl.bindBuffer(gl.ARRAY_BUFFER, quad);
   gl.vertexAttribPointer(gl.getAttribLocation(scene, "a"), 2, gl.FLOAT, false, 0, 0);
-  for (const c of chaosSlots) {
+  for (const g of active) for (const c of g.ch.slots) {
+    bindSource(gsrc(g));
     const pal = palFor(c.P);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, pal.tex);
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, c.Y.tex);
@@ -5240,6 +5709,7 @@ function renderChaos(now, dt) {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     const t = c.X; c.X = c.Y; c.Y = t;           // Y now holds this frame, and next frame's history
   }
+  bindSource(null);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, null);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -5261,32 +5731,34 @@ function drawPileScreens() {
   gl.uniform1f(UP("u_ambient"), P.bg.light === "bright" ? 1 : 0);
   const now = performance.now() / 1000;
   gl.uniform1f(UP("u_time"), now);
-  const B = pbounds(), tAR = fin.w / fin.h;
+  const UB = pubounds(), tAR = fin.w / fin.h;
+  if (!P.vis.devices) return;
   for (const s of pscreens()) {
-    const d = pdims(s), cy = s.y + d.h / 2;
+    const d = pdims(s), cy = s.y + d.h / 2, g = gof(s), map = g.mapping;
     gl.uniform4f(UP("u_rect"), PX(s.x), PY(cy), d.gw * psc, d.gh * psc);
     let src;
-    const k = P.mapping === "chaos" ? chaosDeal.get(s.id) : undefined;
-    if (k !== undefined && chaosSlots[k]) {
-      gl.bindTexture(gl.TEXTURE_2D, chaosSlots[k].Y.tex);
+    const k = map === "chaos" && g.ch ? g.ch.deal.get(s.id) : undefined;
+    if (k !== undefined && g.ch.slots[k]) {
+      gl.bindTexture(gl.TEXTURE_2D, g.ch.slots[k].Y.tex);
       const sar = d.gw / d.gh, tar = CHAOS_W / CHAOS_H;
       let w = 1, h = 1;
       if (sar < tar) w = sar / tar; else h = tar / sar;
       src = [(1 - w) / 2, (1 - h) / 2, w, h];
-    } else if (P.mapping === "unified") {
-      gl.bindTexture(gl.TEXTURE_2D, fin.tex);
-      src = [(s.x - d.gw / 2 - B.minX) / B.w, (cy - d.gh / 2) / B.h, d.gw / B.w, d.gh / B.h];
+    } else if (map === "unified") {
+      const own = g.gr, B2 = own ? gbounds(g) : UB;    // a group on its own source spreads it across just its screens
+      gl.bindTexture(gl.TEXTURE_2D, own ? own.Y.tex : fin.tex);
+      src = [(s.x - d.gw / 2 - B2.minX) / B2.w, (cy - d.gh / 2 - (B2.minY || 0)) / B2.h, d.gw / B2.w, d.gh / B2.h];
     } else {
-      const sar = d.gw / d.gh;
+      const sar = d.gw / d.gh, own = g.gr, ar = own ? own.w / own.h : tAR;
       let w = 1, h = 1;
-      if (sar < tAR) w = sar / tAR; else h = tAR / sar;
-      if (P.mapping === "scatter") {
+      if (sar < ar) w = sar / ar; else h = ar / sar;
+      if (map === "scatter") {
         const z = 0.35 + 0.3 * s.seed; w *= z; h *= z;
         const cx = 0.5 + (0.5 - w / 2) * Math.sin(now * 0.07 + s.seed * 40);
         const cyy = 0.5 + (0.5 - h / 2) * Math.cos(now * 0.05 + s.seed * 17);
         src = [cx - w / 2, cyy - h / 2, w, h];
       } else src = [(1 - w) / 2, (1 - h) / 2, w, h];
-      gl.bindTexture(gl.TEXTURE_2D, fin.tex);
+      gl.bindTexture(gl.TEXTURE_2D, own ? own.Y.tex : fin.tex);
     }
     gl.uniform4f(UP("u_src"), src[0], src[1], src[2], src[3]);
     gl.uniform1f(UP("u_dead"), s.dead ? 1 : 0);
@@ -5298,7 +5770,8 @@ function drawPileScreens() {
 function phandles() {
   if (!psel) return [];
   if (psel.kind === "item") {
-    const it = psel.it, d = pdims(it), l = it.x - d.w / 2, r = it.x + d.w / 2, b = it.y, t = it.y + d.h;
+    const it = psel.it; if (it.type === "camera") return [];            // a camera has one size
+    const d = pdims(it), l = it.x - d.w / 2, r = it.x + d.w / 2, b = it.y, t = it.y + d.h;
     return [{ k: "tl", x: l, y: t }, { k: "tr", x: r, y: t }, { k: "bl", x: l, y: b }, { k: "br", x: r, y: b }];
   }
   const f = P.frame;
@@ -5314,22 +5787,41 @@ function plabel(txt, x, y, font) {
 }
 const fmtLen = inches => {
   const t = Math.round(inches), ft = Math.floor(t / 12), i = t % 12;
-  return ft + "′ " + i + "″ · " + (inches * 0.0254).toFixed(2) + " m";
+  return ft + "′ " + i + "″ | " + (inches * 0.0254).toFixed(2) + " m";
 };
 const ftHint = v => Math.floor(v / 12) + "′ " + Math.round(v % 12) + "″";
+// a round rotate button (a circling arrow) beside the size label
+function protDraw(it, x, y) {
+  const c = pfx, r = 11 * pdpr;
+  c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fillStyle = "rgba(4,6,11,0.82)"; c.fill();
+  c.beginPath(); c.arc(x, y, r * 0.5, -Math.PI * 0.25, Math.PI * 1.35);
+  c.strokeStyle = "#eceef4"; c.lineWidth = 1.6 * pdpr; c.lineCap = "round"; c.stroke();
+  const a = -Math.PI * 0.25, hx = x + Math.cos(a) * r * 0.5, hy = y + Math.sin(a) * r * 0.5, s = r * 0.32;   // arrowhead at the start of the arc
+  c.beginPath(); c.moveTo(hx - s * 0.9, hy - s * 0.35); c.lineTo(hx + s * 0.2, hy - s * 0.95); c.lineTo(hx + s * 0.35, hy + s * 0.3);
+  c.fillStyle = "#eceef4"; c.fill();
+  protBtn = { it, x, y, r };
+}
 function drawPileFg() {
   const c = pfx;
   c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, pW, pH);
   c.textAlign = "center"; c.textBaseline = "middle";
+  protBtn = null;
   const lf = "600 " + 11 * pdpr + 'px "Space Grotesk", sans-serif';
-  for (const it of P.items) {
+  if (P.vis.devices) for (const it of P.items) {
     const d = pdims(it), isSel = psel && psel.kind === "item" && psel.it === it, isHov = phover === it;
     if (isSel || isHov) {
       c.strokeStyle = isSel ? "#7FDFFD" : "rgba(127,223,253,0.55)"; c.lineWidth = 2 * pdpr;
       c.strokeRect(PX(it.x - d.w / 2), PY(it.y + d.h), d.w * psc, d.h * psc);
     }
-    if (it.type === "screen" && (pui.labels || isSel || isHov))
-      plabel(it.diag + "″" + (it.portrait ? " portrait" : "") + (it.dead ? " · off" : ""), PX(it.x), PY(it.y + d.h / 2), lf);
+    if (it.type === "screen" && (P.groups.length > 1 || gpaint !== null) && !isSel) {   // group colour on the bezel
+      c.strokeStyle = gcol(gof(it)); c.globalAlpha = gpaint !== null && gof(it).id !== gpaint ? 0.35 : 0.9; c.lineWidth = 2 * pdpr;
+      c.strokeRect(PX(it.x - d.w / 2), PY(it.y + d.h), d.w * psc, d.h * psc); c.globalAlpha = 1;
+    }
+    if (it.type === "screen" && (pui.labels || isSel || isHov)) {
+      const txt = it.diag + "″" + (it.portrait ? " portrait" : "") + (it.dead ? " | off" : "") + (P.groups.length > 1 ? " | " + gname(gof(it)) : "");
+      plabel(txt, PX(it.x), PY(it.y + d.h / 2), lf);
+      if ((isSel || isHov) && !pdrag) { c.font = lf; protDraw(it, PX(it.x) + c.measureText(txt).width / 2 + 22 * pdpr, PY(it.y + d.h / 2)); }
+    }
   }
   if (psel && psel.kind === "frame") {
     const f = P.frame;
@@ -5366,6 +5858,7 @@ const PCURS = { tl: "nwse-resize", br: "nwse-resize", tr: "nesw-resize", bl: "ne
 function pev(e) { const rc = pileFg.getBoundingClientRect(); return { px: (e.clientX - rc.left) * pdpr, py: (e.clientY - rc.top) * pdpr }; }
 const pworld = (px, py) => ({ x: (px - pox) / psc, y: (pfloor - py) / psc });
 function pitemAt(w) {
+  if (!P.vis.devices) return null;                  // hidden devices can't be picked
   for (let i = P.items.length - 1; i >= 0; i--) {
     const it = P.items[i], d = pdims(it);
     if (Math.abs(w.x - it.x) <= d.w / 2 && w.y >= it.y && w.y <= it.y + d.h) return it;
@@ -5380,6 +5873,17 @@ const pinFrame = w => w.x >= P.frame.x0 - 2 && w.x <= P.frame.x0 + P.frame.w + 2
 
 pileFg.addEventListener("pointerdown", e => {
   const { px, py } = pev(e), w = pworld(px, py), h = phandleAt(px, py);
+  if (protBtn && Math.hypot(px - protBtn.x, py - protBtn.y) <= protBtn.r + 2 * pdpr) {   // the rotate button
+    protBtn.it.portrait = !protBtn.it.portrait; psel = { kind: "item", it: protBtn.it }; pdrag = null; pcommit(); return;
+  }
+  if (gpaint !== null) {                            // Assign tool: a click on a screen moves it into the group
+    const it = pitemAt(w);
+    if (it && it.type === "screen") {
+      psel = { kind: "item", it }; pdrag = null;
+      if (it.g !== gpaint) { it.g = gpaint; pcommit(); } else psyncSel();
+      return;
+    }
+  }
   if (h) {
     if (psel.kind === "item") {
       const it = psel.it, d = pdims(it);
@@ -5388,8 +5892,10 @@ pileFg.addEventListener("pointerdown", e => {
         ay: h.k.includes("t") ? it.y : it.y + d.h };
     } else pdrag = { type: "frame-edge", k: h.k, f0: { ...P.frame } };
   } else {
-    const it = pitemAt(w);
-    if (it) { psel = { kind: "item", it }; pdrag = { type: "move", it, w0: w, x0: it.x, y0: it.y }; }
+    let it = pitemAt(w);
+    const copy = !!(it && e.altKey);
+    if (copy) { it = pmk({ ...it }); P.items.push(it); }                    // Option-drag pulls off a copy (same group)
+    if (it) { psel = { kind: "item", it }; pdrag = { type: "move", it, w0: w, x0: it.x, y0: it.y, copy }; }
     else if (pinFrame(w)) { psel = { kind: "frame" }; pdrag = { type: "frame-move", w0: w, f0: { ...P.frame } }; }
     else { psel = null; pdrag = null; }
   }
@@ -5401,7 +5907,9 @@ pileFg.addEventListener("pointermove", e => {
   if (!pdrag) {
     const h = phandleAt(px, py);
     phover = h ? null : pitemAt(w);
-    pileFg.style.cursor = h ? PCURS[h.k] : phover ? "grab" : pinFrame(w) ? "move" : "default";
+    const onRot = protBtn && Math.hypot(px - protBtn.x, py - protBtn.y) <= protBtn.r + 2 * pdpr;
+    if (onRot) phover = protBtn.it;                                          // keep the button up while the pointer is on it
+    pileFg.style.cursor = onRot ? "pointer" : gpaint !== null && phover && phover.type === "screen" ? "crosshair" : h ? PCURS[h.k] : phover ? (e.altKey ? "copy" : "grab") : pinFrame(w) ? "move" : "default";
     return;
   }
   pdrag.moved = true;
@@ -5444,7 +5952,8 @@ pileFg.addEventListener("pointermove", e => {
 });
 function pendDrag() {
   if (!pdrag) return;
-  const moved = pdrag.moved; pdrag = null;
+  const moved = pdrag.moved, d = pdrag; pdrag = null;
+  if (!moved && d.type === "move" && d.copy) { P.items = P.items.filter(i => i !== d.it); psel = null; psyncSel(); return; }
   if (moved) { pfit(); pcommit(); } else psyncSel();
 }
 pileFg.addEventListener("pointerup", pendDrag);
@@ -5453,22 +5962,29 @@ pileFg.addEventListener("pointerleave", () => { if (!pdrag) phover = null; });
 
 /* ---- panel ---- */
 function ptoast(msg) {
-  const el = $("pileToast"); el.textContent = msg;
+  const el = $("pileToast"); el.textContent = msg; el.hidden = false;
   clearTimeout(ptoast.t);
-  ptoast.t = setTimeout(() => { el.textContent = "The layout saves in this browser automatically. Photos don’t."; }, 5000);
+  ptoast.t = setTimeout(() => { el.textContent = ""; el.hidden = true; }, 5000);
 }
 function psyncGrid() {
   const f = P.frame, g = pgrid();
   const set = (id, v) => { if (document.activeElement !== $(id)) $(id).value = v; };
   set("gW", Math.round(f.w)); set("gH", Math.round(f.h)); set("gP", f.pitch); set("gR", f.rail);
   $("gWft").textContent = ftHint(f.w); $("gHft").textContent = ftHint(f.h); $("gPn").textContent = (g.n + 1) + " up";
-  $("gShow").checked = f.show;
+  syncEyes();
+}
+function syncEyes() {
+  document.querySelectorAll(".eye").forEach(b => {
+    const k = b.dataset.vis, on = k === "grid" ? P.frame.show : P.vis[k];
+    b.setAttribute("aria-pressed", String(!!on));
+  });
 }
 function pstats() {
   const all = pscreens(), live = all.filter(s => !s.dead), f = P.frame, B = pbounds();
   let glass = 0; for (const s of live) { const d = pdims(s); glass += d.gw * d.gh; }
   $("psScreens").textContent = live.length + (live.length < all.length ? " / " + all.length : "");
-  $("psCabs").textContent = P.items.length - all.length;
+  $("psCabs").textContent = P.items.filter(i => i.type === "cab").length;
+  $("psCams").textContent = P.items.filter(i => i.type === "camera").length;
   $("psCover").textContent = Math.round(glass / (f.w * f.h) * 100) + "%";
   $("psPis").textContent = Math.ceil(all.length / 2);
   $("psSize").textContent = fmtLen(B.w) + " × " + ftHint(B.h);
@@ -5476,23 +5992,24 @@ function pstats() {
   $("psMix").textContent = Object.keys(mix).sort((a, b) => b - a).map(k => mix[k] + "× " + k + "″").join(", ") || "No screens yet";
 }
 function pselTitle() {
-  if (!psel) return "";
-  if (psel.kind === "frame") return "Mounting grid";
+  if (!psel) return [];
+  if (psel.kind === "frame") return ["Mounting grid"];
   const it = psel.it, d = pdims(it);
   return it.type === "screen"
-    ? it.diag + "″ screen · " + d.w.toFixed(1) + "″ × " + d.h.toFixed(1) + "″ · " + ftHint(it.y) + " up"
-    : "Speaker cabinet · " + Math.round(it.w) + "″ × " + Math.round(it.h) + "″";
+    ? [it.diag + "″ screen", d.w.toFixed(1) + "″ × " + d.h.toFixed(1) + "″", ftHint(it.y) + " up", P.groups.length > 1 ? gname(gof(it)) : ""]
+    : it.type === "cab" ? ["Speaker cabinet", Math.round(it.w) + "″ × " + Math.round(it.h) + "″"]
+    : ["Camera", ftHint(it.y) + " up"];
 }
 function psyncSel(full = true) {
   const box = $("pSel");
   if (!psel) { box.hidden = true; box.dataset.for = ""; return; }
   box.hidden = false;
   const key = psel.kind === "item" ? String(psel.it.id) : "frame";
-  if (!full && box.dataset.for === key) { const t = box.querySelector(".t"); if (t) t.textContent = pselTitle(); return; }
+  if (!full && box.dataset.for === key) { const t = box.querySelector(".t"); if (t) barJoin(t, pselTitle()); return; }
   box.dataset.for = key;
   if (psel.kind === "frame") {
-    box.innerHTML = '<div class="t"></div><p class="note" style="margin:0">Drag the white handles to change width and height, or drag inside the grid to slide it.</p>';
-    box.querySelector(".t").textContent = pselTitle();
+    box.innerHTML = '<div class="t"></div>';
+    barJoin(box.querySelector(".t"), pselTitle());
     return;
   }
   const it = psel.it;
@@ -5501,12 +6018,15 @@ function psyncSel(full = true) {
       + (PSIZES.includes(it.diag) ? "" : '<option selected value="' + it.diag + '">' + it.diag + "″</option>");
     box.innerHTML = '<div class="t"></div>'
       + '<div class="row"><label for="selSize">Size</label><select id="selSize">' + opts + "</select></div>"
-      + '<label class="check"><input type="checkbox" id="selPortrait"' + (it.portrait ? " checked" : "") + "> Portrait</label>"
+      + '<div class="row"><label for="selGroup">Group</label><select id="selGroup">'
+      + P.groups.map(g => '<option value="' + g.id + '"' + (gof(it) === g ? " selected" : "") + ">" + gesc(gname(g)) + "</option>").join("") + "</select></div>"
       + '<label class="check"><input type="checkbox" id="selDead"' + (it.dead ? " checked" : "") + "> Switched off (test a dead screen)</label>"
       + '<div class="btnrow"><button class="pill" id="selDup">Duplicate</button><button class="pill" id="selDel">Remove</button></div>';
     $("selSize").onchange = e => { it.diag = +e.target.value; pcommit(); };
-    $("selPortrait").onchange = e => { it.portrait = e.target.checked; pcommit(); };
+    $("selGroup").onchange = e => { it.g = +e.target.value; pcommit(); };
     $("selDead").onchange = e => { it.dead = e.target.checked; pcommit(); };
+  } else if (it.type === "camera") {
+    box.innerHTML = '<div class="t"></div><div class="btnrow"><button class="pill" id="selDup">Duplicate</button><button class="pill" id="selDel">Remove</button></div>';
   } else {
     box.innerHTML = '<div class="t"></div>'
       + '<div class="row"><label for="selW">Width (in)</label><input type="number" class="num wide" id="selW" min="8" max="96" value="' + Math.round(it.w) + '"></div>'
@@ -5517,7 +6037,7 @@ function psyncSel(full = true) {
     $("selH").onchange = e => { it.h = Math.max(8, +e.target.value || it.h); pcommit(); };
     $("selWood").onchange = e => { it.wood = e.target.checked; pcommit(); };
   }
-  box.querySelector(".t").textContent = pselTitle();
+  barJoin(box.querySelector(".t"), pselTitle());
   $("selDup").onclick = pdup; $("selDel").onclick = pdel;
 }
 function pdel() { if (!psel || psel.kind !== "item") return; P.items = P.items.filter(i => i !== psel.it); psel = null; pcommit(); }
@@ -5534,11 +6054,9 @@ function psyncBg() {
   $("bdImgRow").hidden = P.bg.backdrop !== "image";
   $("ohRow").hidden = P.bg.backdrop === "none";
   $("solidCol").value = P.bg.solid; $("overhang").value = P.bg.overhang; $("photoFt").value = P.bg.photoFt;
-  $("mapNote").textContent = MAP_NOTES[P.mapping];
-  $("chaosOpts").hidden = P.mapping !== "chaos";
-  syncWall(); syncLight(); syncMap();
+  syncWall(); syncLight();
 }
-function prefresh() { pfit(); psyncGrid(); pstats(); psyncSel(); psyncBg(); }
+function prefresh() { pfit(); psyncGrid(); pstats(); psyncSel(); psyncBg(); gsync(); }
 
 PSIZES.filter(s => s <= 75).forEach(s => {
   const b = document.createElement("button");
@@ -5547,27 +6065,117 @@ PSIZES.filter(s => s <= 75).forEach(s => {
   $("addSizes").append(b);
 });
 $("addCab").addEventListener("click", paddCab);
-$("fillBtn").addEventListener("click", () => pautoFill(Math.max(1, Math.min(60, +$("fillN").value || 12))));
-$("pClear").addEventListener("click", () => {
-  P.items = P.items.filter(i => i.type === "cab"); psel = null; pcommit();
-  ptoast("Screens removed. Undo brings them back.");
-});
-$("pUndo").addEventListener("click", pundo);
+$("addCamera").addEventListener("click", paddCamera);
 $("snapX").addEventListener("change", e => { pui.snapX = e.target.checked; });
 $("snapSize").addEventListener("change", e => { pui.snapSize = e.target.checked; });
 $("pLabels").addEventListener("change", e => { pui.labels = e.target.checked; });
-[["gW", "w", 24, 720], ["gH", "h", 24, 240], ["gP", "pitch", 12, 96], ["gR", "rail", 12, 120]].forEach(([id, key, min, max]) =>
-  $(id).addEventListener("change", e => {
-    const v = +e.target.value;
-    if (v >= min && v <= max) { P.frame[key] = v; pcommit(); }
-    else { ptoast("Enter a value from " + min + " to " + max + " inches."); psyncGrid(); }
-  }));
-$("gShow").addEventListener("change", e => { P.frame.show = e.target.checked; pcommit(); });
+[["gW", "w", 24, 720], ["gH", "h", 24, 240], ["gP", "pitch", 12, 96], ["gR", "rail", 12, 120]].forEach(([id, key, min, max]) => {
+  const apply = commit => {                            // live while dragging, committed on release or Enter
+    const v = +$(id).value;
+    if (v >= min && v <= max) { P.frame[key] = v; roomDirty = true; if (commit) pcommit(); else { pfit(); psyncGrid(); } }
+    else if (commit) { ptoast("Enter a value from " + min + " to " + max + " inches."); psyncGrid(); }
+  };
+  $(id).addEventListener("input", () => apply(false));
+  $(id).addEventListener("change", () => apply(true));
+});
+// the eyes: hide or show the devices, the grid or what is behind the pile, without touching the layout
+document.querySelectorAll(".eye").forEach(b => {
+  b.addEventListener("click", e => {
+    e.stopPropagation();                               // the heading itself folds the section
+    const k = b.dataset.vis;
+    if (k === "grid") P.frame.show = !P.frame.show; else P.vis[k] = !P.vis[k];
+    roomDirty = true; psel = null; pcommit();
+  });
+  b.addEventListener("keydown", e => e.stopPropagation());
+});
 
 const syncWall = seg("wallSeg", "wall", () => P.bg.wall, v => { P.bg.wall = v; pcommit(); });
 const syncLight = seg("lightSeg", "light", () => P.bg.light, v => { P.bg.light = v; pcommit(); });
-const syncMap = seg("mapSeg", "map", () => P.mapping, v => { P.mapping = v; pcommit(); });
-$("chaosShuffle").addEventListener("click", () => { chaosShuffle(); ptoast("Presets shuffled across the screens."); });
+
+/* ---- groups panel ---- */
+const gesc = t => String(t).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+let gKey = "";
+// rows are rebuilt only when their structure changes, so a name being typed is never replaced under the cursor
+function gsync() {
+  const host = $("gList"), pool = allPresets().filter(p => p && p.look);
+  const key = P.groups.map(g => g.id + ":" + g.mapping + ":" + g.presets.join("|")).join(";") + "#" + pool.map(p => p.id).join("|") + "#" + sources.map(sc => sc.id + sc.name).join("|");
+  if (key !== gKey) {
+    gKey = key;
+    host.innerHTML = P.groups.map(g => {
+      const chips = g.presets.map(id => {
+        if (id === "@setlist") return '<button class="chip gpre" data-id="@setlist" title="Stop dealing from the timeline">Set list 1–8 ×</button>';
+        const p = findPreset(id); return p ? '<button class="chip gpre" data-id="' + gesc(id) + '" title="Take this preset out of the set list">' + gesc(p.name) + ' ×</button>' : "";
+      }).join("");
+      const opts = pool.filter(p => !g.presets.includes(p.id)).map(p => '<option value="' + gesc(p.id) + '">' + gesc(p.name) + "</option>").join("");
+      const srcOpts = '<option value="stage">Stage source</option>' + sources.map(sc => '<option value="' + sc.id + '">' + gesc(KIND_NAME[sc.kind] + " | " + sc.name) + "</option>").join("");
+      const setOpt = g.presets.includes("@setlist") ? "" : '<option value="@setlist">Set list (timeline 1–8)</option>';
+      return '<div class="grow" data-g="' + g.id + '">'
+        + '<div class="ghead"><span class="gdot"></span><input type="text" class="gname" maxlength="24" spellcheck="false" aria-label="Group name">'
+        + '<span class="gcount"></span><button class="mini gpaint" title="Click screens on the stage to move them into this group">Assign</button>'
+        + (P.groups.length > 1 ? '<button class="mini gdel" title="Remove this group; its screens join the first group">×</button>' : "") + "</div>"
+        + '<div class="gbody"><div class="gridseg gmap" data-cols="4">' + Object.keys(MAP_NAMES).map(m => '<button data-map="' + m + '" title="' + gesc(MAP_NOTES[m]) + '">' + MAP_NAMES[m] + "</button>").join("") + "</div>"
+        + '<div class="gside"><select class="gsrc" aria-label="Source this group shows" title="What this group shows: the stage source, or any held source">' + srcOpts + "</select>"
+        + '<div class="gchaos"' + (g.mapping === "chaos" ? "" : " hidden") + '><div class="gpickrow">'
+        + '<select class="gpick" aria-label="Add a preset to this set list"><option value="">' + (g.presets.length ? "Add preset…" : "Whole library…") + "</option>" + setOpt + opts + "</select>"
+        + '<button class="mini gshuffle">Shuffle</button></div>'
+        + (chips ? '<div class="chips">' + chips + "</div>" : "") + "</div></div></div></div>";
+    }).join("");
+    host.querySelectorAll(".gmap").forEach(gridTable);
+  }
+  host.querySelectorAll(".grow").forEach((row, i) => {
+    const g = P.groups[i]; if (!g) return;
+    row.classList.toggle("paint", gpaint === g.id);
+    row.querySelector(".gdot").style.background = gcol(g);
+    const nm = row.querySelector(".gname");
+    nm.placeholder = "Group " + (i + 1);
+    if (document.activeElement !== nm) nm.value = g.name;
+    const n = gscreens(g).length;
+    row.querySelector(".gcount").textContent = n + (n === 1 ? " screen" : " screens");
+    row.querySelector(".gpaint").classList.toggle("active", gpaint === g.id);
+    row.querySelectorAll(".gmap button").forEach(b => b.classList.toggle("active", b.dataset.map === g.mapping));
+    const srcSel = row.querySelector(".gsrc"); srcSel.value = gsrc(g) ? String(g.source) : "stage";
+  });
+  $("gAdd").hidden = P.groups.length >= GROUP_MAX;
+}
+const growOf = el => { const row = el.closest(".grow"); return row ? P.groups.find(g => g.id === +row.dataset.g) : null; };
+$("gList").addEventListener("click", e => {
+  const g = growOf(e.target), b = e.target.closest("button"); if (!g || !b) return;
+  if (b.classList.contains("gpaint")) {
+    gpaint = gpaint === g.id ? null : g.id; gsync();
+    ptoast(gpaint !== null ? "Click screens on the stage to move them into " + gname(g) + ". Esc to stop." : "Assign tool off.");
+  } else if (b.classList.contains("gdel")) {
+    if (P.groups.length < 2) return;
+    chaosFree(g); grFree(g);
+    P.groups = P.groups.filter(x => x !== g);
+    pscreens().forEach(sc => { if (sc.g === g.id) sc.g = P.groups[0].id; });
+    if (gpaint === g.id) gpaint = null;
+    pcommit();
+  } else if (b.classList.contains("gshuffle")) { chaosShuffle(g); ptoast("Presets shuffled across " + gname(g) + "."); }
+  else if (b.classList.contains("gpre")) { g.presets = g.presets.filter(id => id !== b.dataset.id); pcommit(); if (g.ch) chaosShuffle(g); }
+  else if (b.dataset.map) { g.mapping = b.dataset.map; pcommit(); }
+});
+$("gList").addEventListener("change", e => {
+  const g = growOf(e.target); if (!g) return;
+  if (e.target.classList.contains("gpick")) {
+    const id = e.target.value;
+    if (id && !g.presets.includes(id)) { g.presets.push(id); pcommit(); if (g.ch) chaosShuffle(g); }
+  } else if (e.target.classList.contains("gsrc")) {
+    const v = e.target.value, sc = sources.find(x => String(x.id) === v);
+    g.source = sc ? sc.id : "stage";
+    if (sc && sc.kind === "video" && sc.el.paused) sc.el.play().catch(() => {});   // a video shown by a group runs
+    pcommit();
+  } else if (e.target.classList.contains("gname")) { g.name = e.target.value.trim().slice(0, 24); pcommit(); }
+});
+$("gList").addEventListener("input", e => {
+  const g = growOf(e.target);
+  if (g && e.target.classList.contains("gname")) g.name = e.target.value.trim().slice(0, 24);
+});
+$("gAdd").addEventListener("click", () => {
+  if (P.groups.length >= GROUP_MAX) return;
+  const g = gmk({ mapping: P.groups.some(x => x.mapping === "chaos") ? "unified" : "chaos" });
+  P.groups.push(g); gpaint = g.id; pcommit();
+  ptoast("New group. Click screens on the stage to move them into " + gname(g) + ". Esc to stop.");
+});
 $("bdSel").addEventListener("change", e => { P.bg.backdrop = e.target.value; pcommit(); });
 $("solidCol").addEventListener("input", e => { P.bg.solid = e.target.value; roomDirty = true; });
 $("solidCol").addEventListener("change", () => pcommit());
@@ -5601,19 +6209,21 @@ $("copySpec").addEventListener("click", () => {
   all.forEach(s => mix[s.diag] = (mix[s.diag] || 0) + 1);
   const bdName = { none: "None", drape: "Black drape", gradient: "Printed fabric, palette gradient", tiles: "Printed fabric, palette tiles",
                    solid: "Solid colour " + P.bg.solid, image: "Printed fabric, custom artwork" }[P.bg.backdrop];
-  const portraits = all.filter(s => s.portrait).length;
+  const portraits = all.filter(s => s.portrait).length, cams = P.items.filter(i => i.type === "camera");
   const lines = [
     "TV pile installation, Conversion 2027",
     "Overall: " + fmtLen(B.w) + " wide x " + fmtLen(B.h) + " tall",
     "Mounting grid: " + fmtLen(f.w) + " wide x " + fmtLen(f.h) + " tall, " + (g.n + 1) + " uprights at " + g.sp.toFixed(1) + "\" centres, " + g.rails.length + " horizontal rails",
     "Screens (" + all.length + "): " + Object.keys(mix).sort((a, b) => b - a).map(k => mix[k] + " x " + k + "\"").join(", ") + (portraits ? " (" + portraits + " portrait)" : ""),
-    "Speaker cabinets (props): " + (P.items.length - all.length),
+    "Groups: " + P.groups.map(g => gname(g) + " (" + MAP_NAMES[g.mapping] + ", " + gscreens(g).length + " screens)").join("; "),
+    "Speaker cabinets (props): " + P.items.filter(i => i.type === "cab").length,
+    "Cameras: " + cams.length + (cams.length ? ", " + cams.map(cm => "x " + Math.round(cm.x - f.x0) + " / " + Math.round(cm.y) + "\" up").join("; ") : ""),
     "Backdrop: " + bdName + (P.bg.backdrop !== "none" ? ", " + P.bg.overhang + "\" past the grid on sides and top" : ""),
     "Playback: " + Math.ceil(all.length / 2) + " Raspberry Pi 5 boards (2 HDMI outputs each), one shared mic and camera",
     "",
     "Screen positions (centre x from grid left edge, bottom edge height from floor, inches):",
     ...all.slice().sort((a, b) => a.x - b.x).map((s, i) =>
-      "  " + (i + 1) + ". " + s.diag + "\"" + (s.portrait ? " portrait" : "") + "  x " + Math.round(s.x - f.x0) + "  bottom " + Math.round(s.y)),
+      "  " + (i + 1) + ". " + s.diag + "\"" + (s.portrait ? " portrait" : "") + "  x " + Math.round(s.x - f.x0) + "  bottom " + Math.round(s.y) + "  " + gname(gof(s))),
   ];
   pcopy(lines.join("\n"), "Spec");
 });
@@ -5627,22 +6237,23 @@ const syncPreview = seg("previewSeg", "preview", () => preview, v => {
   const pile = v === "pile";
   pileBg.hidden = pileFg.hidden = !pile;
   $("pileUI").hidden = !pile;
-  $("previewNote").textContent = pile
-    ? "The current look, sliced across the screens of your layout. Pile controls are below."
-    : "Full frame is what a single screen or projector shows.";
-  if (pile) { prefresh(); $("hint").style.display = "none"; }
-  try { localStorage.setItem("vibe-preview", v); } catch (e) { /* storage blocked */ }
+  $("dockPad").hidden = pile;                      // in Full frame, Output is last: keep it clear of the dock
+  document.querySelector(".scrolls").classList.toggle("pile", pile);
+  if (pile) prefresh();
 });
 
 addEventListener("keydown", e => {
   if (preview !== "pile" || e.target.matches("input, select, textarea")) return;
   if (e.target !== document.body && e.target !== pileFg) return;   // leave shape tiles and other widgets their own keys
   const k = e.key.toLowerCase();
-  if ((e.metaKey || e.ctrlKey) && k === "z") { e.preventDefault(); pundo(); return; }
+  if ((e.metaKey || e.ctrlKey) && k === "z") { e.preventDefault(); if (!e.repeat) pundo(); return; }   // one step per press, not per key repeat
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if ((k === "delete" || k === "backspace") && psel && psel.kind === "item") { e.preventDefault(); pdel(); }
   else if (k === "d" && psel && psel.kind === "item") pdup();
-  else if (k === "escape") { psel = null; psyncSel(); }
+  else if (k === "g" && psel && psel.kind === "item" && psel.it.type === "screen") {
+    const i = P.groups.indexOf(gof(psel.it)); psel.it.g = P.groups[(i + 1) % P.groups.length].id; pcommit();
+  }
+  else if (k === "escape") { if (gpaint !== null) { gpaint = null; gsync(); } else { psel = null; psyncSel(); } }
   else if (k.startsWith("arrow") && psel && psel.kind === "item") {
     e.preventDefault();
     const st = e.shiftKey ? 6 : 1, it = psel.it;
@@ -5660,7 +6271,7 @@ addEventListener("keydown", e => {
   if (!restored) {
     for (let i = 0; i < 12; i++) {
       const pick = [32, 40, 43, 43, 50, 55, 55, 65], f = P.frame, g = pgrid();
-      const it = pmk({ type: "screen", diag: pick[Math.floor(Math.random() * pick.length)], portrait: false, dead: false, x: 0, y: 0 }), d = pdims(it);
+      const it = pmk({ type: "screen", diag: pick[Math.floor(Math.random() * pick.length)], portrait: false, dead: false, x: 0, y: 0, g: P.groups[0].id }), d = pdims(it);
       for (let t = 0; t < 400; t++) {
         it.x = f.x0 + Math.round(Math.random() * g.n * 2) * g.sp / 2;
         it.y = 6 + Math.random() * Math.max(0, f.h - 6 - d.h);
@@ -5669,10 +6280,7 @@ addEventListener("keydown", e => {
     }
   }
   phist.push(pserialize()); psave(); psyncGrid(); pstats(); psyncBg();
-  let v = "full";
-  try { v = localStorage.getItem("vibe-preview") || "full"; } catch (e) { /* default */ }
-  if (v === "pile") $("previewSeg").querySelector('[data-preview="pile"]').click();
-  else syncPreview();
+  syncPreview();   // always open on Full frame: the show runs full frame, the pile is a planning view you switch to
 })();
 
 /* ================= render loop ================= */
@@ -5785,7 +6393,7 @@ function frame(now) {
     }
   }
 
-  renderChaos(now, dt);
+  renderChaos(now, dt, m, palEnd);
 
   // echo: capture the clean frame into the ring every few frames (Spacing sets
   // how many). A reactivity route to Echo adds to the strength, and wakes the
@@ -5859,7 +6467,8 @@ requestAnimationFrame(frame);
 // window, a locked screen), so take it again each time the page shows, and on
 // any tap in case the browser wanted a gesture first.
 let wakeLock = null;
-const wakeNote = (msg, warn) => { $("wakeNote").className = warn ? "note warn" : "note"; $("wakeNote").textContent = msg; };
+const outNote = msg => { const el = $("outNote"); el.hidden = !msg; el.textContent = msg || ""; };
+const wakeNote = (msg, warn) => { if (warn) outNote(msg); };   // only trouble is worth a line
 async function keepAwake() {
   if (wakeLock || document.hidden) return;
   if (!("wakeLock" in navigator)) {
@@ -5882,29 +6491,32 @@ keepAwake();
 /* ================= output ================= */
 $("fsBtn").addEventListener("click", () => {
   if (document.fullscreenElement) document.exitFullscreen();
-  else $("stage").requestFullscreen().catch(e => { $("outNote").textContent = "Fullscreen blocked: " + e.message; });
+  else $("stage").requestFullscreen().catch(e => outNote("Fullscreen blocked: " + e.message));
 });
-$("hideBtn").addEventListener("click", () => document.body.classList.add("hide-ui"));
-$("showBtn").addEventListener("click", () => document.body.classList.remove("hide-ui"));
+function togglePanel(force) {
+  document.body.classList.toggle("hide-ui", force);
+  $("hideBtn").innerHTML = (document.body.classList.contains("hide-ui") ? "Show panel" : "Hide panel") + '<span class="key">P</span>';
+}
+$("hideBtn").addEventListener("click", () => togglePanel());
 addEventListener("keydown", e => {
   if (e.target.matches("input, select, textarea")) return;
   if (e.key === "f") $("fsBtn").click();
+  if (e.key === "r") $("recBtn").click();
   if (e.key === "s") toggleOverlay();
   if (/^[1-8]$/.test(e.key)) applySlot(+e.key - 1);
   if (e.key === " ") {
     if (srcMode === "music") { e.preventDefault(); togglePlay(); }
     else if (imgVideo) { e.preventDefault(); toggleVideo(); }
   }
-  if (e.key === "h") document.body.classList.toggle("hide-ui");
-  if (e.key === "Escape") document.body.classList.remove("hide-ui");
+  if (e.key === "p") togglePanel();
+  if (e.key === "Escape") togglePanel(false);
 });
-setTimeout(() => { const el = $("hint"); if (el) el.style.display = "none"; }, 6000);
 
 let rec = null, chunks = [];
 $("recBtn").addEventListener("click", () => {
   if (rec) { rec.stop(); return; }
   if (preview === "pile") {
-    $("outNote").textContent = "Recording captures the full frame. Switch the preview to Full frame first.";
+    outNote("Recording captures the full frame. Switch the preview to Full frame first.");
     return;
   }
   const stream = canvas.captureStream(60);
@@ -5924,15 +6536,53 @@ $("recBtn").addEventListener("click", () => {
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     rec = null;
-    $("recBtn").textContent = "Record performance";
+    $("recBtn").innerHTML = 'Record<span class="key">R</span>';
     $("recBtn").classList.remove("on");
-    $("outNote").textContent = "Recording saved.";
+    outNote("");
   };
   rec.start();
-  $("recBtn").textContent = "Stop recording";
+  $("recBtn").innerHTML = 'Stop<span class="key">R</span>';
   $("recBtn").classList.add("on");
-  $("outNote").textContent = "Recording\u2026 this captures the canvas live, with audio if a source is on.";
 });
+
+/* drag any number box left or right to scrub its value (Shift: ten times the
+   step); a plain click still edits it by typing */
+(() => {
+  let d = null;
+  document.addEventListener("pointerdown", e => {
+    const el = e.target.closest("input[type=number]"); if (!el || e.button !== 0) return;
+    d = { el, x: e.clientX, v: +el.value || 0, moved: false, id: e.pointerId };
+  });
+  document.addEventListener("pointermove", e => {
+    if (!d || e.pointerId !== d.id) return;
+    const dx = e.clientX - d.x;
+    if (!d.moved) { if (Math.abs(dx) < 4) return; d.moved = true; try { d.el.setPointerCapture(d.id); } catch (x) { /* fine */ } d.el.blur(); document.body.style.cursor = "ew-resize"; }
+    const step = +d.el.step || 1, mn = d.el.min === "" ? -Infinity : +d.el.min, mx = d.el.max === "" ? Infinity : +d.el.max;
+    const dec = (String(step).split(".")[1] || "").length;
+    let v = d.v + Math.round(dx / 4) * step * (e.shiftKey ? 10 : 1);
+    v = Math.max(mn, Math.min(mx, +v.toFixed(dec)));
+    if (String(v) !== d.el.value) { d.el.value = String(v); d.el.dispatchEvent(new Event("input", { bubbles: true })); }
+    e.preventDefault();
+  });
+  const end = e => {
+    if (!d || e.pointerId !== d.id) return;
+    const was = d; d = null; document.body.style.cursor = "";
+    if (was.moved) { try { was.el.releasePointerCapture(was.id); } catch (x) { /* fine */ } was.el.dispatchEvent(new Event("change", { bubbles: true })); }
+  };
+  document.addEventListener("pointerup", end); document.addEventListener("pointercancel", end);
+})();
+
+/* keep every bar slider's fill in step with its value */
+(function barLoop() {
+  document.querySelectorAll("input[type=range]:not(.vfader)").forEach(el => {
+    if (el._bv === el.value && el._bmn === el.min && el._bmx === el.max) return;
+    el._bv = el.value; el._bmn = el.min; el._bmx = el.max;
+    const mn = +el.min || 0, mx = +el.max || 100;
+    const pct = mx > mn ? (+el.value - mn) / (mx - mn) * 100 : 0;
+    el.style.setProperty("--fill", pct.toFixed(2) + "%");
+  });
+  requestAnimationFrame(barLoop);
+})();
 </script>
 </body>
 </html>
