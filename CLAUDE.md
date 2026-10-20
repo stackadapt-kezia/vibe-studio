@@ -28,6 +28,11 @@ resource. Frontend code is modern ES (`const`/`let`, arrow functions,
   follows it: a signed distance field built on the CPU, spiking and weight as
   a source-level pass rather than a Distort mode, and what the same pass gives
   for free. Read before touching the text source or adding letterform effects.
+- `docs/tv-pile.md` — the TV pile previewer, per-screen mapping, and the
+  deployment model for the Conversion installation: zones, broadcast of
+  commands rather than pixels, splitters versus Unified, and what is
+  deliberately out of scope. Read before touching the pile preview, the
+  mappings, or anything about driving more than one screen.
 - `presets/library.json` — the canonical preset library. The short
   `BUILTIN_PRESETS` list in `index.html` is only a fallback for copies opened
   from disk; edit the JSON, not the fallback.
