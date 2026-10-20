@@ -3,7 +3,7 @@
 Feature spec and design intent for the Conversion installation — a pile of
 20-plus mismatched HDMI screens. The previewer shipped in 0.9.34 and 0.9.35.
 
-**Only the first section is a build.** Everything from "Deployment model"
+**Only the first two sections are builds.** Everything from "Deployment model"
 onward is recorded intent for when the screen count is known, after the
 December site visit. Do not build the networking yet.
 
@@ -25,19 +25,62 @@ each screen. Four mappings, as a **global** switch:
 | Scatter | Each screen takes its own drifting crop |
 | Chaos | Each screen plays a different saved preset, up to 8 distinct |
 
-## Next build: mapping becomes per-screen
+## Next build: groups carry source and mapping
 
 The goal is to run **Unified and Chaos at the same time** — a unified picture
 across a central cluster, with outlier screens doing their own thing. That
 reads better than either alone: a focal point, plus life at the edges.
 
 Mapping moves from a global switch to a property of a **group**, with every
-screen belonging to one group. Three to five groups, each with its own mapping
-and its own set list.
+screen belonging to one group. Three to five groups, and a group is:
 
-This is testable with no hardware. Assign a central cluster to Unified and the
-rest to Chaos in the previewer and look at it. If the mix reads well on the
-preview it will read well on the wall. **Build this before anything networked.**
+    group = { screens, source, mapping, set list }
+
+**Design that whole shape now**, even if the source selector ships after the
+mapping selector. Building `{ screens, mapping, set list }` first means
+reworking the same code when source follows, and source has to follow — see
+the next section.
+
+Mapping is testable with no hardware. Assign a central cluster to Unified and
+the rest to Chaos in the previewer and look at it. If the mix reads well on
+the preview it will read well on the wall. **Build this before anything
+networked.**
+
+## Source is a group property too
+
+Today the stage source is a singleton. `setImageSource()` does not add a
+source, it replaces one, and it tears down whatever was there: switching to
+Text pauses a playing video, stops a shared tab and shuts down face detection.
+There is one `imgTex` on the GPU.
+
+So per-screen mapping on its own gives different *presets* per screen while
+every screen still draws from the same source. Camera on one cluster and type
+on another is impossible until source moves into the group.
+
+The cost is in the state model and the UI, not the GPU. A text canvas is
+static and costs nothing to hold once uploaded, and two or three 2048px
+textures is trivial memory. The real ceiling is CPU: two or three concurrent
+*live* sources (camera, video, tab) is the practical limit, while static text
+beside one live source is free.
+
+`setImageSource()` splits into the two jobs it currently conflates: create and
+hold a source, and assign a source to a group.
+
+**This gets easier in the distributed model, not harder.** A node only needs
+its own source — the camera node holds the camera, the text nodes hold a
+canvas, and no machine carries all of them. The previewer, juggling every
+source on one machine, is the hard case. Accept some load there rather than
+designing around it.
+
+It also matches the room: a camera sits at one physical spot and only makes
+sense for the screens near it, so camera is inherently zone-scoped.
+
+### Rename
+
+"Video in" stopped being accurate the moment Text landed under it. The section
+becomes **Source**, paired with "Sound in". Fold the rename into this redesign
+rather than doing it separately, since the section changes shape anyway once
+sources are assigned to groups instead of set globally.
 
 ## Why mixing is possible at all
 
