@@ -24,6 +24,10 @@ resource. Frontend code is modern ES (`const`/`let`, arrow functions,
   asymmetric arrive/lose thresholds, fixed-size shader uniforms, and face values
   as a modulation source beside the audio bands. Read before adding a camera
   source or any face-driven control.
+- `docs/text-effects.md` — the text source and the edge-effect pass that
+  follows it: a signed distance field built on the CPU, spiking and weight as
+  a source-level pass rather than a Distort mode, and what the same pass gives
+  for free. Read before touching the text source or adding letterform effects.
 - `presets/library.json` — the canonical preset library. The short
   `BUILTIN_PRESETS` list in `index.html` is only a fallback for copies opened
   from disk; edit the JSON, not the fallback.
