@@ -6,8 +6,18 @@ not a tenth shader family.
 
 ## What exists
 
-`renderTextSource()` draws the operator's copy white-on-black to a 2048×1152
-canvas and hands it to `setImageSource()` as kind `"text"`. From there it is
+`renderTextSource(sc)` draws a text source's copy white-on-black to its own
+2048×1152 canvas and hands it to the source list as kind `"text"`. Since
+0.9.49 there can be several: each text source holds its own copy, size,
+tracking and font under `sc.text`, + Text adds another, and the Copy row edits
+whichever one is on the stage. Since 0.9.52 the copy may run to several
+lines (Line gap, Align), each character may take its own size (Vary), the
+block stretches (Stretch, Height), Weight drives the axis of a variable
+Google Font, and a CPU warp pass follows the layout: Twist turns the
+letterforms round the centre, Bloat pushes them out or puckers them in. The
+warp is an inverse map with bilinear sampling of the red channel, run only
+when either control is off zero, so the edge-effect pass below would sit
+after it in the same place. From there it is
 an ordinary image texture, so all sixteen patterns and every Distort, Screen
 and Texture mode already work on the letterforms with no shader changes.
 

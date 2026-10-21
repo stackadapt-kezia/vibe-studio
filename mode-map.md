@@ -27,14 +27,13 @@ out differently from the plan:
 Family 8 is likewise a layer (the Screen section), since a display treatment
 belongs on top of whatever is showing.
 
-Remaining from the numbered list, by family: 22 Diagonal Frame Fracture,
-27 Luminance Flow, 19 Motion Study Grid, 16 Progressive Blur (1); 44 Survey
-Data Overlay (2); all of 3; 40 Screen-Print Layers, 50 Photocopier Toner (4);
-05 Eroded Halftone, 13 Variable Dot Matrix, 02 Binary Grid (5); 21 Ghost
-Double Print, 29 Mirror Double Exposure (6); 31 Machine Vision Overlay (7);
-39 Analog Scan Tear, 03 Digital Rain (8); 07 Ember Glyphs, 11 Cross-Stitch,
-46 Woven Thread, 12 Date Stamp Burn (9); and everything under "Needs more than
-a shader".
+Remaining from the numbered list, by family: 44 Survey Data Overlay (2); all
+of 3; 40 Screen-Print Layers, 50 Photocopier Toner (4); 21 Ghost Double
+Print, 29 Mirror Double Exposure (6); 31 Machine Vision Overlay (7); 39 Analog
+Scan Tear, 03 Digital Rain (8); and, under "Needs more than a shader", pixel
+sorting beyond its first pass, and particles. Families 1, 5 and 9 had their
+second pass in 0.9.50 (see each family), which also added Perler Beads, a
+mode not on the list.
 
 Not from the list but built along the way: a music library with a player
 (tags and cover art read from MP3, M4A and FLAC), video playback controls, a
@@ -67,7 +66,23 @@ slider and a Beat → Distort reactivity control.
 
 Covers: 25 Fisheye Lens, 26 Wavy Scanlines, 01 Horizontal Band Shift,
 22 Diagonal Frame Fracture, 14 Mirror Side Panels, 10 Repeated Crop Grid,
-27 Luminance Flow, 19 Motion Study Grid, 16 Progressive Blur.
+27 Luminance Flow, 19 Motion Study Grid, 16 Progressive Blur. Grid (now in
+the Geometry layer) gained tile patterns in 0.9.49: Square, Brick, Triangles
+and Hexagons, with a Spacing slider that leaves black gutters above zero and
+crops the copies into one another below it.
+
+**Second pass (0.9.50), all four remaining built.** Grid shift (Distort),
+standing in for 22 Diagonal Frame Fracture: the frame cut into a grid of
+boxes centred on the frame, each showing the picture slid by its column and
+row count (after junimagelab's p5 sketch), so the picture walks across the
+grid in steps; Amount is the per-box shift, Size the box, a hairline marks
+each box. Flow (Distort): four
+short steps along the picture's own luminance gradient, so edges comb into
+streaks; with no picture a noise current moves the pattern. Motion study and
+Tilt blur are not UV tricks and so are Screen modes: Motion study is a 4×4
+grid of the Echo ring's sixteen captures, oldest top-left, Spacing setting
+the frames between them; Tilt blur makes the copy pass's blur radius grow
+along Direction, sharing the Direction row with Slit-scan and Pixel sort.
 
 One shader with a mode switch. Transform `uv`, then sample. Fisheye is a radial
 push; wavy scanlines is a sine offset on `uv.x` driven by `uv.y`; band shift
@@ -124,6 +139,13 @@ One shader: rotate the coordinate space, build a dot grid, size each dot by the
 luminance beneath it. The variants are parameter changes — dot shape, screen
 angle, ink count, erosion.
 
+**Second pass (0.9.50): a Dots menu on Halftone.** Round is the original;
+Eroded adds fbm and a per-cell hash to the dot radius so midtone dots fray
+into specks (05); Matrix is rounded squares that never shrink below a pip, on
+the same (still rotatable) grid (13); Binary decides each whole cell against
+the Bayer matrix with a hairline between cells (02). One `u_dotKind` uniform,
+saved with the look.
+
 Likely to travel back to Pattern studio (print-effects-for-motion direction).
 
 ### 6. Channel separation and ghosting
@@ -136,7 +158,9 @@ at full saturation and only prints the offset copies where they disagree with
 it, so fringing lands on edges.
 
 Covers: 37 RGB Prism Slices, 35 CMYK Misregistration, 21 Ghost Double Print,
-29 Mirror Double Exposure.
+29 Mirror Double Exposure. **Ghost built** (0.9.52) as a Screen mode: a
+second print of the finished frame slid along Direction, a touch washed,
+lightened over the first; Amount is its strength, Offset its distance.
 
 Sample the same texture three or four times at slightly different coordinates and
 recombine. RGB at offset positions gives chromatic aberration; the same move in
@@ -183,6 +207,30 @@ producing the atlases. Date stamp burn is the odd one out and is trivial — a t
 overlay with a screen blend. Microtext with StackAdapt copy has real brand
 potential.
 
+**Second pass (0.9.50).** It turned out the remaining cell modes want no
+atlas at all: a stitch, a thread and a bead are each a small lit solid drawn
+analytically per cell. They live in one **Textile** pattern with a Fabric
+menu. Cross-stitch (11) draws two round cords in an X over aida cloth with
+holes at the corners, the top stroke shading the lower. Weave (46) is a plain
+weave where each warp thread samples the picture down its column and each
+weft across its row, so the picture surfaces like a jacquard. Knit (not on
+the list) is stockinette: each cell a V of two yarn legs rising from the
+bottom centre to the top corners, the stitch below's legs climbing in under
+them, over a dark ground. Ember (07) is a Glyphs option on ASCII (the pattern
+formerly called Text): the same atlas with per-cell flicker noise and a
+bloom, heat taken from brightness rather than darkness since the ground is
+black. Date stamp (12) is a Texture mode: the
+date line is drawn to a 512×64 canvas once a minute and screen-blended into
+the corner with a bloom. **Beads** is not on the list: perler beads on a
+pegboard, each a straight-walled tube cut square (flat top, sharp rim and
+hole edge), shaded analytically: a sheen pooled toward the light, a bright
+line on the lit edge, the inner wall lit on the far side down the hole, a
+shadow on the board. Board picks a square or hexagonal lattice, both centred
+on the frame so the pattern grows from the middle like a real bead board.
+It's Mosaic with a lit solid per cell rather than a flat block, which is why
+it is a pattern and not a set of SVGs for Shapes (Shapes picks a flat mark by
+coverage and cannot light it).
+
 ---
 
 ## Needs more than a shader
@@ -190,7 +238,26 @@ potential.
 18 Datamosh Smear, 49 Slit-Scan Time Slices, 52 Pixel Sorting Streaks,
 28 Particle Reconstruction. **Slit-scan built** (0.9.26) as a Screen mode on
 Echo's ring: sixteen quarter-size captures, so the older slices are softer
-than the live edge. Spacing sets how many frames apart they are. The rest are
+than the live edge. Spacing sets how many frames apart they are. **Datamosh
+first pass built** (0.9.49) on the same ring: the frame is cut into
+macroblocks, a one-tap optical flow between the two newest captures says which
+blocks are moving and which way, and a moving block shows an older capture
+dragged along that motion and posterised; a key frame wipes it every four
+seconds. It is a Screen mode, captures every frame while on, and Block sets
+the block size. Still to do: blocks that stay stale across key frames, and
+motion vectors that accumulate rather than being re-estimated each frame.
+**Pixel sort first pass built** (0.9.50) without a sort: each pixel above
+the threshold walks both ways along Direction (16 steps each) to find its
+run, samples the run 16 times, and shows the sample whose luminance is
+nearest the ramp from the run's darkest to its brightest at its own position.
+That is 48 taps per sorted pixel, no second pass and no per-frame state, and
+it reads as sorted streaks. 0.9.53 added a Sort menu: Dark runs (the same
+walk keyed on darkness) and Drip, which looks back along Direction for the
+nearest bright source and, finding one within Reach, shows that source's
+trail sorted bright-to-dark away from it and dimming toward the tail, with
+the source colour bleeding down it; Direction 270 drips downward, which is
+the melting look. A true sort (a 16-wide sorting network in registers)
+would be the next step if the ramp ever looks too smooth. Particles are
 open.
 
 These need memory of previous frames or a simulation. Datamosh and slit-scan need

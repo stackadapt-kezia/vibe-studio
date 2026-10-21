@@ -56,36 +56,48 @@
      it and can show through when it turns to glass. */
   .panel {
     position: absolute; left: 0; top: 0; bottom: 0; z-index: 20;
-    width: var(--panelW); background: var(--panel);
-    display: flex; flex-direction: column; min-height: 0; overflow: hidden;
-    transition: transform .35s ease, background-color .45s ease;
+    width: var(--panelW); background: none;
+    display: flex; flex-direction: row; min-height: 0; overflow: hidden;
+    transition: transform .35s ease;
   }
-  .panel.glass { background: rgba(11, 11, 13, .38); backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2); }
-  .panel.glass .player, .panel.glass .num, .panel.glass select, .panel.glass input[type=text],
+  /* translucent mode: the cards thin out, the slider tracks go see-through, the number boxes vanish */
+  .panel.glass { --bar-track: rgba(255, 255, 255, .1); }
+  .panel.glass .scrolls > fieldset, .panel.glass #pileUI > fieldset, .panel.glass .rail button { background: rgba(0, 0, 0, .42); }
+  .panel.glass .player, .panel.glass select, .panel.glass input[type=text], .panel.glass textarea,
   .panel.glass .seg button, .panel.glass .pill, .panel.glass .ptile, .panel.glass .meter .bar,
   .panel.glass .spark, .panel.glass .libbar > button, .panel.glass .headctl button,
   .panel.glass .slot.filled, .panel.glass .track.now { background-color: rgba(20, 20, 24, .55); }
   .panel.away { transform: translateX(-110%); }
   .resizer.away { opacity: 0; pointer-events: none; }
-  /* Audio Source and Picture Source stay put; everything else scrolls beneath them */
-  .pinned {
-    flex: 0 0 auto; padding: 16px 16px 0; border-bottom: 1px solid var(--line);
-    max-height: 75%; overflow-y: auto;
+  /* a rail of four round buttons down the left edge; the chosen one opens its
+     sections as floating cards beside it, in the presets card's dress */
+  .rail { flex: 0 0 58px; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 0 0; }
+  .rail button {
+    width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line); color: #c3c6d2;
+    background: rgba(0, 0, 0, .78); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    font: 600 10px/1 "Space Grotesk", sans-serif; letter-spacing: .08em; cursor: pointer; padding: 0;
+    transition: background-color .45s ease, color .15s, border-color .15s;
   }
-  .scrolls { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 16px 84px; }
-  .scrolls fieldset + fieldset, #pileUI > fieldset:first-child { border-top: 1px solid var(--line); padding-top: 14px; }
-  /* the last section closes with a hairline too, so every section is boxed */
-  .scrolls:not(.pile) > fieldset:last-of-type, .scrolls.pile #pileUI > fieldset:last-child { border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+  .rail button:hover { color: var(--text); border-color: var(--muted); }
+  .rail button.active { color: #fff; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .rail button:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+  .scrolls[hidden] { display: none; }
+  .scrolls { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 12px 84px 0; scrollbar-width: none; }
+  .scrolls::-webkit-scrollbar { display: none; }
+  /* the drag handle is invisible; the cards glow along their right edge to say the panel resizes there */
+  .panel.edge .scrolls > fieldset, .panel.edge #pileUI > fieldset { border-right-color: var(--accent); box-shadow: inset -1px 0 0 var(--accent), 6px 0 16px -4px rgba(61, 132, 255, .9); }
+  .scrolls > fieldset, #pileUI > fieldset {        /* the TV pile's sections sit beside Output and are cards too */
+    background: rgba(0, 0, 0, .78); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px 10px;
+    margin: 0 0 10px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    transition: background-color .45s ease;
+  }
+  .scrolls > fieldset.collapsed, #pileUI > fieldset.collapsed { padding-bottom: 2px; }
+  .scrolls > fieldset.collapsed > legend, #pileUI > fieldset.collapsed > legend { padding-bottom: 8px; }
   .resizer {
     position: absolute; top: 0; bottom: 0; left: var(--panelW); z-index: 21; width: 8px;
     cursor: col-resize; background: transparent; transition: opacity .35s ease;
   }
-  .resizer::after {
-    content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 1px;
-    background: var(--line); transition: background .2s, width .2s, opacity .3s;
-  }
-  .resizer:hover::after, .resizer.on::after { background: var(--accent); width: 2px; }
-  body.panel-glass .resizer:not(:hover)::after { opacity: 0; }
+  .resizer::after { content: none; }
   body.resizing { cursor: col-resize; user-select: none; }
   .stage {
     flex: 1; min-width: 0; position: relative; background: #000;
@@ -276,10 +288,12 @@
   .swset .swname { padding-right: 42px; }
   .swset .swdel:hover { color: var(--text); }
   .pill.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-  select, input[type=text] {
+  select, input[type=text], textarea {
     background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px;
     color: var(--text); padding: 8px 10px; font: inherit; font-size: 13px; width: 100%;
   }
+  textarea { resize: vertical; min-height: 38px; line-height: 1.3; }
+  textarea:focus { outline: none; border-color: var(--accent); }
   /* menus draw their own chevron, inset from the edge, so rounded menus read right */
   select {
     -webkit-appearance: none; appearance: none; padding-right: 28px; cursor: pointer;
@@ -553,10 +567,10 @@
   .tracks:empty { display: none; }
   .note.warn { color: #ffb37a; }
   /* held picture sources: a strip of thumbnails that scrolls sideways */
-  .srclist { list-style: none; margin: 8px 0 0; padding: 0 0 4px; display: flex; gap: 6px; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+  .srclist { list-style: none; margin: 8px 0 0; padding: 0 0 4px; display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; max-height: 270px; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; }
   .srclist:empty { display: none; }
   .srclist .track {
-    flex: 0 0 92px; display: block; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+    display: block; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
     background: var(--panel-2); position: relative; cursor: pointer;
   }
   .srclist .track:hover { background: var(--panel-2); border-color: var(--muted); }
@@ -587,20 +601,6 @@
   .key::before { content: ""; display: inline-block; width: 1px; height: .85em; background: currentColor; margin: 0 8px; vertical-align: -1px; }
   .track .tplay { font-size: 12px; }
   #fontRow select { flex: 1; min-width: 0; }
-  .brandlib { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
-  .brandlib summary {
-    font: 500 10px/1 "Space Grotesk", sans-serif; letter-spacing: .12em; text-transform: uppercase;
-    color: var(--muted); cursor: pointer; padding: 2px 0; list-style: none; display: flex; align-items: center; gap: 6px;
-  }
-  .brandlib summary::-webkit-details-marker { display: none; }
-  .brandlib summary::before {                        /* the same chevron as the sections */
-    content: ""; width: 6px; height: 6px; flex: none; border-right: 1.5px solid currentColor;
-    border-bottom: 1.5px solid currentColor; transform-origin: 50% 50%; transform: translateX(-2px) rotate(-45deg);
-    transition: transform .15s;
-  }
-  .brandlib[open] summary::before { transform: translateY(-2px) rotate(45deg); }
-  .brandlib summary:hover { color: var(--text); }
-  .brandlib[open] summary { margin-bottom: 8px; }
   .brand-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
   .sw-chip { width: 100%; aspect-ratio: 1; border-radius: 4px; border: 1px solid var(--line); cursor: pointer; padding: 0; }
   .sw-chip:hover { border-color: var(--text); }
@@ -612,8 +612,7 @@
   /* phone: the sidebar takes the whole width and the lower third (presets
      and timeline) moves into it, so the stage keeps its full height */
   @media (max-width: 640px) {
-    .panel { width: 100%; }
-    .panel.glass { background: var(--panel); backdrop-filter: none; -webkit-backdrop-filter: none; }   /* full width: stay readable */
+    .panel { width: 100%; background: var(--panel); }
     .resizer { display: none; }
     header { padding: 10px 14px; gap: 10px; }
     .panel .setlist-overlay {
@@ -715,7 +714,13 @@
 </dialog>
 <div class="app">
   <aside class="panel" id="panel">
-    <div class="pinned">
+    <nav class="rail" id="tabs" aria-label="Panel sections">
+      <button data-tab="in" title="Input: audio and picture sources">IN</button>
+      <button data-tab="clr" title="Colour: the palette">CLR</button>
+      <button data-tab="vis" title="Visualization: pattern and layers">VIS</button>
+      <button data-tab="out" title="Output: reactivity and the stage">OUT</button>
+    </nav>
+    <div class="scrolls" data-tab="in">
     <fieldset class="fixed">
       <legend>Audio Source
         <span class="headctl seg" id="srcSeg">
@@ -760,7 +765,7 @@
       <legend>Picture Source
         <span class="headctl" id="srcAdd">
           <button class="add" data-add="media" title="Load image or video files">Media</button>
-          <button class="add" data-add="text" title="Set your own type on the stage">Text</button>
+          <button class="add" data-add="text" title="Add a line of type to the stage; each press adds another">Text</button>
           <button class="add" data-add="camera" title="Show a camera on the stage; faces it sees can drive the visuals">Camera</button>
           <button class="add" data-add="tab" title="Show another browser tab or window on the stage">Tab</button>
         </span>
@@ -780,12 +785,24 @@
       <div id="textRow" hidden>
         <div class="row">
           <label for="textCopy">Copy</label>
-          <input type="text" id="textCopy" value="CONVERSION" maxlength="48" spellcheck="false" aria-label="Stage copy">
+          <textarea id="textCopy" rows="2" maxlength="240" spellcheck="false" aria-label="Stage copy" title="One line per row of type">CONVERSION</textarea>
         </div>
         <div class="row" id="fontRow">
           <label for="fontSel">Font</label>
           <select id="fontSel" aria-label="Typeface"></select>
           <button class="mini" id="fontDel" type="button" hidden title="Remove this font from your fonts">×</button>
+        </div>
+        <div class="row">
+          <label for="textWeight">Weight</label>
+          <input type="range" id="textWeight" min="100" max="900" step="10" value="500" aria-label="Type weight" title="Works on variable fonts; the others have one weight">
+        </div>
+        <div class="row">
+          <label for="textAlign">Align</label>
+          <select id="textAlign" aria-label="Line alignment">
+            <option value="left">Left</option>
+            <option value="center" selected>Centre</option>
+            <option value="right">Right</option>
+          </select>
         </div>
         <div class="row">
           <label for="textFill">Size</label>
@@ -795,11 +812,35 @@
           <label for="textTrack">Tracking</label>
           <input type="range" id="textTrack" min="-0.08" max="0.6" step="0.005" value="0" aria-label="Letter spacing">
         </div>
+        <div class="row">
+          <label for="textGap">Line gap</label>
+          <input type="range" id="textGap" min="0.6" max="2.2" step="0.01" value="1.05" aria-label="Line spacing">
+        </div>
+        <div class="row">
+          <label for="textVary">Vary</label>
+          <input type="range" id="textVary" min="0" max="1" step="0.01" value="0" aria-label="Per-character size variation" title="Each character its own size">
+        </div>
+        <div class="row">
+          <label for="textStretch">Stretch</label>
+          <input type="range" id="textStretch" min="0.3" max="3" step="0.01" value="1" aria-label="Horizontal stretch">
+        </div>
+        <div class="row">
+          <label for="textHeight">Height</label>
+          <input type="range" id="textHeight" min="0.3" max="3" step="0.01" value="1" aria-label="Vertical stretch">
+        </div>
+        <div class="row">
+          <label for="textTwist">Twist</label>
+          <input type="range" id="textTwist" min="-1" max="1" step="0.01" value="0" aria-label="Twist round the centre">
+        </div>
+        <div class="row">
+          <label for="textBloat">Bloat</label>
+          <input type="range" id="textBloat" min="-1" max="1" step="0.01" value="0" aria-label="Bloat or pucker" title="Right bloats, left puckers">
+        </div>
       </div>
       <p class="note warn" id="imgNote" hidden></p>
     </fieldset>
     </div>
-    <div class="scrolls">
+    <div class="scrolls" data-tab="clr">
     <fieldset>
       <legend>Palette</legend>
       <div id="swatches"></div>
@@ -808,21 +849,27 @@
         <button class="pill" id="mixColors" title="Shuffle the order of the colours">Mix order</button>
         <button class="pill" id="saveSwatch" title="Save these colours as a set in your library">Save set</button>
       </div>
-      <details class="brandlib">
-        <summary>Brand colours</summary>
-        <div class="brand-grid" id="brandGrid"></div>
-        <div class="libline" style="margin-top:12px">
-          <button class="libtoggle" id="swlibCount" aria-expanded="true" aria-controls="swlib">No saved sets</button>
-          <button class="mini" id="swRestore" type="button" title="Bring back the stock colour sets you deleted" hidden>Restore stock</button>
-          <div class="seg mini-seg" id="swViewSeg">
-            <button data-swview="tiles" title="Tiles">▦</button>
-            <button data-swview="list" title="List">☰</button>
-          </div>
-        </div>
-        <div id="swlib" class="swlib tiles"></div>
-      </details>
     </fieldset>
 
+    <fieldset>
+      <legend>Brand colours</legend>
+      <div class="brand-grid" id="brandGrid"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Swatch sets</legend>
+      <div class="libline" style="margin-top:0">
+        <button class="libtoggle" id="swlibCount" aria-expanded="true" aria-controls="swlib">No saved sets</button>
+        <button class="mini" id="swRestore" type="button" title="Bring back the stock colour sets you deleted" hidden>Restore stock</button>
+        <div class="seg mini-seg" id="swViewSeg">
+          <button data-swview="tiles" title="Tiles">▦</button>
+          <button data-swview="list" title="List">☰</button>
+        </div>
+      </div>
+      <div id="swlib" class="swlib tiles"></div>
+    </fieldset>
+    </div>
+    <div class="scrolls" data-tab="vis">
     <fieldset>
       <legend>Pattern</legend>
       <div id="styleSeg">
@@ -833,29 +880,59 @@
           <button data-style="3">Fractal</button>
           <button data-style="4">Scope</button>
         </div>
-        <p class="seglabel">From the picture</p>
-        <div class="gridseg" data-cols="3">
+        <p class="seglabel">Image reactive</p>
+        <div class="gridseg" data-cols="4">
           <button data-style="5">Heatmap</button>
           <button data-style="6">Mosaic</button>
           <button data-style="7">Halftone</button>
           <button data-style="11">Lines</button>
-          <button data-style="13">Text</button>
+          <button data-style="13">ASCII</button>
           <button data-style="14">Ink Smear</button>
           <button data-style="15">Shapes</button>
           <button data-style="16">Stipple</button>
           <button data-style="17">Mesh</button>
+          <button data-style="18">Beads</button>
+          <button data-style="19">Textile</button>
         </div>
       </div>
-    </fieldset>
-
-    <fieldset>
-      <legend>Look</legend>
+      <div id="lookBlock" style="margin-top:12px">
       <div id="fracRow" hidden style="margin-bottom:12px">
         <p class="seglabel">Kind</p>
         <div class="gridseg" id="fracSeg" data-cols="2">
           <button data-frac="0" title="Layered shelves grown from a Julia set, like bracket fungus">Fungus</button>
           <button data-frac="1" title="Neon filaments and sharp fibres round tiny copies of the Mandelbrot set">Filament</button>
         </div>
+      </div>
+      <div class="row" id="dotRow" hidden>
+        <label for="dotSel">Dots</label>
+        <select id="dotSel" aria-label="Halftone dot kind">
+          <option value="0">Round</option>
+          <option value="1">Eroded</option>
+          <option value="2">Matrix</option>
+          <option value="3">Binary</option>
+        </select>
+      </div>
+      <div class="row" id="beadRow" hidden>
+        <label for="beadSel">Board</label>
+        <select id="beadSel" aria-label="Bead board lattice">
+          <option value="0">Square</option>
+          <option value="1">Hexagon</option>
+        </select>
+      </div>
+      <div class="row" id="fabricRow" hidden>
+        <label for="fabricSel">Fabric</label>
+        <select id="fabricSel" aria-label="Textile fabric">
+          <option value="0">Cross-stitch</option>
+          <option value="1">Weave</option>
+          <option value="2">Knit</option>
+        </select>
+      </div>
+      <div class="row" id="asciiRow" hidden>
+        <label for="asciiSel">Glyphs</label>
+        <select id="asciiSel" aria-label="ASCII glyph style">
+          <option value="0">Ink</option>
+          <option value="1">Ember</option>
+        </select>
       </div>
       <div class="row" id="microRow" hidden>
         <label for="microText">Copy</label>
@@ -878,8 +955,8 @@
         <input type="file" id="shapeReplace" accept=".svg,image/svg+xml" hidden>
       </div>
       <div id="lookRows"></div>
+      </div>
     </fieldset>
-
     <fieldset>
       <legend>Geometry</legend>
       <div class="gridseg" id="geoSeg" data-cols="5">
@@ -889,18 +966,29 @@
         <button data-geo="3">Grid</button>
         <button data-geo="4">Kaleido</button>
       </div>
+      <div class="row" id="tileRow" style="margin-top:10px" hidden>
+        <label for="tileSel">Tiles</label>
+        <select id="tileSel" aria-label="Tile pattern">
+          <option value="0">Square</option>
+          <option value="1">Brick</option>
+          <option value="2">Triangles</option>
+          <option value="3">Hexagons</option>
+        </select>
+      </div>
       <div id="geoRows" style="margin-top:10px"></div>
     </fieldset>
 
     <fieldset>
       <legend>Distort</legend>
-      <div class="gridseg" id="distSeg" data-cols="3">
+      <div class="gridseg" id="distSeg" data-cols="4">
         <button data-dist="0">None</button>
         <button data-dist="1">Fisheye</button>
         <button data-dist="2">Scanlines</button>
         <button data-dist="3">Band shift</button>
         <button data-dist="6">Bleed</button>
         <button data-dist="7">Glass</button>
+        <button data-dist="8">Grid shift</button>
+        <button data-dist="9">Flow</button>
       </div>
       <div class="row" id="glassRow" style="margin-top:10px" hidden>
         <label for="glassSel">Glass</label>
@@ -923,7 +1011,7 @@
 
     <fieldset>
       <legend>Screen</legend>
-      <div class="gridseg" id="screenSeg" data-cols="3">
+      <div class="gridseg" id="screenSeg" data-cols="4">
         <button data-screen="0">None</button>
         <button data-screen="1">CRT</button>
         <button data-screen="2">LCD</button>
@@ -931,20 +1019,46 @@
         <button data-screen="4">Echo</button>
         <button data-screen="5">Slit-scan</button>
         <button data-screen="6">Fringe</button>
+        <button data-screen="7">Datamosh</button>
+        <button data-screen="8">Pixel sort</button>
+        <button data-screen="9">Motion study</button>
+        <button data-screen="10">Tilt blur</button>
+        <button data-screen="11">Ghost</button>
+      </div>
+      <div class="row" id="sortRow" style="margin-top:10px" hidden>
+        <label for="sortSel">Sort</label>
+        <select id="sortSel" aria-label="Pixel sort mode">
+          <option value="0">Bright runs</option>
+          <option value="1">Dark runs</option>
+          <option value="2">Drip</option>
+        </select>
       </div>
       <div id="screenRows" style="margin-top:10px"></div>
     </fieldset>
 
     <fieldset>
       <legend>Texture</legend>
-      <div class="gridseg" id="texSeg" data-cols="3">
+      <div class="gridseg" id="texSeg" data-cols="4">
         <button data-tex="0">None</button>
         <button data-tex="1">Scratches</button>
         <button data-tex="2">Print dots</button>
+        <button data-tex="3">Stamp</button>
+      </div>
+      <div id="stampRow" hidden style="margin-top:10px">
+        <div class="row">
+          <label for="stampText">Stamp</label>
+          <input type="text" id="stampText" maxlength="64" spellcheck="false" placeholder="{date}  {time}" aria-label="Stamp text" title="{date}, {time} and {year} fill in as the clock runs">
+        </div>
+        <div class="row">
+          <label for="stampFont">Font</label>
+          <select id="stampFont" aria-label="Stamp font"></select>
+        </div>
       </div>
       <div id="texRows" style="margin-top:10px"></div>
     </fieldset>
 
+    </div>
+    <div class="scrolls" data-tab="out" id="tabStage">
     <fieldset>
       <legend>Reactivity</legend>
       <div class="meters">
@@ -1091,12 +1205,17 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.48";  // sources as a thumbnail strip; eye toggles; drag-to-adjust numbers; grid fields in a row
+const APP_VERSION = "0.9.53";  // Weight route; grid shift turns contents only; card edge glow; solid-stop beads; pixel sort modes with Drip
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.53", "Reactivity can drive type weight: a Weight target pumps a text source\u2019s variable font with the music (the text is pre-drawn at seven weights so it costs nothing per frame; it needs a variable font). Grid shift\u2019s Angle now turns what is inside each box while the boxes stay square. The panel hides its scrollbar and the drag handle is invisible: hover the right edge and the cards glow along that side to show it resizes. Beads take solid colours only, each one a stop from the palette rather than a blend between stops, so the bead effect holds. Pixel sort gains a Sort menu: Bright runs (as before), Dark runs, and Drip, where every bright pixel bleeds a sorted trail along Direction for the length of Reach, fading as it goes, for the melting look; Direction 270 drips downward. The TV pile\u2019s sections under Output are cards like the rest, and CLR is three cards: Palette, Brand colours and Swatch sets."],
+  ["0.9.52", "The panel is a rail of four round buttons down the left edge, IN (audio and picture sources), CLR (palette), VIS (pattern, then geometry, distort, screen and texture) and OUT (reactivity and output), and the chosen one opens its sections as floating cards beside it, styled like the presets card. In translucent mode the slider tracks go see-through and number fields lose their box. Picture sources wrap into rows and scroll down instead of sideways. Beads are cut sharper: a crisp dark edge round the rim and the hole, a sliver of outer wall on the near side, the inner wall as a hard crescent down the hole, and a milky translucent top like real fusible beads. Text sources can hold several lines, align left, centre or right, set a line gap, vary each character\u2019s size, stretch, grow taller, twist round the centre and bloat or pucker; a Weight slider works on the variable Google Fonts (Inter, Sora, Outfit, Manrope, Roboto Flex, Unbounded and twenty more now in the list). Grid shift gains Angle and Random. Ghost fills the last Screen slot: a second print of the frame offset along Direction. Date stamp is now Stamp: type what it says (with {date}, {time} and {year}) and pick its font."],
+  ["0.9.51", "The panel is four tabs: Sources (Audio and Picture), Look (Pattern with its controls beneath it, then Palette), Layers (Geometry, Distort, Screen and Texture, in the order they run) and Stage (Reactivity and Output, including the TV pile). The Look section is gone: a pattern\u2019s own rows sit under the pattern picker, and only the ones that pattern uses appear. The picture patterns are headed Image reactive, and every mode table runs four across to save height. Reactivity routes gain Screen, Texture, Blur and Geometry as targets; Size and Warp are named after what they mean for the current pattern (Bead size, Shine, Yarn\u2026); and Motion now really moves, running the pattern up to four times faster."],
+  ["0.9.50", "A second pass over three shader families, and pixel sorting. New patterns from the picture: Beads is a pegboard of perler beads, each a square-cut plastic tube with a hole, lit from the upper left, coloured from the palette, on a square or hexagonal board that grows from the centre (Scale is the bead size, Warp the shine); Textile has a Fabric menu with Cross-stitch (an X of thread per cell on aida cloth), Weave (a plain weave whose warp threads carry the picture\u2019s columns and weft threads its rows) and Knit (columns of V stitches in yarn); and ASCII, the pattern formerly called Text, gains a Glyphs menu whose Ember option turns every glyph into a flickering coal with a bloom. Halftone gains a Dots menu: Round, Eroded (grain eats the dot edges), Matrix (a fixed dot-matrix grid) and Binary (whole cells on or off). Distort gains Grid shift (the frame cut into boxes centred on the frame, each sliding the picture by its column and row like a stepped repeat; Amount is the shift, Size the box) and Flow (the picture runs along its own brightness). Screen gains Pixel sort (runs of bright pixels sorted into streaks along Direction; Amount sets how much qualifies, Reach how long a run can be), Motion study (a 4\u00d74 grid of the last sixteen moments, oldest top-left) and Tilt blur (sharp at one edge, soft at the other, along Direction). Texture gains Date stamp, the camcorder\u2019s orange date and time burnt into the corner."],
+  ["0.9.49", "Several lines of type at once: + Text now adds a new text source every time, each with its own copy, size, tracking and font, and the Copy row edits whichever one is on the stage. In the TV pile, clicking a screen brings it to the front, so overlapping screens are ordered just by selecting them. Geometry\u2019s Grid gains a Tiles menu (Square, Brick, Triangles, Hexagons) and a Spacing slider: push it up for gutters between the copies, pull it below zero to crop them into one another. Datamosh joins Screen as a first pass at a stream that lost its key frames: moving parts smear into stale blocks dragged along their motion while still parts stay clean, and a key frame snaps the picture back every few seconds; Block sets the block size. The \u201cListening to\u2026\u201d line under Audio Source is gone; a note only shows when something is wrong."],
   ["0.9.48", "Picture sources are a strip of thumbnails that scrolls sideways, and the Audio Source and Picture Source buttons sit under their headings. In the TV pile, Devices, Mounting grid and Behind the pile each have an eye on their heading to hide or show them on the stage, so you can isolate what you are placing. Mounting grid fields run in one row that follows the panel width, and every number box can be dragged left or right to scrub its value (Shift for bigger steps). The orientation pills and Portrait checkbox are gone: use the rotate button that appears on a hovered screen. The Reactivity meters have their room back under the heading."],
   ["0.9.47", "Sound in is now Audio Source and Source is Picture Source. Both carry their buttons on the heading, flush right, in one compact style: Mic, Music and Tab for audio; + Media, + Text, + Camera and + Tab for pictures."],
   ["0.9.46", "TV pile: Screens is now Devices and can place a camera on the wall (a small box with a lens, included in the AV spec); the counts and coverage moved under Pile layout; Undo, Remove all and Auto-fill left the panel (Cmd-Z still undoes). Every section is boxed by hairlines, Brand colours and the saved-sets fold use the same chevron as the sections, and Chaos set-list chips sit clear of the picker."],
@@ -1265,10 +1384,10 @@ const state = {
   screen: 0, screenAmt: 0.7,
   tex: 0, texAmt: 0.6,
   distSize: 1, screenSize: 1, texSize: 1,
-  glass: 0, glassAngle: 0, glassSeam: 0.4, glassSeamW: 1,
+  glass: 0, glassAngle: 0, glassSeam: 0.4, glassSeamW: 1, gsAngle: 0, gsRand: 0,
   echoSpread: 1, echoDecay: 0.93, echoAngle: 0, echoDrift: 0.5,
-  slitAngle: 90,
-  geo: 0, geoN: 6, geoSpin: 0.1, lineW: 1.5, fracSeed: 7, fracKind: 0,
+  slitAngle: 90, sortMode: 0,
+  geo: 0, geoN: 6, geoSpin: 0.1, geoGap: 0, geoTile: 0, lineW: 1.5, fracSeed: 7, fracKind: 0, dotKind: 0, beadBoard: 0, fabric: 0, asciiKind: 0,
   routes: [],                                   // filled from DEFAULT_ROUTES or storage below
   gain: 1.6, smooth: 0.7,
 };
@@ -1294,8 +1413,15 @@ const SOURCES = { bass: "Bass", mid: "Mids", high: "Highs", beat: "Beat", presen
 const TARGETS = {
   size: "Size", motion: "Motion", colour: "Colour", grain: "Grain", flash: "Flash",
   distort: "Distort", warp: "Warp", trails: "Trails", push: "Push", spin: "Spin", echo: "Echo",
-  zoom: "Zoom", fringe: "Fringe",
+  zoom: "Zoom", fringe: "Fringe", screen: "Screen", texture: "Texture", blur: "Blur", geo: "Geometry", weight: "Weight",
 };
+// Size and Warp say what they mean for the pattern on stage (Bead size, Shine, Yarn...)
+function targetLabels() {
+  const s = state.style, out = { ...TARGETS };
+  out.size = SCALE_LABELS[s] || "Size";
+  out.warp = s === 19 ? FABRIC_WARP[state.fabric] : s === 13 ? "Flicker" : WARP_LABELS[s] || "Warp";
+  return out;
+}
 const DEFAULT_ROUTES = [
   ["bass", "size", 0.9], ["mid", "motion", 0.7], ["high", "grain", 0.5],
   ["beat", "flash", 0.6], ["beat", "distort", 0.3],
@@ -1303,12 +1429,15 @@ const DEFAULT_ROUTES = [
 const ROUTE_MAX = 8;
 const GEO_ROWS = [
   ["geoN", "Copies", 2, 12, 1, v => String(v)],
+  ["geoGap", "Spacing", -0.5, 0.6, 0.01, v => v.toFixed(2)],
   ["geoSpin", "Spin", -1, 1, 0.01, v => v.toFixed(2)],
 ];
 const DIST_ROWS = [
   ["distort", "Amount", 0, 1, 0.01, v => v.toFixed(2)],
   ["distSize", "Size", 0.25, 4, 0.05, v => v.toFixed(2)],
   ["glassAngle", "Angle", 0, 180, 1, v => v + "\u00b0"],
+  ["gsAngle", "Angle", 0, 180, 1, v => v + "\u00b0"],
+  ["gsRand", "Random", 0, 1, 0.01, v => v.toFixed(2)],
   ["glassSeam", "Seam", 0, 1, 0.01, v => v.toFixed(2)],
   ["glassSeamW", "Seam width", 0.25, 3, 0.05, v => v.toFixed(2)],
 ];
@@ -1327,8 +1456,9 @@ const TEX_ROWS = [
 ];
 // what Scale and Warp mean in each pattern, so the Look rows say so
 const SCALE_LABELS = { 0: "Blob size", 1: "Zoom", 2: "Zoom", 3: "Zoom", 4: "Amplitude", 5: "Contrast", 6: "Block size",
-  7: "Dot pitch", 8: "Offset", 9: "Detail", 10: "Detail", 11: "Line pitch", 12: "Line pitch", 13: "Cell size", 14: "Grain", 15: "Cell size", 16: "Dot pitch", 17: "Grid" };
-const WARP_LABELS = { 3: "Growth", 1: "Warp", 2: "Warp", 4: "Trace", 5: "Cycle", 6: "Dither", 7: "Angle", 8: "Direction", 10: "Light", 11: "Lift", 12: "Angle", 14: "Smear", 15: "Dither", 16: "Dot size", 17: "Depth" };
+  7: "Dot pitch", 8: "Offset", 9: "Detail", 10: "Detail", 11: "Line pitch", 12: "Line pitch", 13: "Cell size", 14: "Grain", 15: "Cell size", 16: "Dot pitch", 17: "Grid", 18: "Bead size", 19: "Stitch size" };
+const WARP_LABELS = { 3: "Growth", 1: "Warp", 2: "Warp", 4: "Trace", 5: "Cycle", 6: "Dither", 7: "Angle", 8: "Direction", 10: "Light", 11: "Lift", 12: "Angle", 14: "Smear", 15: "Dither", 16: "Dot size", 17: "Depth", 18: "Shine", 19: "Thread" };
+const FABRIC_WARP = ["Thread", "Gap", "Yarn"];
 const AUDIO_ROWS = [
   ["gain", "Gain", 0.2, 4, 0.05, v => v.toFixed(2)],
   ["smooth", "Smooth", 0, 0.95, 0.05, v => v.toFixed(2)],
@@ -1390,6 +1520,7 @@ function loadRoutes() {
 function saveRoutes() {
   try { localStorage.setItem("vibe.routes", JSON.stringify(state.routes)); } catch (e) { /* no storage */ }
   touch();
+  refreshWeightSteps();
 }
 function renderRoutes() {
   const host = $("routeRows");
@@ -1406,7 +1537,7 @@ function renderRoutes() {
     row.className = "route";
     const src = pick(SOURCES, r.src, "Source band", v => { r.src = v; saveRoutes(); });
     const arrow = document.createElement("span"); arrow.textContent = "\u2192"; arrow.className = "arrow";
-    const dst = pick(TARGETS, r.dst, "Target control", v => { r.dst = v; saveRoutes(); });
+    const dst = pick(targetLabels(), r.dst, "Target control", v => { r.dst = v; saveRoutes(); });
     const amt = document.createElement("input");
     amt.type = "range"; amt.min = 0; amt.max = 2; amt.step = 0.05; amt.value = r.amt;
     amt.setAttribute("aria-label", "Amount");
@@ -1861,7 +1992,7 @@ function seg(id, attr, get, set) {
   sync();
   return sync;
 }
-const segStyle = seg("styleSeg", "style", () => state.style, v => { state.style = +v; syncControls(); touch(); });
+const segStyle = seg("styleSeg", "style", () => state.style, v => { state.style = +v; syncControls(); renderRoutes(); touch(); });
 
 /* ================= which controls matter for the current mode ================= */
 // Read from the shader: Blobs only counts on Blobs; Warp is unused by Blobs,
@@ -1875,28 +2006,56 @@ function syncControls() {
   show("lineW", s === 11 || s === 17);
   show("fracSeed", s === 3);
   show("geoN", state.geo >= 3);
+  show("geoGap", state.geo === 3);
+  $("tileRow").hidden = state.geo !== 3;
   show("geoSpin", state.geo === 4);
-  show("warp", !NO_WARP.includes(s));
+  show("warp", !NO_WARP.includes(s) || (s === 13 && state.asciiKind === 1));
   show("distort", state.dist !== 0);
   show("screenAmt", state.screen !== 0);
   show("texAmt", state.tex !== 0);
   show("texSize", state.tex !== 0);
-  show("screenSize", state.screen !== 0);
+  show("screenSize", state.screen !== 0 && state.screen !== 10);
   ["echoSpread", "echoDecay", "echoAngle", "echoDrift"].forEach(k => show(k, state.screen === 4));
-  show("slitAngle", state.screen === 5);
-  show("distSize", [2, 3, 6, 7].includes(state.dist));   // the kinds with a pitch or a reach
+  show("slitAngle", [5, 8, 10, 11].includes(state.screen));   // Slit-scan, Pixel sort, Tilt blur and Ghost share Direction
+  show("distSize", [2, 3, 6, 7, 8, 9].includes(state.dist));   // the kinds with a pitch or a reach
   show("glassAngle", state.dist === 7 && state.glass !== 6);   // frosted has no grain direction
+  ["gsAngle", "gsRand"].forEach(k => show(k, state.dist === 8));
   ["glassSeam", "glassSeamW"].forEach(k => show(k, state.dist === 7 && state.glass >= 1 && state.glass <= 5));
   $("glassRow").hidden = state.dist !== 7;
+  $("stampRow").hidden = state.tex !== 3;
+  $("sortRow").hidden = state.screen !== 8;
   const label = (key, text) => { const l = document.querySelector('.row[data-key="' + key + '"] label'); if (l) l.textContent = text; };
   label("geoN", state.geo === 4 ? "Segments" : "Copies");
   label("scale", SCALE_LABELS[s] || "Scale");
-  label("warp", WARP_LABELS[s] || "Warp");
-  label("screenSize", state.screen === 4 || state.screen === 5 ? "Spacing" : state.screen === 6 ? "Spread" : "Size");
+  label("warp", s === 19 ? FABRIC_WARP[state.fabric] : s === 13 ? "Flicker" : WARP_LABELS[s] || "Warp");
+  label("screenSize", state.screen === 4 || state.screen === 5 || state.screen === 9 ? "Spacing" : state.screen === 6 ? "Spread" : state.screen === 7 ? "Block" : state.screen === 8 ? "Reach" : state.screen === 11 ? "Offset" : "Size");
   $("microRow").hidden = s !== 13;
+  $("dotRow").hidden = s !== 7;
+  $("beadRow").hidden = s !== 18;
+  $("fabricRow").hidden = s !== 19;
+  $("asciiRow").hidden = s !== 13;
+  $("microRow").hidden = s !== 13 || state.asciiKind === 1;   // Ember is ASCII only
   $("fracRow").hidden = s !== 3;
   $("shapeRow").hidden = s !== 15;
 }
+
+/* ================= panel rail ================= */
+// IN, CLR, VIS, OUT: one pane of cards shows at a time; the choice is remembered.
+(() => {
+  const nav = $("tabs"), panes = [...document.querySelectorAll(".panel > .scrolls")];
+  let cur = "vis";
+  const OLD = { sources: "in", look: "clr", layers: "vis", stage: "out" };
+  try { cur = localStorage.getItem("vibe.tab") || cur; } catch (e) { /* no storage */ }
+  cur = OLD[cur] || cur;
+  const show = t => {
+    cur = t;
+    nav.querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.tab === t));
+    panes.forEach(p => { p.hidden = p.dataset.tab !== t; });
+    try { localStorage.setItem("vibe.tab", t); } catch (e) { /* no storage */ }
+  };
+  nav.addEventListener("click", e => { const b = e.target.closest("button"); if (b) show(b.dataset.tab); });
+  show(panes.some(p => p.dataset.tab === cur) ? cur : "vis");
+})();
 
 /* ================= collapsible sections ================= */
 // Click a heading to fold its section; the fold state is remembered per browser.
@@ -1926,6 +2085,24 @@ const segDist = seg("distSeg", "dist", () => state.dist, v => { state.dist = +v;
 const segScreen = seg("screenSeg", "screen", () => state.screen, v => { state.screen = +v; syncControls(); touch(); });
 const segTex = seg("texSeg", "tex", () => state.tex, v => { state.tex = +v; syncControls(); touch(); });
 const segGlass = () => { $("glassSel").value = String(state.glass); };
+const segTile = () => { $("tileSel").value = String(state.geoTile); };
+const segDot = () => { $("dotSel").value = String(state.dotKind); };
+const segBead = () => { $("beadSel").value = String(state.beadBoard); };
+const segSort = () => { $("sortSel").value = String(state.sortMode); };
+$("sortSel").addEventListener("change", () => { state.sortMode = +$("sortSel").value; touch(); });
+segSort();
+const segFabric = () => { $("fabricSel").value = String(state.fabric); };
+$("fabricSel").addEventListener("change", () => { state.fabric = +$("fabricSel").value; syncControls(); touch(); });
+segFabric();
+const segAscii = () => { $("asciiSel").value = String(state.asciiKind); };
+$("asciiSel").addEventListener("change", () => { state.asciiKind = +$("asciiSel").value; syncControls(); touch(); });
+segAscii();
+$("beadSel").addEventListener("change", () => { state.beadBoard = +$("beadSel").value; touch(); });
+segBead();
+$("dotSel").addEventListener("change", () => { state.dotKind = +$("dotSel").value; touch(); });
+segDot();
+$("tileSel").addEventListener("change", () => { state.geoTile = +$("tileSel").value; touch(); });
+segTile();
 $("glassSel").addEventListener("change", () => { state.glass = +$("glassSel").value; syncControls(); touch(); });
 segGlass();
 syncControls();
@@ -1980,6 +2157,15 @@ uniform float u_time;
 uniform int u_style, u_dist, u_screen, u_tex;
 uniform int u_geo;                 // geometry: 0 none, 1 mirror, 2 quad mirror, 3 grid, 4 kaleidoscope
 uniform float u_geoN, u_geoSpin;   // copies or segments; kaleidoscope turn speed
+uniform int u_geoTile;             // grid tiles: 0 square, 1 brick, 2 triangles, 3 hexagons
+uniform float u_geoGap;            // grid spacing: above 0 leaves gutters, below 0 crops the copies into each other
+uniform int u_dotKind;             // halftone dots: 0 round, 1 eroded, 2 matrix, 3 binary
+uniform int u_beadBoard;           // beads: 0 square pegboard, 1 hexagonal
+uniform int u_fabric;              // textile: 0 cross-stitch, 1 weave, 2 knit
+uniform int u_asciiKind;           // ascii: 0 ink, 1 ember
+uniform float u_gsAngle, u_gsRand; // grid shift: the grid's turn, and how much each box wanders on its own
+uniform vec3 u_stops[8];           // the palette's colours themselves, for modes that want solid stops
+uniform float u_stopN;
 uniform float u_lineW;             // Lines: line thickness in pixels
 uniform float u_fseed;             // Fractal: which set, and how it grows
 uniform int u_fkind;
@@ -2118,14 +2304,47 @@ float glassHeight(vec2 l, vec2 cell) {
 }
 // Geometry: fold or repeat the frame before Distort sees it. Mirror folds
 // left onto right, Quad folds both ways, Grid repeats the frame Copies times
-// across, Kaleidoscope folds it into Segments wedges round the centre, turning
-// at Spin.
+// across in square, brick, triangular or hexagonal tiles, Kaleidoscope folds
+// it into Segments wedges round the centre, turning at Spin.
+float gMask = 1.0;                 // 0 in the gutters a spaced Grid leaves
 vec2 geometry(vec2 uv, float T) {
   if (u_geo == 1 || u_geo == 2) {
     uv.x = 0.5 - abs(uv.x - 0.5);
     if (u_geo == 2) uv.y = 0.5 - abs(uv.y - 0.5);
   } else if (u_geo == 3) {
-    uv = fract(uv * u_geoN);
+    float s = 1.0 / (1.0 - u_geoGap);              // the frame's scale inside its tile
+    float ca = u_res.x / u_res.y;
+    float d = 0.0;                                  // 0 at the tile's centre, 1 at its edge
+    if (u_geoTile <= 1) {
+      // stage-shaped tiles; brick shifts every other row by half a tile
+      vec2 p = uv * u_geoN;
+      if (u_geoTile == 1 && mod(floor(p.y), 2.0) > 0.5) p.x += 0.5;
+      vec2 c = floor(p) + 0.5;
+      d = 2.0 * max(abs(p.x - c.x), abs(p.y - c.y));
+      uv = (p - c) * s + 0.5;
+    } else if (u_geoTile == 2) {
+      // equilateral triangles on a skewed lattice, each showing the frame about its centroid
+      vec2 p = (uv - 0.5) * vec2(ca, 1.0) * (u_geoN / ca);
+      vec2 ab = vec2(p.x - p.y * 0.57735, p.y * 1.1547);
+      vec2 ij = floor(ab), f = ab - ij;
+      bool up = f.x + f.y > 1.0;                    // the inverted half of the rhombus
+      vec3 bary = up ? vec3(f.x + f.y - 1.0, 1.0 - f.x, 1.0 - f.y) : vec3(1.0 - f.x - f.y, f.x, f.y);
+      d = 1.0 - 3.0 * min(bary.x, min(bary.y, bary.z));
+      vec2 cab = ij + (up ? vec2(0.66667) : vec2(0.33333));
+      vec2 c = vec2(cab.x + cab.y * 0.5, cab.y * 0.86603);
+      uv = (p - c) / (vec2(ca, 1.0) * 1.1547) * s + 0.5;
+    } else {
+      // hexagons: two offset lattices of centres, the nearer one wins
+      vec2 p = (uv - 0.5) * vec2(ca, 1.0) * (1.5 * u_geoN / ca);
+      const vec2 A = vec2(3.0, 1.73205);
+      vec2 c1 = (floor(p / A) + 0.5) * A;
+      vec2 c2 = (floor((p - A * 0.5) / A) + 0.5) * A + A * 0.5;
+      vec2 c = dot(p - c1, p - c1) < dot(p - c2, p - c2) ? c1 : c2;
+      vec2 q = abs(p - c);
+      d = max(q.y, q.x * 0.86603 + q.y * 0.5) / 0.86603;
+      uv = (p - c) / (vec2(ca, 1.0) * 2.0) * s + 0.5;
+    }
+    if (u_geoGap > 0.0 && d > 1.0 - u_geoGap) gMask = 0.0;
   } else if (u_geo == 4) {
     float ca = u_res.x / u_res.y;
     vec2 q = (uv - 0.5) * vec2(ca, 1.0);
@@ -2135,6 +2354,17 @@ vec2 geometry(vec2 uv, float T) {
     uv = vec2(cos(a), sin(a)) * r / vec2(ca, 1.0) + 0.5;
   }
   return uv;
+}
+// distance from q to the segment A-B, and how far along it the nearest point is
+vec2 legD(vec2 q, vec2 A, vec2 B) {
+  vec2 ab = B - A;
+  float t = clamp(dot(q - A, ab) / dot(ab, ab), 0.0, 1.0);
+  return vec2(length(q - (A + ab * t)), t);
+}
+// a round thread's shading across it (t: -1..1) with a twist along it
+float cord(float t, float along) {
+  float s = sqrt(max(0.0, 1.0 - t * t));
+  return (0.45 + 0.6 * s) * (0.92 + 0.08 * sin(along * 6.2832));
 }
 vec2 distort(vec2 uv, float T) {
   float a = u_distort;
@@ -2223,6 +2453,45 @@ vec2 distort(vec2 uv, float T) {
       glassTint = mix(vec3(1.0), vec3(0.86, 1.0, 0.96), 0.35 + 0.4 * wall * sm);
     }
     uv = (Ri * (p + d)) / vec2(ca, 1.0) + 0.5;
+  } else if (u_dist == 8) {
+    // grid shift: the frame is cut into a grid of boxes centred on the frame,
+    // and each box shows the picture slid by its column and row count, so the
+    // picture walks across the grid in steps. At no shift the boxes join back
+    // into the whole frame; at full shift every box repeats the centre; between
+    // them each box is a slightly different crop of the same thing, like a
+    // stepped repeat. A hairline marks each box. Amount sets the shift, Size
+    // the box, Angle turns what each box shows about its own centre while the
+    // grid stays square, and Random gives every box its own extra slide,
+    // breathing slowly.
+    float ca = u_res.x / u_res.y;
+    vec2 p = (uv - 0.5) * vec2(ca, 1.0);
+    float B = 0.2 * u_distSize;
+    vec2 idx = floor(p / B + 0.5);
+    vec2 loc = p - idx * B;
+    float cA = cos(u_gsAngle), sA = sin(u_gsAngle);
+    vec2 turned = mat2(cA, -sA, sA, cA) * loc;         // the box stays square; what it shows turns about its centre
+    vec2 rnd = (vec2(hash2(idx * 1.3 + 7.1), hash2(idx * 2.7 + 3.3)) - 0.5) * (0.7 + 0.3 * sin(T * 0.5 + hash2(idx) * 6.2832));
+    p = turned + idx * B * (1.0 - a) + rnd * B * u_gsRand;
+    float edge = min(B * 0.5 - abs(loc.x), B * 0.5 - abs(loc.y));
+    gMask *= mix(1.0, smoothstep(0.0, 1.5 / u_res.y, edge), step(0.01, a + u_gsRand + abs(u_gsAngle)));
+    uv = p / vec2(ca, 1.0) + 0.5;
+  } else if (u_dist == 9) {
+    // luminance flow: the picture runs along its own brightness gradient, so
+    // every edge combs out into streaks that keep creeping; with no picture
+    // a slow noise current carries the pattern instead. Amount sets the
+    // pull, Size the reach.
+    if (u_hasImg > 0.5) {
+      vec2 e = vec2(0.006 * u_res.y / u_res.x, 0.006);
+      float stp = 0.025 * a * u_distSize;
+      for (int i = 0; i < 4; i++) {
+        vec2 gr = vec2(imgLum(uv + vec2(e.x, 0.0)) - imgLum(uv - vec2(e.x, 0.0)),
+                       imgLum(uv + vec2(0.0, e.y)) - imgLum(uv - vec2(0.0, e.y)));
+        uv += gr / (length(gr) + 0.03) * stp * (0.7 + 0.3 * sin(T * 0.9 + float(i)));
+      }
+    } else {
+      vec2 cur = vec2(fbm(uv * 3.0 + T * 0.12), fbm(uv * 3.0 + 7.3 - T * 0.09)) - 0.5;
+      uv += cur * 0.25 * a * u_distSize;
+    }
   }
   if (u_screen == 3) {
     // VHS tape damage: the odd row tears sideways, the whole frame wobbles a
@@ -2237,6 +2506,7 @@ vec2 distort(vec2 uv, float T) {
   return uv;
 }
 // family 8: the display the picture is shown on, applied after everything else
+uniform sampler2D u_stamp;         // the date line for Date stamp, white on black
 vec3 pal(float t);                 // defined below; the texture layer needs the paper colour
 // the paper the picture is printed on: wear and damage laid over the print
 vec3 textureFx(vec3 col, vec2 uv, float T) {
@@ -2301,6 +2571,27 @@ vec3 textureFx(vec3 col, vec2 uv, float T) {
     float dotk = 1.0 - smoothstep(rad - 0.1, rad + 0.1, d);
     float toner = step(0.94, hash2(floor(uv * u_res * 0.5 / u_texSize) + floor(T * 2.0))) * (1.0 - lum);
     col = mix(col, col * 0.3, a * (dotk * 0.75 + toner * 0.5));
+  } else if (u_tex == 3) {
+    // date stamp burn: the camcorder's orange date and time burnt into the
+    // bottom-right corner, a hot core with a bloom round it, flickering a
+    // touch. Amount sets the strength, Size the type size.
+    vec2 sz = vec2(0.045 * 16.0 / ca, 0.045) * u_texSize;         // the strip is 16:1
+    vec2 q = (uv - vec2(1.0 - sz.x - 0.04, 0.06)) / sz;
+    vec2 pad = vec2(0.03, 0.25);                                   // room for the bloom to spill
+    if (q.x > -pad.x && q.x < 1.0 + pad.x && q.y > -pad.y && q.y < 1.0 + pad.y) {
+      vec2 tq = vec2(clamp(q.x, 0.0, 1.0), 1.0 - clamp(q.y, 0.0, 1.0));
+      float core = texture2D(u_stamp, tq).r * step(0.0, q.x) * step(q.x, 1.0) * step(0.0, q.y) * step(q.y, 1.0);
+      float glow = 0.0;
+      for (int i = 0; i < 6; i++) {
+        float an = float(i) * 1.0472;
+        vec2 o = vec2(cos(an) * 0.0625, sin(an)) * 0.02;
+        glow += texture2D(u_stamp, clamp(tq + o, 0.0, 1.0), 2.0).r;
+      }
+      glow /= 6.0;
+      float fl = 0.9 + 0.1 * hash(floor(T * 12.0));
+      vec3 ink3 = vec3(1.0, 0.56, 0.16) * (glow * 0.7) + vec3(1.0, 0.85, 0.55) * core;
+      col = 1.0 - (1.0 - col) * (1.0 - clamp(ink3 * a * fl, 0.0, 1.0));   // screen blend: it burns in, never darkens
+    }
   }
   return col;
 }
@@ -2413,7 +2704,22 @@ void main() {
     float l = fld(cuv, T);
     float rad = sqrt(1.0 - l) * 0.72;                  // dot area follows darkness
     float aa = n * 1.5 / u_res.y;                      // ~1.5px edge
-    ink = 1.0 - smoothstep(rad - aa, rad + aa, length(q - cc));
+    vec2 dq = q - cc;
+    if (u_dotKind == 1) {
+      // eroded: grain eats the edge of every dot, so the midtones break up into ragged specks
+      float rr = length(dq) + (fbm(q * 1.7 + 11.0) - 0.5) * 0.5 + (hash2(floor(q * 5.0)) - 0.5) * 0.1;
+      ink = 1.0 - smoothstep(rad - aa * 2.0, rad + aa * 2.0, rr);
+    } else if (u_dotKind == 2) {
+      // matrix: rounded squares on a fixed grid, never smaller than a pip, like a dot-matrix sign
+      vec2 ad = abs(dq);
+      float rr = pow(ad.x * ad.x * ad.x * ad.x + ad.y * ad.y * ad.y * ad.y, 0.25);
+      float rs = mix(0.12, 0.44, 1.0 - l);
+      ink = 1.0 - smoothstep(rs - aa, rs + aa, rr);
+    } else if (u_dotKind == 3) {
+      // binary: every cell is wholly on or off, decided against an ordered dither, with a hairline between cells
+      float on = step(bayer4(floor(q)), 1.0 - l);
+      ink = on * (1.0 - smoothstep(0.44 - aa, 0.44 + aa, max(abs(dq.x), abs(dq.y))));
+    } else ink = 1.0 - smoothstep(rad - aa, rad + aa, length(dq));
     v = (1.0 - l) * u_palEnd;
   } else if (u_style == 17) {
     // mesh: the picture raised into a relief by its brightness and drawn as
@@ -2506,11 +2812,24 @@ void main() {
     vec2 ci = floor(g), cf = fract(g);
     vec2 cuv = (ci + 0.5) / n / vec2(ca, 1.0);
     float l = fld(cuv, T);
-    bool ascii = u_textN < 0.5;
-    float idx = ascii ? floor((1.0 - l) * 15.99) : 16.0 + mod(ci.x + ci.y * 5.0, u_textN);
-    float cov = texture2D(u_glyph, vec2((idx + 0.04 + cf.x * 0.92) / u_glyphN, cf.y)).r;
-    ink = ascii ? cov : cov * smoothstep(0.0, 0.7, 1.0 - l);
-    v = (1.0 - l) * u_palEnd;
+    if (u_asciiKind == 1) {
+      // ember: every glyph is a coal. Bright parts of the picture burn
+      // hottest, high on the palette; each cell flickers at its own rhythm,
+      // dimming and recovering, and a soft bloom spreads round the glyph.
+      // Pair it with a palette that runs dark to hot. Warp sets the flicker.
+      float fl = mix(1.0, 0.45 + 0.65 * vnoise(vec2(T * 2.2 + hash2(ci) * 20.0, hash2(ci.yx) * 20.0)), u_warp);
+      float heat = clamp(l * fl, 0.0, 1.0);
+      float idx = floor(heat * 15.99);
+      float cov = texture2D(u_glyph, vec2((idx + 0.04 + cf.x * 0.92) / u_glyphN, cf.y)).r;
+      float bloom = heat * (1.0 - smoothstep(0.1, 0.6, length(cf - 0.5)));
+      colv = pal(heat * u_palEnd) * (cov * (0.7 + 0.5 * heat) + bloom * 0.35 * heat) + pal(heat * 0.5 * u_palEnd) * bloom * 0.3;
+    } else {
+      bool ascii = u_textN < 0.5;
+      float idx = ascii ? floor((1.0 - l) * 15.99) : 16.0 + mod(ci.x + ci.y * 5.0, u_textN);
+      float cov = texture2D(u_glyph, vec2((idx + 0.04 + cf.x * 0.92) / u_glyphN, cf.y)).r;
+      ink = ascii ? cov : cov * smoothstep(0.0, 0.7, 1.0 - l);
+      v = (1.0 - l) * u_palEnd;
+    }
   } else if (u_style == 14) {
     // thermal: the picture pulled through a thermal printer with a dirty
     // roller. Ink coverage comes from darkness and is dragged downward into
@@ -2553,6 +2872,140 @@ void main() {
     float idx = clamp(floor(pick), 0.0, u_shapeN - 1.0);
     ink = texture2D(u_shapes, vec2((idx + cf.x) / u_shapeN, cf.y)).r;
     v = (1.0 - l) * u_palEnd;
+  } else if (u_style == 18) {
+    // perler beads: a pegboard of fusible beads, one per peg, each coloured
+    // from the palette by the picture's darkness beneath it. A bead is a short
+    // tube of milky plastic cut square: a flat top with a hard dark edge at
+    // the rim and at the hole, seen from just off vertical so a sliver of the
+    // outer wall shows on the near side and the inner wall is a hard crescent
+    // down the hole with the peg at the bottom. The top is translucent, paler
+    // and brighter toward its edges where light comes through the wall, with
+    // a soft gloss toward the light (upper left) and a shadow on the board.
+    // Board sets the lattice, square or hexagonal, both growing from the
+    // centre. Scale sets the bead size, Warp the gloss.
+    float ca = u_res.x / u_res.y;
+    float n = 28.0 / u_scale;                          // beads down the height
+    vec2 q = (uv - 0.5) * vec2(ca, 1.0) * n;           // centred: both boards build from the middle
+    vec2 c;
+    if (u_beadBoard == 1) {
+      const vec2 A = vec2(1.0, 1.73205);
+      vec2 c1 = floor(q / A + 0.5) * A;
+      vec2 c2 = floor((q - A * 0.5) / A + 0.5) * A + A * 0.5;
+      c = dot(q - c1, q - c1) < dot(q - c2, q - c2) ? c1 : c2;
+    } else c = floor(q + 0.5);
+    vec2 jit = (vec2(hash2(c * 1.7 + 3.1), hash2(c * 2.3 + 9.7)) - 0.5) * 0.04;   // hand-placed: never quite on the peg
+    vec2 cf = q - c - jit;
+    vec2 cuv = c / n / vec2(ca, 1.0) + 0.5;
+    float l = fld(cuv, T);
+    float r = length(cf);
+    float ro = 0.46, ri = 0.165, px = n / u_res.y;    // one screen pixel, in cells
+    vec2 ld = vec2(-0.625, 0.78);                     // where the light is, on the board
+    vec2 view = vec2(0.18, -0.26);                    // the eye sits a little below and right of straight above
+    vec2 dirc = r > 0.001 ? cf / r : vec2(0.0);
+    float toLight = dot(dirc, ld), toView = dot(dirc, view) / 0.32;
+    // a bead is one colour: the palette stop nearest this darkness, never a blend between stops
+    int si = int(clamp(floor((1.0 - l) * u_stopN), 0.0, u_stopN - 1.0));
+    vec3 plastic = u_stops[0];
+    for (int i = 1; i < 8; i++) if (i == si) plastic = u_stops[i];   // constant-index pick
+    if (u_bands >= 2.0) plastic = pal((1.0 - l) * u_palEnd);   // Bands set: posterise the ramp instead
+    vec3 milk = mix(plastic, vec3(1.0), 0.14);        // the plastic is milky, not solid
+    // the top face: translucent, paler toward the rim and the hole where the wall glows, a soft gloss toward the light
+    float glow = smoothstep(ro - 0.14, ro, r) * 0.22 + smoothstep(ri + 0.1, ri, r) * 0.16;
+    float gloss = pow(max(0.0, 1.0 - length(cf - ld * 0.17) / 0.45), 3.0) * (0.1 + 0.45 * u_warp);
+    vec3 face = milk * (0.86 + 0.14 * clamp(dot(cf / ro, ld), -1.0, 1.0)) + plastic * glow + vec3(gloss);
+    // hard edges: a dark line at the rim and at the hole, one pixel and a half wide
+    float rimLine = 1.0 - smoothstep(0.0, 1.5 * px, abs(r - ro));
+    float holeLine = 1.0 - smoothstep(0.0, 1.5 * px, abs(r - ri));
+    face *= 1.0 - 0.55 * max(rimLine, holeLine);
+    face += vec3(1.0) * rimLine * max(0.0, toLight) * 0.5;   // the lit edge catches a bright line
+    // the outer wall: a sliver on the near side, outside the rim
+    float wallOut = smoothstep(ro, ro + px, r) * (1.0 - smoothstep(ro + 0.05 * max(0.0, toView), ro + 0.05 * max(0.0, toView) + px, r)) * step(0.05, toView);
+    vec3 wallOutC = plastic * (0.5 + 0.2 * max(0.0, toLight));
+    // the inner wall: a hard crescent inside the hole on the far side, the peg below it
+    float crescent = (1.0 - smoothstep(ri - 0.06 * max(0.0, -toView) - px, ri - 0.06 * max(0.0, -toView), r)) * 0.0 + smoothstep(ri - 0.07 * max(0.0, -toView) - px, ri - 0.07 * max(0.0, -toView), r) * (1.0 - smoothstep(ri - px, ri, r)) * step(0.05, -toView);
+    vec3 wallInC = plastic * (0.35 + 0.35 * max(0.0, -toLight));
+    vec3 board = vec3(0.05, 0.05, 0.055) + vec3(0.07) * (1.0 - smoothstep(0.06, 0.1, r));   // the peg
+    float shadow = 1.0 - smoothstep(ro - 0.02, ro + 0.13, length(cf + ld * 0.12));
+    board *= 1.0 - 0.6 * shadow;
+    float top = (1.0 - smoothstep(ro - px, ro, r)) * smoothstep(ri, ri + px, r);
+    colv = mix(board, wallInC, crescent);
+    colv = mix(colv, wallOutC, wallOut);
+    colv = mix(colv, face, top);
+  } else if (u_style == 19) {
+    // textile: the picture worked in thread. Fabric picks the construction;
+    // every kind colours its thread from the palette by the picture's
+    // darkness and shades it as a round cord with a twist.
+    float ca = u_res.x / u_res.y;
+    if (u_fabric == 0) {
+      // cross-stitch: aida cloth with an X of thread in every cell. The top
+      // stroke shades the one beneath, and the cloth's woven holes show at
+      // the corners. Scale sets the stitch size, Warp the thread weight.
+      float n = 26.0 / u_scale;
+      vec2 g = uv * vec2(ca, 1.0) * n;
+      vec2 ci = floor(g), cf = fract(g) - 0.5;
+      vec2 cuv = (ci + 0.5) / n / vec2(ca, 1.0);
+      float l = fld(cuv, T);
+      float w = 0.1 + 0.09 * u_warp;
+      float aa = n * 1.2 / u_res.y;
+      float d1 = abs(cf.x - cf.y) * 0.7071, d2 = abs(cf.x + cf.y) * 0.7071;
+      float a1 = (cf.x + cf.y) * 0.7071, a2 = (cf.x - cf.y) * 0.7071;   // along each stroke
+      float on1 = 1.0 - smoothstep(w - aa, w + aa, d1), on2 = 1.0 - smoothstep(w - aa, w + aa, d2);
+      vec3 th = pal((1.0 - l) * u_palEnd);
+      vec3 c1 = th * cord(d1 / w, a1 * 4.5);
+      vec3 c2 = th * cord(d2 / w, a2 * 4.5);
+      c1 *= 1.0 - 0.45 * (1.0 - smoothstep(w, w * 2.4, d2));            // in the top stroke's shadow
+      float holes = 1.0 - smoothstep(0.06, 0.1, length(0.5 - abs(cf)));
+      vec3 cloth = pal(0.0) * (0.9 + 0.1 * sin(g.x * 12.566) * sin(g.y * 12.566)) * (1.0 - 0.6 * holes);
+      colv = mix(cloth, c1, on1);
+      colv = mix(colv, c2, on2);
+    } else if (u_fabric == 1) {
+      // weave: warp threads run down the picture and weft threads across,
+      // over and under in a plain weave. A warp thread takes the picture's
+      // colour down its own column, a weft across its own row, so the picture
+      // surfaces from the cloth like a jacquard; the thread that dips under
+      // is darker and the gaps show dark. Scale sets the thread pitch, Warp
+      // the gap between threads.
+      float n = 64.0 / u_scale;
+      vec2 g = uv * vec2(ca, 1.0) * n;
+      vec2 ci = floor(g), cf = fract(g) - 0.5;
+      float lW = fld(vec2((ci.x + 0.5) / n / ca, uv.y), T);           // the column under this warp thread
+      float lF = fld(vec2(uv.x, (ci.y + 0.5) / n), T);                // the row under this weft thread
+      float w = 0.5 - (0.04 + 0.12 * u_warp);
+      float aa = n * 1.2 / u_res.y;
+      float onW = 1.0 - smoothstep(w - aa, w + aa, abs(cf.x)), onF = 1.0 - smoothstep(w - aa, w + aa, abs(cf.y));
+      vec3 cW = pal((1.0 - lW) * u_palEnd) * cord(cf.x / w, g.y * 0.5);
+      vec3 cF = pal((1.0 - lF) * u_palEnd) * cord(cf.y / w, g.x * 0.5);
+      bool over = mod(ci.x + ci.y, 2.0) < 0.5;                         // warp on top in this cell
+      float dip = over ? smoothstep(0.0, 0.5, abs(cf.x)) : smoothstep(0.0, 0.5, abs(cf.y));
+      vec3 under = (over ? cF : cW) * (0.75 - 0.35 * dip);             // darker toward where it disappears
+      float onU = over ? onF : onW, onT = over ? onW : onF;
+      colv = mix(vec3(0.02), under, onU);
+      colv = mix(colv, over ? cW : cF, onT);
+    } else {
+      // knit: stockinette, columns of V stitches. Each cell is one stitch,
+      // two legs of yarn rising from the bottom centre to the top corners;
+      // the legs of the stitch below climb into the cell beneath them, and
+      // the stitch above tucks in over the top. Each leg is a round cord
+      // and the yarn takes the picture's colour at its stitch, over a dark
+      // ground. Scale sets the stitch size, Warp the yarn weight.
+      float n = 30.0 / u_scale;
+      vec2 g = uv * vec2(ca, 1.0) * n * vec2(1.0, 1.25);               // stitches are wider than tall
+      vec2 ci = floor(g), cf = fract(g) - 0.5;
+      vec2 cuv = (ci + 0.5) / (n * vec2(1.0, 1.25)) / vec2(ca, 1.0);
+      vec2 cuvB = (ci + vec2(0.5, -0.5)) / (n * vec2(1.0, 1.25)) / vec2(ca, 1.0);
+      vec3 yarn = pal((1.0 - fld(cuv, T)) * u_palEnd);
+      vec3 yarnB = pal((1.0 - fld(cuvB, T)) * u_palEnd);
+      float w = 0.15 + 0.09 * u_warp;
+      float aa = n * 1.4 / u_res.y;
+      // own legs, and the legs of the stitch below reaching up under this one; columns stay apart
+      vec2 o1 = legD(cf, vec2(0.0, -0.5), vec2(-0.36, 0.62)), o2 = legD(cf, vec2(0.0, -0.5), vec2(0.36, 0.62));
+      vec2 b1 = legD(cf, vec2(0.0, -1.5), vec2(-0.36, -0.38)), b2 = legD(cf, vec2(0.0, -1.5), vec2(0.36, -0.38));
+      vec2 own = o1.x < o2.x ? o1 : o2, below = b1.x < b2.x ? b1 : b2;
+      float onOwn = 1.0 - smoothstep(w - aa, w + aa, own.x), onBelow = 1.0 - smoothstep(w - aa, w + aa, below.x);
+      vec3 ground = pal(0.0) * 0.3;
+      colv = mix(ground, yarnB * cord(below.x / w, below.y * 5.0) * 0.8, onBelow);
+      colv = mix(colv, yarn * cord(own.x / w, own.y * 5.0), onOwn);
+    }
   } else if (u_style == 16) {
     // stipple: the picture drawn in fine, evenly sized dots scattered by hand,
     // crowding the highlights and thinning out to nothing in the shadows. A
@@ -2702,6 +3155,7 @@ void main() {
   float g = hash2(gl_FragCoord.xy + fract(T) * 421.0) - 0.5;
   col += g * u_grain * 0.4;
   col *= 1.0 + u_beat * 0.6;
+  col *= gMask;
   col = textureFx(col, uv0, T);
   col = screenFx(col, uv0, T);
 
@@ -2788,6 +3242,36 @@ vec3 slit(vec3 live, vec2 uv) {
   vec3 b = i1 >= u_ringN ? live : ghost(uv, i1);
   return mix(live, mix(a, b, f), min(u_slit, 1.0));
 }
+// Datamosh (Screen): the look of a stream whose key frames went missing. The
+// frame is cut into macroblocks. A one-tap optical flow at each block's centre,
+// between the two newest captures, says whether it is moving and which way;
+// a moving block keeps showing an older capture from the same ring, dragged
+// along that motion and posterised like a starved codec, so moving things
+// smear into stale slabs while the still parts stay clean. Every four seconds
+// a key frame lands and the picture snaps back. First pass.
+uniform float u_mosh, u_moshSize;
+float mlum(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
+vec3 mosh(vec3 live, vec2 uv) {
+  if (u_ringN < 3.0) return live;                              // the ring is still filling
+  vec2 bs = vec2(0.03 * u_res.y / u_res.x, 0.03) * u_moshSize;  // block size in uv, square on screen
+  vec2 cell = floor(uv / bs), bc = (cell + 0.5) * bs;
+  float h = chash(floor(cell / 3.0) * 0.37 + floor(u_etime * 0.5) * 7.1);   // a 3x3 clump shares its lot, redrawn every two seconds
+  vec2 ex = vec2(bs.x * 0.5, 0.0), ey = vec2(0.0, bs.y * 0.5);
+  float l0 = mlum(ghost(bc, 0.0)), l1 = mlum(ghost(bc, 1.0));
+  vec2 g = vec2(mlum(ghost(bc + ex, 0.0)) - mlum(ghost(bc - ex, 0.0)),
+                mlum(ghost(bc + ey, 0.0)) - mlum(ghost(bc - ey, 0.0))) / (2.0 * bs);
+  float dt = l0 - l1;
+  vec2 v = clamp(-dt * g / (dot(g, g) + 0.02), -bs, bs);       // uv moved per capture
+  float age = 1.0 + floor(h * (min(u_ringN, 12.0) - 1.0));     // how many captures stale this block is
+  float la = mlum(ghost(bc, age));
+  float moving = smoothstep(0.015, 0.1, max(abs(dt), abs(l0 - la) * 0.7));
+  float key = smoothstep(0.0, 0.1, fract(u_etime * 0.25));     // the key frame wipes the smear
+  vec2 drag = v * age * (0.6 + 1.2 * h);
+  vec3 slab = mix(ghost(uv - drag, age), ghost(bc - drag, age), 0.4);
+  slab = floor(slab * 20.0 + 0.5) / 20.0;
+  float w = min(u_mosh, 1.0) * moving * key * step(0.25, h);
+  return mix(live, slab, w);
+}
 vec3 echo(vec3 col, vec2 uv) {
   vec3 live = col;
   vec2 dir = vec2(cos(u_eAngle), sin(u_eAngle) * (u_res.x / u_res.y));
@@ -2803,17 +3287,115 @@ vec3 echo(vec3 col, vec2 uv) {
   }
   return col;
 }
+// Pixel sort (Screen): the glitch where runs of pixels are sorted by
+// brightness along a line. Bright runs: every pixel above the threshold finds
+// the run it sits in by walking both ways along Direction until the picture
+// drops below the threshold, then takes the colour from that run whose
+// brightness matches its own position in it, darkest at one end and brightest
+// at the other, so each run becomes a streak of its own colours in order.
+// Dark runs: the same for pixels below the threshold. Drip: every bright
+// pixel bleeds a trail along Direction for the length of Reach; a pixel in a
+// trail shows the trail's colours sorted bright-to-dark from its source,
+// dimming toward the tail, which is the melting look. Amount sets the
+// threshold, Reach how long a run or a drip can be.
+uniform float u_sort, u_sortLen;
+uniform int u_sortMode;
+float sortKey(vec3 c) { return u_sortMode == 1 ? 1.0 - mlum(c) : mlum(c); }   // dark runs: darkness qualifies
+vec3 psort(vec3 live, vec2 uv) {
+  float thr = 1.0 - 0.85 * min(u_sort, 1.0);
+  vec2 dir = vec2(cos(u_sAngle) * u_res.y / u_res.x, sin(u_sAngle));   // one unit is a screen height
+  float L = 0.35 * u_sortLen, st = L / 16.0;
+  float back = L, fwd = L;
+  if (u_sortMode == 2) {
+    // drip: look back along the direction for the nearest source that is
+    // bright, and clearly brighter than this pixel, so trails run from light
+    // into dark whatever the overall level
+    float l0 = mlum(live), seed = -1.0;
+    if (l0 >= thr) return live;                        // bright pixels are sources, not trails
+    for (int i = 1; i <= 16; i++) { float s = float(i) * st; if (mlum(tap0(uv - dir * s).rgb) >= max(thr, l0 + 0.12)) { seed = s; break; } }
+    if (seed < 0.0) return live;
+    float t = seed / L;
+    vec3 src3 = tap0(uv - dir * seed).rgb;
+    vec3 smp[16]; float lum[16];
+    float lmin = 1.0, lmax = 0.0;
+    for (int i = 0; i < 16; i++) {
+      vec3 c = tap0(uv - dir * seed + dir * L * float(i) / 15.0).rgb;   // from the source itself to the tail
+      smp[i] = c; lum[i] = mlum(c); lmin = min(lmin, lum[i]); lmax = max(lmax, lum[i]);
+    }
+    float want = mix(lmax, lmin, t);                   // brightest at the source, darkest at the tail
+    vec3 best = src3; float bd = 10.0;
+    for (int i = 0; i < 16; i++) { float d = abs(lum[i] - want); if (d < bd) { bd = d; best = smp[i]; } }
+    vec3 drip = mix(src3, best, 0.5 * t);              // the source's own colour runs down, the sorted ramp takes over toward the tail
+    return mix(live, drip * (1.0 - 0.3 * t), min(u_sort, 1.0) * (1.0 - t * t));
+  }
+  if (sortKey(live) < thr) return live;
+  for (int i = 1; i <= 16; i++) { float s = float(i) * st; if (sortKey(tap0(uv - dir * s).rgb) < thr) { back = s; break; } }
+  for (int i = 1; i <= 16; i++) { float s = float(i) * st; if (sortKey(tap0(uv + dir * s).rgb) < thr) { fwd = s; break; } }
+  float t = back / (back + fwd);                      // where this pixel sits in its run
+  vec3 smp[16]; float lum[16];
+  float lmin = 1.0, lmax = 0.0;
+  for (int i = 0; i < 16; i++) {
+    vec3 c = tap0(uv + dir * mix(-back, fwd, (float(i) + 0.5) / 16.0)).rgb;
+    smp[i] = c; lum[i] = mlum(c); lmin = min(lmin, lum[i]); lmax = max(lmax, lum[i]);
+  }
+  float want = mix(lmin, lmax, t);
+  vec3 best = live; float bd = 10.0;
+  for (int i = 0; i < 16; i++) { float d = abs(lum[i] - want); if (d < bd) { bd = d; best = smp[i]; } }
+  return best;
+}
+// Motion study (Screen): the frame as a grid of moments, Muybridge style.
+// Each cell shows a different capture from the ring, oldest top-left to
+// newest bottom-right, so a movement is laid out as a sequence while anything
+// still simply repeats. Spacing sets how many frames apart the moments are.
+uniform float u_study;             // cells per side, 0 off
+vec3 study(vec3 live, vec2 uv) {
+  float N = u_study;
+  vec2 c = floor(uv * N), f = fract(uv * N);
+  float age = min(c.y * N + (N - 1.0 - c.x), 15.0);
+  vec3 g = age < u_ringN ? ghost(f, age) : tap0(f).rgb;             // slots not filled yet show the live frame
+  vec2 b = min(f, 1.0 - f) * u_res / N;
+  float line = 1.0 - smoothstep(0.5, 1.5, min(b.x, b.y));
+  return mix(g, vec3(0.0), line);
+}
+// Ghost (Screen): a double print. The frame is printed again, slid along
+// Direction and a little paler, so every edge carries a second, fainter edge
+// beside it. Amount sets how strong the second print is, Offset how far.
+uniform float u_ghost, u_ghostSize;
+vec3 ghostPrint(vec3 c, vec2 uv) {
+  vec2 off = vec2(cos(u_sAngle) * u_res.y / u_res.x, sin(u_sAngle)) * 0.035 * u_ghostSize;
+  vec3 g = tap0(uv - off).rgb;
+  float lum = dot(g, vec3(0.2126, 0.7152, 0.0722));
+  g = mix(vec3(lum), g, 0.7);                           // the second print is a touch washed
+  return mix(c, max(c, g * 0.92), min(u_ghost, 1.0));
+}
+// Tilt blur (Screen): the blur grows from nothing at one edge to full at the
+// other, along Direction, like a tilt-shift lens. Amount sets how soft.
+uniform float u_tilt;
+// the passes that follow the blur, in order
+vec4 after(vec4 c, vec2 uv) {
+  if (u_sort > 0.0) c.rgb = psort(c.rgb, uv);
+  if (u_slit > 0.0) c.rgb = slit(c.rgb, uv);
+  if (u_mosh > 0.0) c.rgb = mosh(c.rgb, uv);
+  if (u_study > 0.5) c.rgb = study(c.rgb, uv);
+  if (u_ghost > 0.0) c.rgb = ghostPrint(c.rgb, uv);
+  if (u_echo > 0.0) c.rgb = echo(c.rgb, uv);
+  return c;
+}
 void main() {
   vec2 uv = (gl_FragCoord.xy - u_off) / u_res;
-  if (u_blur < 0.5) {
-    vec4 c = tap(uv);
-    if (u_slit > 0.0) c.rgb = slit(c.rgb, uv);
-    gl_FragColor = u_echo > 0.0 ? vec4(echo(c.rgb, uv), c.a) : c;
+  float rad = u_blur;
+  if (u_tilt > 0.0) {
+    vec2 dir = vec2(cos(u_sAngle), sin(u_sAngle));
+    float t = clamp(dot(uv - 0.5, dir) / (abs(dir.x) + abs(dir.y)) + 0.5, 0.0, 1.0);
+    rad = max(rad, u_tilt * 30.0 * (u_res.y / 1080.0) * smoothstep(0.1, 0.95, t));
+  }
+  if (rad < 0.5) {
+    gl_FragColor = after(tap(uv), uv);
     return;
   }
   // three rings of taps, rotated per pixel so the sparse pattern reads as
   // soft grain rather than stepped rings
-  vec2 px = u_blur / u_res;
+  vec2 px = rad / u_res;
   float rot = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) * 6.2832;
   vec4 s = tap(uv) * 2.0;
   for (int i = 0; i < 6; i++) {
@@ -2823,8 +3405,7 @@ void main() {
     s += tap(uv + vec2(cos(a + 0.2618), sin(a + 0.2618)) * px);
   }
   s /= 20.0;
-  if (u_slit > 0.0) s.rgb = slit(s.rgb, uv);
-  gl_FragColor = u_echo > 0.0 ? vec4(echo(s.rgb, uv), s.a) : s;
+  gl_FragColor = after(s, uv);
 }`;
 
 function compile(src, type) {
@@ -2881,6 +3462,44 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+/* ================= stamp (Texture) ================= */
+// The camcorder's burnt-in line, drawn white on black to a small canvas and
+// redrawn when its text, font or the minute changes; the Texture layer burns
+// it into the corner in orange. {date}, {time} and {year} fill in live.
+const stampTex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, stampTex);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+let stampKey = "";
+const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+let stampText = "{date}  {time}", stampFont = "mono";
+try { stampText = localStorage.getItem("vibe.stampText") ?? stampText; stampFont = localStorage.getItem("vibe.stampFont") || stampFont; } catch (e) { /* defaults */ }
+function stampLine(d) {
+  const hh = d.getHours() % 12 || 12, mm = String(d.getMinutes()).padStart(2, "0"), ap = d.getHours() < 12 ? "AM" : "PM";
+  const date = MONTHS[d.getMonth()] + " " + d.getDate() + " " + d.getFullYear();
+  return (stampText || "{date}  {time}").replace(/\{date\}/gi, date).replace(/\{time\}/gi, hh + ":" + mm + " " + ap).replace(/\{year\}/gi, String(d.getFullYear()));
+}
+const stampFamily = () => stampFont === "mono" ? "ui-monospace, Menlo, Consolas, monospace" : '"' + stampFont + '", sans-serif';
+function updateStamp() {                            // called with unit 6 active
+  const d = new Date();
+  const line = stampLine(d), key = line + "|" + stampFont;
+  if (key === stampKey) return;
+  stampKey = key;
+  const c = document.createElement("canvas"); c.width = 1024; c.height = 64;
+  const x = c.getContext("2d");
+  x.fillStyle = "#000"; x.fillRect(0, 0, c.width, c.height);
+  x.fillStyle = "#fff"; x.textBaseline = "middle"; x.textAlign = "right";
+  x.font = "bold 40px " + stampFamily();
+  const w = x.measureText(line).width;
+  if (w > 1000) x.font = "bold " + Math.max(12, Math.floor(40 * 1000 / w)) + "px " + stampFamily();   // long lines shrink to fit
+  x.fillText(line, 1012, 34);
+  gl.bindTexture(gl.TEXTURE_2D, stampTex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+  gl.generateMipmap(gl.TEXTURE_2D);
+}
 
 /* ================= glyph atlas (family 9) ================= */
 // Square glyphs in one strip: 16 by ink density for ASCII, then the Microtext
@@ -3201,6 +3820,11 @@ function captureRing(srcTex, j) {
   gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), 0);
   gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), 0);
   gl.uniform1f(gl.getUniformLocation(copy, "u_slit"), 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_mosh"), 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_sort"), 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_study"), 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_tilt"), 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_ghost"), 0);
   gl.uniform1f(gl.getUniformLocation(copy, "u_fringe"), 0);
   clearRingUnits();
   gl.uniform1i(gl.getUniformLocation(copy, "u_fadeKind"), 0);
@@ -3226,19 +3850,20 @@ function barJoin(el, parts) {
 // running, a video pauses), so a later build can hand a source to a pile group.
 const IMG_MAX = 2048;                 // longest side uploaded to the GPU
 let sources = [], srcSeq = 1;         // { id, kind, name, el, w, h, video, stream, thumb, wasPlaying }
+sourcesReady = true;                  // the list exists from here on (var: hoisted, false until now)
 let imgSrc = null, imgVideo = null, imgAspect = 1, imgDirty = false, imgName = "", imgKind = "none", tabStream = null;   // the stage source
 const KIND_NAME = { image: "Image", video: "Video", text: "Type", tab: "Live tab", camera: "Camera" };
 const activeSource = () => sources.find(sc => sc.el === imgSrc) || null;
-// hold a source and put it on the stage. Media files add up; there is one
-// text, one camera and one tab, and a new one replaces the old.
+// hold a source and put it on the stage. Media files and text add up; there is
+// one camera and one tab, and a new one replaces the old.
 function addSource(el, w, h, name, kind, extra = {}) {
-  if (kind !== "image" && kind !== "video") {
+  if (kind === "camera" || kind === "tab") {
     const old = sources.find(sc => sc.kind === kind);
     if (old && old.el === el) { old.w = w; old.h = h; old.name = name; old.dirty = true; activateSource(old); return old; }
     if (old) removeSource(old, true);
   }
   const live = kind === "video" || kind === "tab" || kind === "camera";
-  const sc = { id: srcSeq++, kind, name, el, w, h, video: live ? el : null, stream: extra.stream || null, thumb: null, wasPlaying: true };
+  const sc = { id: srcSeq++, kind, name, el, w, h, video: live ? el : null, stream: extra.stream || null, text: extra.text || null, thumb: null, wasPlaying: true };
   sources.push(sc);
   activateSource(sc);
   return sc;
@@ -3322,6 +3947,7 @@ function syncSourceUI() {
   $("vidScrubRow").hidden = !(act && act.kind === "video");
   $("vFaces").hidden = !(act && act.kind === "camera");
   $("textRow").hidden = !(act && act.kind === "text");
+  if (act && act.kind === "text") syncTextRow(act);
   if (!(act && act.kind === "camera")) $("camRow").hidden = true;
   imgNoteDefault();
   if (typeof gsync === "function" && preview === "pile") gsync();   // the group Source menus list the held sources
@@ -3351,27 +3977,152 @@ function useImage(file) {
   im.src = url;
 }
 /* ================= text in ================= */
-// Type on the stage as a source. The copy is drawn white-on-black to a canvas
-// and handed to the same texture path as an image, so every pattern and every
-// Distort, Screen and Texture mode works on the letterforms for free.
-const TEXT_W = 2048;                  // texture width; 16:9 like the stage
-let textCanvas = null, textFamily = '"Space Grotesk", sans-serif';
-function renderTextSource() {
-  const copy = ($("textCopy").value || "").trim();
-  if (!copy) { if (imgKind === "text") clearImageSource(); return; }
-  const c = textCanvas || (textCanvas = document.createElement("canvas"));
-  c.width = TEXT_W; c.height = Math.round(TEXT_W * 9 / 16);
+// Type on the stage as a source. Each text source owns its copy, size, tracking
+// and font ({ copy, fill, track, font } under sc.text) and its own canvas; the
+// copy is drawn white-on-black and handed to the same texture path as an image,
+// so every pattern and every Distort, Screen and Texture mode works on the
+// letterforms for free. The Copy row edits whichever text source is on the stage.
+const TEXT_W = 2048, TEXT_H = 1152;   // texture size; 16:9 like the stage
+// every field of a text source, with the control that edits it
+const TEXT_FIELDS = [["textCopy", "copy", v => v], ["textFill", "fill", Number], ["textTrack", "track", Number], ["textWeight", "weight", Number],
+  ["textAlign", "align", v => v], ["textGap", "gap", Number], ["textVary", "vary", Number], ["textStretch", "stretch", Number],
+  ["textHeight", "height", Number], ["textTwist", "twist", Number], ["textBloat", "bloat", Number]];
+let lastWeight = 500;
+try { lastWeight = +localStorage.getItem("vibe.fontWeight") || lastWeight; } catch (e) { /* default */ }
+const textDefaults = () => ({ copy: "CONVERSION", fill: 0.82, track: 0, font: fontChoice, weight: lastWeight, align: "center", gap: 1.05, vary: 0, stretch: 1, height: 1, twist: 0, bloat: 0 });
+const tchash = (i, j) => { const s = Math.sin(i * 12.9898 + j * 78.233) * 43758.5453; return s - Math.floor(s); };
+// one line's advance at size px, character by character (Vary scales each one)
+function textLineWidth(x, s, px, t, row) {
+  let w = 0;
+  for (let i = 0; i < s.length; i++) {
+    const k = 1 + t.vary * (tchash(i, row) - 0.5) * 1.3;
+    x.font = fontWeightFor(t.font, t.weight) + " " + (px * k) + "px " + fontFamilyFor(t.font);
+    w += x.measureText(s[i]).width + t.track * px;
+  }
+  return Math.max(1, w);
+}
+// draw a text source's copy into its canvas; with no source given, add a new one.
+// Lines stack (Line gap), align Left/Centre/Right, each character may take its
+// own size (Vary), the block stretches (Stretch, Height), then the whole thing
+// is warped on the CPU: Twist turns it round the centre, Bloat pushes it out
+// (or, below zero, puckers it in).
+function renderTextSource(sc) {
+  if (!sc) sc = addSource(document.createElement("canvas"), TEXT_W, TEXT_H, "Type", "text", { text: textDefaults() });
+  drawText(sc);
+  buildWeightSteps(sc);
+  sc.name = (sc.text.copy || "").split("\n").map(s => s.trim()).filter(Boolean).join(" ") || "Type";
+  if (sc.el === imgSrc) { imgDirty = true; imgName = sc.name; }
+  syncSourceUI();
+  if (typeof requeueTiles === "function") setTimeout(requeueTiles, 50);
+  return sc;
+}
+// lay out and warp one text source's copy onto its canvas
+function drawText(sc) {
+  const t = sc.text, c = sc.el, lines = (t.copy || "").split("\n").map(s => s.trim()).filter(Boolean);
+  c.width = TEXT_W; c.height = TEXT_H;
   const x = c.getContext("2d");
   x.fillStyle = "#000"; x.fillRect(0, 0, c.width, c.height);
-  x.fillStyle = "#fff"; x.textAlign = "center"; x.textBaseline = "middle";
-  try { x.letterSpacing = (+$("textTrack").value).toFixed(3) + "em"; } catch (e) { /* older browser */ }
-  // measure once at 100px, then scale so the copy fills the chosen width
-  x.font = "100px " + textFamily;
-  const w0 = x.measureText(copy).width || 1;
-  const px = Math.max(8, Math.min(c.height * 0.92, 100 * (c.width * (+$("textFill").value)) / w0));
-  x.font = px + "px " + textFamily;
-  x.fillText(copy, c.width / 2, c.height / 2);
-  addSource(c, c.width, c.height, copy, "text");
+  if (lines.length) {
+    const warp = Math.abs(t.twist) > 0.005 || Math.abs(t.bloat) > 0.005;
+    const off = warp ? document.createElement("canvas") : c;
+    if (warp) { off.width = c.width; off.height = c.height; }
+    const o = off.getContext("2d");
+    if (warp) { o.fillStyle = "#000"; o.fillRect(0, 0, off.width, off.height); }
+    const widths = lines.map((s, i) => textLineWidth(o, s, 100, t, i));
+    const w0 = Math.max(...widths);
+    const px = Math.max(8, Math.min(c.height * 0.92 / (lines.length * t.gap * t.height), 100 * (c.width * t.fill) / (w0 * t.stretch)));
+    const block = w0 * px / 100, lineH = px * t.gap;
+    o.save();
+    o.translate(c.width / 2, c.height / 2);
+    o.scale(t.stretch, t.height);
+    o.fillStyle = "#fff"; o.textAlign = "left"; o.textBaseline = "alphabetic";
+    lines.forEach((s, row) => {
+      const lw = widths[row] * px / 100;
+      let cx = t.align === "left" ? -block / 2 : t.align === "right" ? block / 2 - lw : -lw / 2;
+      const cy = (row - (lines.length - 1) / 2) * lineH + px * 0.35;
+      for (let i = 0; i < s.length; i++) {
+        const k = 1 + t.vary * (tchash(i, row) - 0.5) * 1.3;
+        o.font = fontWeightFor(t.font, t.weight) + " " + (px * k) + "px " + fontFamilyFor(t.font);
+        o.fillText(s[i], cx, cy);
+        cx += o.measureText(s[i]).width + t.track * px;
+      }
+    });
+    o.restore();
+    if (warp) warpText(off, c, t.twist, t.bloat);
+  }
+}
+// the warp pass: every output pixel looks up where it came from (a turn round
+// the centre that fades with distance; a radial push or pull), bilinear on the
+// red channel since the type is white on black
+function warpText(from, to, twist, bloat) {
+  const w = from.width, h = from.height;
+  const srcD = from.getContext("2d").getImageData(0, 0, w, h).data;
+  const out = to.getContext("2d"), img = out.createImageData(w, h), d = img.data;
+  const cx = w / 2, cy = h / 2, R = h * 0.55;
+  for (let y = 0; y < h; y++) {
+    for (let xx = 0; xx < w; xx++) {
+      let u = (xx - cx) / R, v = (y - cy) / R;
+      const r = Math.hypot(u, v);
+      let a = Math.atan2(v, u);
+      a += twist * 2.4 * Math.exp(-r * r * 0.9);
+      const rr = r * (1 - bloat * 0.55 * Math.exp(-r * r * 0.7));
+      const sx = cx + Math.cos(a) * rr * R, sy = cy + Math.sin(a) * rr * R;
+      const x0 = Math.floor(sx), y0 = Math.floor(sy);
+      let val = 0;
+      if (x0 >= 0 && y0 >= 0 && x0 < w - 1 && y0 < h - 1) {
+        const fx = sx - x0, fy = sy - y0, i0 = (y0 * w + x0) * 4;
+        val = (srcD[i0] * (1 - fx) + srcD[i0 + 4] * fx) * (1 - fy) + (srcD[i0 + w * 4] * (1 - fx) + srcD[i0 + w * 4 + 4] * fx) * fy;
+      }
+      const j = (y * w + xx) * 4;
+      d[j] = d[j + 1] = d[j + 2] = val; d[j + 3] = 255;
+    }
+  }
+  out.putImageData(img, 0, 0);
+}
+// A Weight route needs the type at several weights ready to swap in: seven
+// steps across the font's axis, drawn when the source changes (only while a
+// Weight route exists, since each step is a full render), then each frame
+// the step nearest the routed weight is copied onto the source's canvas.
+const WEIGHT_STEPS = 7;
+const hasWeightRoute = () => state.routes.some(r => r.dst === "weight");
+var sourcesReady = false;
+function buildWeightSteps(sc) {
+  const t = sc.text, range = fontWeightRange(t.font);
+  sc.steps = null; sc.step = -1;
+  if (!range || !hasWeightRoute()) return;
+  const base = Object.assign({}, t), steps = [];
+  for (let i = 0; i < WEIGHT_STEPS; i++) {
+    const c = document.createElement("canvas"); c.width = TEXT_W; c.height = TEXT_H;
+    const stand = { el: c, text: Object.assign({}, base, { weight: range[0] + (range[1] - range[0]) * i / (WEIGHT_STEPS - 1) }) };
+    drawText(stand);
+    steps.push(c);
+  }
+  sc.steps = steps; sc.range = range;
+}
+// a Weight route added or removed: text sources build or drop their steps
+function refreshWeightSteps() {
+  if (!sourcesReady) return;
+  sources.forEach(sc => { if (sc.kind === "text" && !!sc.steps !== hasWeightRoute()) { buildWeightSteps(sc); if (!sc.steps) { drawText(sc); imgDirty = imgDirty || sc.el === imgSrc; } } });
+}
+function textWeightTick(m) {
+  const sc = activeSource();
+  if (!sc || sc.kind !== "text" || !sc.steps) return;
+  const [lo, hi] = sc.range, w = sc.text.weight + m("weight") * (hi - lo) * 0.6;
+  const i = Math.max(0, Math.min(WEIGHT_STEPS - 1, Math.round((w - lo) / (hi - lo) * (WEIGHT_STEPS - 1))));
+  if (i === sc.step) return;
+  sc.step = i;
+  const x = sc.el.getContext("2d");
+  x.drawImage(sc.steps[i], 0, 0);
+  imgDirty = true;
+}
+// the text controls show the stage's text source
+function syncTextRow(sc) {
+  const t = sc.text;
+  TEXT_FIELDS.forEach(([id, key]) => { $(id).value = t[key]; });   // same strings while typing, so the caret stays put
+  if (fontChoice !== t.font) { fontChoice = t.font; syncFontSel(); }
+  const range = fontWeightRange(t.font);
+  $("textWeight").disabled = !range;
+  $("textWeight").title = range ? "" : "This font has one weight";
 }
 
 // show another tab or window on the stage, through the screen-share picker
@@ -3586,7 +4337,7 @@ $("srcAdd").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   const v = b.dataset.add;
   if (v === "media") $("imgFile").click();
-  else if (v === "text") renderTextSource();
+  else if (v === "text") { renderTextSource(); const i = $("textCopy"); i.focus(); i.select(); }
   else if (v === "camera") useCamera();
   else if (v === "tab") useTabVideo();
 });
@@ -3594,8 +4345,13 @@ $("imgFile").addEventListener("change", e => { [...e.target.files].forEach(useIm
 $("fontFile").addEventListener("change", e => { const f = e.target.files[0]; if (f) useFont(f); e.target.value = ""; });
 // redraw a beat after the last keystroke rather than on every one
 let textTimer = 0;
-const textLater = () => { clearTimeout(textTimer); textTimer = setTimeout(renderTextSource, 120); };
-["textCopy", "textFill", "textTrack"].forEach(id => $(id).addEventListener("input", textLater));
+const textLater = () => { clearTimeout(textTimer); textTimer = setTimeout(() => { const sc = activeSource(); if (sc && sc.kind === "text") renderTextSource(sc); }, 120); };
+TEXT_FIELDS.forEach(([id, key, parse]) => $(id).addEventListener(id === "textAlign" ? "change" : "input", () => {
+  const sc = activeSource(); if (!sc || sc.kind !== "text") return;
+  sc.text[key] = parse($(id).value);
+  if (key === "weight") { lastWeight = sc.text.weight; try { localStorage.setItem("vibe.fontWeight", String(lastWeight)); } catch (e) { /* no storage */ } }
+  textLater();
+}));
 // drop an image, video or audio file anywhere on the stage
 const stageEl = $("stage");
 stageEl.addEventListener("dragover", e => { e.preventDefault(); stageEl.classList.add("drop"); });
@@ -3675,9 +4431,10 @@ function micDiag(track) {
 }
 let micId = null, micSince = 0, micPeak = 0, micLabel = "";
 try { micId = localStorage.getItem("vibe.micId"); } catch (e) { /* no storage */ }
+// the line only carries warnings; an empty message hides it
 const micNote = (msg, warn) => {
   $("srcNote").className = warn ? "note warn" : "note";
-  $("srcNote").hidden = false;
+  $("srcNote").hidden = !msg;
   $("srcNote").textContent = msg;
 };
 // fill the input picker; labels only exist once permission has been granted
@@ -3725,7 +4482,7 @@ async function useMic() {
     srcNode.connect(dest);          // recorded, but never back to the speakers
     const track = micStream.getAudioTracks()[0];
     micLabel = track.label || "the microphone";
-    micNote("Listening to " + micLabel + ".");
+    micNote("");
     micSince = performance.now(); micPeak = 0;
     track.addEventListener("ended", () => { if (srcMode === "mic") micNote(micLabel + " was disconnected. Tap the screen to reconnect, or pick another input.", true); });
     track.addEventListener("unmute", reviveAudio);
@@ -3791,7 +4548,7 @@ function checkMicSignal(now) {
     else if (t.muted) micNote("The system has muted " + micLabel + " \u2014 another app or the camera may be using it. Tap the screen to reconnect.", true);
     else micNote("No signal from " + micLabel + ". Check the input level in System Settings \u2192 Sound, "
       + "or pick another input." + micDiag(t), true);
-  } else micNote("Listening to " + micLabel + ".");
+  } else micNote("");
   micSince = now; micPeak = 0;
 }
 $("micSel").addEventListener("change", () => {
@@ -3978,10 +4735,29 @@ const fontDel = id => dbRun("readwrite", s => s.delete(id), DB_FONTS);
 // fetched the first time it is picked; Google Fonts are the one remote
 // resource this app uses) or a font file, which is kept in this browser's
 // IndexedDB under "Your fonts" so it is there next time.
-const GOOGLE_FONTS = ["Space Grotesk", "Anton", "Archivo Black", "Bebas Neue", "Black Ops One", "Bungee", "DM Serif Display", "Fredoka",
-  "IBM Plex Mono", "Inter", "Lobster", "Major Mono Display", "Monoton", "Orbitron", "Oswald", "Pacifico", "Permanent Marker",
-  "Playfair Display", "Press Start 2P", "Righteous", "Rubik Mono One", "Source Sans 3", "Space Mono", "Syne", "Unbounded", "Zen Dots"];
-const gfLoaded = new Set(["Space Grotesk", "Source Sans 3"]);
+// variable fonts carry a weight axis: the range the Weight slider can reach
+const VARIABLE_FONTS = { "Anybody": [100, 900], "Archivo": [100, 900], "Big Shoulders Display": [100, 900], "Bricolage Grotesque": [200, 800],
+  "DM Sans": [100, 1000], "Epilogue": [100, 900], "Figtree": [300, 900], "Fredoka": [300, 700], "Inter": [100, 900], "Lexend": [100, 900],
+  "Manrope": [200, 800], "Montserrat": [100, 900], "Nunito": [200, 1000], "Oswald": [200, 700], "Outfit": [100, 900], "Playfair Display": [400, 900],
+  "Plus Jakarta Sans": [200, 800], "Raleway": [100, 900], "Red Hat Display": [300, 900], "Roboto Flex": [100, 1000], "Rubik": [300, 900],
+  "Sora": [100, 800], "Source Sans 3": [200, 900], "Space Grotesk": [300, 700], "Syne": [400, 800], "Unbounded": [200, 900], "Work Sans": [100, 900] };
+const GOOGLE_FONTS = ["Space Grotesk", "Anton", "Anybody", "Archivo", "Archivo Black", "Bebas Neue", "Big Shoulders Display", "Black Ops One",
+  "Bricolage Grotesque", "Bungee", "DM Sans", "DM Serif Display", "Epilogue", "Figtree", "Fredoka", "IBM Plex Mono", "Inter", "Lexend", "Lobster",
+  "Major Mono Display", "Manrope", "Monoton", "Montserrat", "Nunito", "Orbitron", "Oswald", "Outfit", "Pacifico", "Permanent Marker",
+  "Playfair Display", "Plus Jakarta Sans", "Press Start 2P", "Raleway", "Red Hat Display", "Righteous", "Roboto Flex", "Rubik", "Rubik Mono One",
+  "Sora", "Source Sans 3", "Space Mono", "Syne", "Unbounded", "Work Sans", "Zen Dots"];
+const gfLoaded = new Set();
+// load a Google font once, with its whole weight axis when it has one
+function loadGoogleFont(name) {
+  if (gfLoaded.has(name)) return;
+  gfLoaded.add(name);
+  const r = VARIABLE_FONTS[name];
+  const l = document.createElement("link"); l.rel = "stylesheet";
+  l.href = "https://fonts.googleapis.com/css2?family=" + encodeURIComponent(name).replace(/%20/g, "+") + (r ? ":wght@" + r[0] + ".." + r[1] : "") + "&display=swap";
+  document.head.append(l);
+}
+const fontWeightRange = ch => ch.kind === "lib" ? [100, 900] : VARIABLE_FONTS[ch.name] || null;
+const fontWeightFor = (ch, w) => { const r = fontWeightRange(ch); return r ? Math.max(r[0], Math.min(r[1], w || 500)) : 400; };
 let fontLib = [], fontChoice = { kind: "google", name: "Space Grotesk" };
 try { fontChoice = JSON.parse(localStorage.getItem("vibe.font")) || fontChoice; } catch (e) { /* default */ }
 const fontFamilyFor = ch => '"' + (ch.kind === "lib" ? "vibeFont" + ch.id : ch.name) + '", sans-serif';
@@ -3990,15 +4766,11 @@ async function applyFont(ch) {
   if (ch.kind === "google" && !GOOGLE_FONTS.includes(ch.name)) ch = { kind: "google", name: "Space Grotesk" };
   fontChoice = ch;
   try { localStorage.setItem("vibe.font", JSON.stringify(ch)); } catch (e) { /* no storage */ }
-  if (ch.kind === "google" && !gfLoaded.has(ch.name)) {
-    const l = document.createElement("link"); l.rel = "stylesheet";
-    l.href = "https://fonts.googleapis.com/css2?family=" + encodeURIComponent(ch.name).replace(/%20/g, "+") + "&display=swap";
-    document.head.append(l); gfLoaded.add(ch.name);
-  }
-  textFamily = fontFamilyFor(ch);
+  if (ch.kind === "google") loadGoogleFont(ch.name);
   syncFontSel();
-  try { await document.fonts.load("100px " + textFamily); } catch (e) { /* draw with the fallback */ }
-  if (sources.some(sc => sc.kind === "text")) renderTextSource();
+  try { await document.fonts.load(fontWeightFor(ch, lastWeight) + " 100px " + fontFamilyFor(ch)); } catch (e) { /* draw with the fallback */ }
+  const act = activeSource();
+  if (act && act.kind === "text" && act.text.font !== ch) { act.text.font = ch; renderTextSource(act); }
 }
 function syncFontSel() {
   const sel = $("fontSel");
@@ -4021,6 +4793,21 @@ $("fontSel").addEventListener("change", e => {
   if (v.startsWith("lib:")) { const f = fontLib.find(x => x.id === +v.slice(4)); if (f) applyFont({ kind: "lib", id: f.id, name: f.name }); }
   else applyFont({ kind: "google", name: v.slice(7) });
 });
+{
+  const sel = $("stampFont");
+  const mono = document.createElement("option"); mono.value = "mono"; mono.textContent = "Monospace"; sel.append(mono);
+  GOOGLE_FONTS.forEach(n => { const o = document.createElement("option"); o.value = n; o.textContent = n; sel.append(o); });
+  sel.value = stampFont === "mono" || GOOGLE_FONTS.includes(stampFont) ? stampFont : "mono";
+  if (stampFont !== "mono") loadGoogleFont(stampFont);
+  sel.addEventListener("change", () => {
+    stampFont = sel.value;
+    if (stampFont !== "mono") { loadGoogleFont(stampFont); document.fonts.load("bold 40px " + stampFamily()).then(() => { stampKey = ""; }).catch(() => {}); }
+    try { localStorage.setItem("vibe.stampFont", stampFont); } catch (e) { /* no storage */ }
+    stampKey = "";
+  });
+  $("stampText").value = stampText;
+  $("stampText").addEventListener("input", () => { stampText = $("stampText").value; stampKey = ""; try { localStorage.setItem("vibe.stampText", stampText); } catch (e) { /* no storage */ } });
+}
 $("fontDel").addEventListener("click", () => {
   const f = fontLib.find(x => x.id === fontChoice.id); if (!f) return;
   if (!confirm("Remove \u201c" + f.name + "\u201d from your fonts?")) return;
@@ -4245,8 +5032,8 @@ const segSrc = seg("srcSeg", "src", () => srcMode, v => {
 // cannot read the file.
 const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom", "fbSpin", "grain", "bands", "blur",
                    "dist", "distort", "screen", "screenAmt", "tex", "texAmt", "distSize", "screenSize", "texSize",
-                   "glass", "glassAngle", "glassSeam", "glassSeamW", "echoSpread", "echoDecay", "echoAngle", "echoDrift", "slitAngle",
-                   "geo", "geoN", "geoSpin", "lineW", "fracSeed", "fracKind"];
+                   "glass", "glassAngle", "glassSeam", "glassSeamW", "gsAngle", "gsRand", "echoSpread", "echoDecay", "echoAngle", "echoDrift", "slitAngle", "sortMode",
+                   "geo", "geoN", "geoSpin", "geoGap", "geoTile", "lineW", "fracSeed", "fracKind", "dotKind", "beadBoard", "fabric", "asciiKind"];
 const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
 // Groups (the library's categories), in display order. presets/library.json
 // may ship its own list; renames, additions and deletions made here are kept
@@ -4334,7 +5121,7 @@ function palFor(P) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
-  c = { key, tex, palEnd: end };
+  c = { key, tex, palEnd: end, colors: pal.colors };
   palCache.set(P.id, c);
   return c;
 }
@@ -4349,8 +5136,12 @@ function modsFor(routes) {
   return m;
 }
 // every per-look uniform of the scene shader, for the main pass or a thumbnail
-function setLook(L, m, w, h, pEnd, time = T) {
+function setLook(L, m, w, h, pEnd, time = T, stops = state.colors) {
   const U = n => gl.getUniformLocation(scene, n);
+  const st = new Float32Array(24);
+  stops.slice(0, 8).forEach((hx, i) => hexToRgb(hx).forEach((v, k) => { st[i * 3 + k] = v / 255; }));
+  gl.uniform3fv(U("u_stops[0]"), st);
+  gl.uniform1f(U("u_stopN"), Math.max(1, Math.min(8, stops.length)));
   gl.uniform2f(U("u_res"), w, h);
   gl.uniform1f(U("u_time"), time);
   gl.uniform1i(U("u_style"), L.style);
@@ -4358,8 +5149,14 @@ function setLook(L, m, w, h, pEnd, time = T) {
   gl.uniform1f(U("u_zoom"), Math.max(-0.4, Math.min(2, m("zoom") * 0.6)));
   gl.uniform1f(U("u_fseed"), L.fracSeed);
   gl.uniform1i(U("u_fkind"), L.fracKind);
-  gl.uniform1f(U("u_geoN"), L.geoN);
+  gl.uniform1f(U("u_geoN"), Math.round(L.geoN * (1 + m("geo"))));
   gl.uniform1f(U("u_geoSpin"), L.geoSpin);
+  gl.uniform1i(U("u_geoTile"), L.geoTile);
+  gl.uniform1f(U("u_geoGap"), L.geoGap);
+  gl.uniform1i(U("u_dotKind"), L.dotKind);
+  gl.uniform1i(U("u_beadBoard"), L.beadBoard);
+  gl.uniform1i(U("u_fabric"), L.fabric);
+  gl.uniform1i(U("u_asciiKind"), L.asciiKind);
   gl.uniform1f(U("u_lineW"), Math.max(0.5, L.lineW * h / 1080));   // thickness is set for 1080 lines, so thumbnails match
   gl.uniform1f(U("u_trails"), Math.min(0.97, L.trails + m("trails") * 0.5));
   gl.uniform1f(U("u_fbZoom"), L.fbZoom + m("push") * 0.02);
@@ -4377,9 +5174,9 @@ function setLook(L, m, w, h, pEnd, time = T) {
   gl.uniform1f(U("u_blobs"), L.blobs);
   gl.uniform1i(U("u_dist"), L.dist);
   gl.uniform1i(U("u_screen"), L.screen);
-  gl.uniform1f(U("u_screenAmt"), L.screenAmt);
+  gl.uniform1f(U("u_screenAmt"), Math.min(1, L.screenAmt + m("screen")));
   gl.uniform1i(U("u_tex"), L.tex);
-  gl.uniform1f(U("u_texAmt"), L.texAmt);
+  gl.uniform1f(U("u_texAmt"), Math.min(1, L.texAmt + m("texture")));
   gl.uniform1f(U("u_distSize"), L.distSize);
   gl.uniform1f(U("u_screenSize"), L.screenSize);
   gl.uniform1f(U("u_texSize"), L.texSize);
@@ -4387,6 +5184,8 @@ function setLook(L, m, w, h, pEnd, time = T) {
   gl.uniform1f(U("u_glassAngle"), L.glassAngle * 3.14159265 / 180);
   gl.uniform1f(U("u_glassSeam"), L.glassSeam);
   gl.uniform1f(U("u_glassSeamW"), L.glassSeamW);
+  gl.uniform1f(U("u_gsAngle"), L.gsAngle * 3.14159265 / 180);
+  gl.uniform1f(U("u_gsRand"), L.gsRand);
   gl.uniform1f(U("u_distort"), Math.min(1.5, L.distort + m("distort")));
 }
 
@@ -4436,7 +5235,7 @@ function renderTile(t) {
   gl.activeTexture(gl.TEXTURE0);
   const pal = palFor(P);
   gl.bindTexture(gl.TEXTURE_2D, pal.tex);
-  setLook(Object.assign({}, DEFAULT_LOOK, migrateLook(P.look), { trails: 0 }), zeroMod, TILE_W, TILE_H, pal.palEnd, TILE_T);
+  setLook(Object.assign({}, DEFAULT_LOOK, migrateLook(P.look), { trails: 0 }), zeroMod, TILE_W, TILE_H, pal.palEnd, TILE_T, pal.colors);
   gl.bindFramebuffer(gl.FRAMEBUFFER, tileFB.fb);
   gl.viewport(0, 0, TILE_W, TILE_H);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -4599,6 +5398,8 @@ function migrateLook(L) {
   const o = Object.assign({}, L);
   if (o.style === 8 && !o.screen) { o.screen = 6; o.screenAmt = 0.6; }   // Prism's colour split lives on as Fringe
   if (o.style in GONE_STYLES) o.style = GONE_STYLES[o.style];
+  if (o.style === 20) { o.style = 19; o.fabric = 1; }                   // Weave became a Textile fabric
+  if (o.style === 21) { o.style = 13; o.asciiKind = 1; }               // Ember became an ASCII glyph style
   if (o.dist === 4) { o.geo = (o.distort || 0) > 0.5 ? 2 : 1; o.dist = 0; }
   else if (o.dist === 5) { o.geo = 3; o.geoN = 1 + Math.floor((o.distort || 0) * 3.99); o.dist = 0; }
   return o;
@@ -4616,7 +5417,7 @@ function applyPreset(P) {
   syncActiveSwatch();
   state.routes = P.routes.map(r => ({ src: r.src, dst: r.dst, amt: +r.amt })).slice(0, ROUTE_MAX);
   saveRoutes(); renderRoutes();
-  syncSliders(); segStyle(); segFrac(); segGeo(); segDist(); segScreen(); segTex(); segGlass(); syncControls();
+  syncSliders(); segStyle(); segFrac(); segGeo(); segDist(); segScreen(); segTex(); segGlass(); segTile(); segDot(); segBead(); segFabric(); segAscii(); segSort(); syncControls(); renderRoutes();
   activeId = P.id; lastPresetId = P.id;               // after the rebuilds, which clear activeId
   renderActive();
 }
@@ -4920,7 +5721,7 @@ dock.addEventListener("click", e => { if (e.target.closest("button")) { dockHold
 (() => {
   const mq = matchMedia("(max-width: 640px)"), ov = $("setOverlay");
   const place = () => {
-    if (mq.matches) $("panel").querySelector(".scrolls").prepend(ov);
+    if (mq.matches) $("panel").insertBefore(ov, $("tabs"));
     else $("stage").append(ov);
   };
   place();
@@ -5134,6 +5935,11 @@ function startFade(dur) {
   gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), 0);   // the history seed copies straight
   gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), 0);
   gl.uniform1f(gl.getUniformLocation(copy, "u_slit"), 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_mosh"), 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_sort"), 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_study"), 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_tilt"), 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_ghost"), 0);
   gl.uniform1f(gl.getUniformLocation(copy, "u_fringe"), 0);
   clearRingUnits();
   gl.uniform1i(gl.getUniformLocation(copy, "u_fadeKind"), 0);
@@ -5141,7 +5947,7 @@ function startFade(dur) {
   gl.uniform2f(gl.getUniformLocation(copy, "u_res"), Y.w, Y.h);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  fade = { look, routes, pal: { tex, palEnd: palEndOut }, X, Y, t0: performance.now(), dur };
+  fade = { look, routes, pal: { tex, palEnd: palEndOut, colors: [...state.colors] }, X, Y, t0: performance.now(), dur };
 }
 let fadeSec = 0, fadeKind = 0;
 try { fadeSec = Math.max(0, Math.min(4, +localStorage.getItem("vibe.fade") || 0)); } catch (e) { /* no storage */ }
@@ -5172,6 +5978,9 @@ $("fadeSec").addEventListener("input", () => {
     el.addEventListener("mouseenter", () => { over = true; panel.classList.remove("glass"); document.body.classList.remove("panel-glass"); });
     el.addEventListener("mouseleave", () => { over = false; leftAt = performance.now(); });
   });
+  bar.addEventListener("mouseenter", () => panel.classList.add("edge"));
+  bar.addEventListener("mouseleave", () => { if (!document.body.classList.contains("resizing")) panel.classList.remove("edge"); });
+  addEventListener("pointerup", () => { if (!bar.matches(":hover")) panel.classList.remove("edge"); });
   setInterval(() => {
     if (document.body.classList.contains("hide-ui") || document.body.classList.contains("resizing")) return;
     const now = performance.now();
@@ -5486,7 +6295,7 @@ function drawPileBg() {
   const c = pbx, dim = P.bg.light === "dim";
   c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, pW, pH); c.drawImage(roomCv, 0, 0);
   if (dim) {   // screen light spilling onto the backdrop
-    const B = pbounds(), i = Math.floor((T * 0.05 % 1) * 255) * 4;
+    const B = pbounds(), i = Math.floor((((T * 0.05) % 1) + 1) % 1 * 255) * 4;   // T can start below zero
     const cx = PX((B.minX + B.maxX) / 2), cy = PY(B.maxY * 0.5);
     const gr = c.createRadialGradient(cx, cy, 0, cx, cy, Math.max(B.w, B.h) * psc * 0.8);
     gr.addColorStop(0, "rgba(" + palData[i] + "," + palData[i + 1] + "," + palData[i + 2] + "," + (0.1 + 0.14 * band.bass) + ")");
@@ -5703,7 +6512,7 @@ function renderChaos(now, dt, m, palEnd) {
     const pal = palFor(c.P);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, pal.tex);
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, c.Y.tex);
-    setLook(c.look, modsFor(c.P.routes || []), CHAOS_W, CHAOS_H, pal.palEnd, T + c.tOff);
+    setLook(c.look, modsFor(c.P.routes || []), CHAOS_W, CHAOS_H, pal.palEnd, T + c.tOff, pal.colors);
     gl.bindFramebuffer(gl.FRAMEBUFFER, c.X.fb);
     gl.viewport(0, 0, CHAOS_W, CHAOS_H);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -5865,6 +6674,12 @@ function pitemAt(w) {
   }
   return null;
 }
+// the picked item comes to the front: selecting is how overlaps are ordered
+function pfront(it) {
+  const i = P.items.indexOf(it);
+  if (i < 0 || i === P.items.length - 1) return false;
+  P.items.splice(i, 1); P.items.push(it); return true;
+}
 function phandleAt(px, py) {
   for (const h of phandles()) if (Math.abs(PX(h.x) - px) <= 10 * pdpr && Math.abs(PY(h.y) - py) <= 10 * pdpr) return h;
   return null;
@@ -5874,13 +6689,14 @@ const pinFrame = w => w.x >= P.frame.x0 - 2 && w.x <= P.frame.x0 + P.frame.w + 2
 pileFg.addEventListener("pointerdown", e => {
   const { px, py } = pev(e), w = pworld(px, py), h = phandleAt(px, py);
   if (protBtn && Math.hypot(px - protBtn.x, py - protBtn.y) <= protBtn.r + 2 * pdpr) {   // the rotate button
-    protBtn.it.portrait = !protBtn.it.portrait; psel = { kind: "item", it: protBtn.it }; pdrag = null; pcommit(); return;
+    protBtn.it.portrait = !protBtn.it.portrait; pfront(protBtn.it); psel = { kind: "item", it: protBtn.it }; pdrag = null; pcommit(); return;
   }
   if (gpaint !== null) {                            // Assign tool: a click on a screen moves it into the group
     const it = pitemAt(w);
     if (it && it.type === "screen") {
       psel = { kind: "item", it }; pdrag = null;
-      if (it.g !== gpaint) { it.g = gpaint; pcommit(); } else psyncSel();
+      const fronted = pfront(it);
+      if (it.g !== gpaint) { it.g = gpaint; pcommit(); } else if (fronted) pcommit(); else psyncSel();
       return;
     }
   }
@@ -5895,7 +6711,7 @@ pileFg.addEventListener("pointerdown", e => {
     let it = pitemAt(w);
     const copy = !!(it && e.altKey);
     if (copy) { it = pmk({ ...it }); P.items.push(it); }                    // Option-drag pulls off a copy (same group)
-    if (it) { psel = { kind: "item", it }; pdrag = { type: "move", it, w0: w, x0: it.x, y0: it.y, copy }; }
+    if (it) { const fronted = pfront(it); psel = { kind: "item", it }; pdrag = { type: "move", it, w0: w, x0: it.x, y0: it.y, copy, fronted }; }
     else if (pinFrame(w)) { psel = { kind: "frame" }; pdrag = { type: "frame-move", w0: w, f0: { ...P.frame } }; }
     else { psel = null; pdrag = null; }
   }
@@ -5954,7 +6770,7 @@ function pendDrag() {
   if (!pdrag) return;
   const moved = pdrag.moved, d = pdrag; pdrag = null;
   if (!moved && d.type === "move" && d.copy) { P.items = P.items.filter(i => i !== d.it); psel = null; psyncSel(); return; }
-  if (moved) { pfit(); pcommit(); } else psyncSel();
+  if (moved) { pfit(); pcommit(); } else if (d.fronted) pcommit(); else psyncSel();
 }
 pileFg.addEventListener("pointerup", pendDrag);
 pileFg.addEventListener("pointercancel", pendDrag);
@@ -6238,7 +7054,7 @@ const syncPreview = seg("previewSeg", "preview", () => preview, v => {
   pileBg.hidden = pileFg.hidden = !pile;
   $("pileUI").hidden = !pile;
   $("dockPad").hidden = pile;                      // in Full frame, Output is last: keep it clear of the dock
-  document.querySelector(".scrolls").classList.toggle("pile", pile);
+  $("tabStage").classList.toggle("pile", pile);
   if (pile) prefresh();
 });
 
@@ -6332,7 +7148,8 @@ function frame(now) {
 
   const m = modsFor(state.routes);
   lastMod = m.mod;
-  T += dt * state.speed * (1 + m("motion"));
+  textWeightTick(m);
+  T += dt * state.speed * (1 + m("motion") * 4);   // Motion: up to four times the speed
 
   gl.useProgram(scene);
   gl.bindBuffer(gl.ARRAY_BUFFER, quad);
@@ -6358,6 +7175,10 @@ function frame(now) {
   gl.bindTexture(gl.TEXTURE_2D, shapeTex);
   gl.uniform1i(U("u_shapes"), 5);
   gl.uniform1f(U("u_shapeN"), shapeN);
+  gl.activeTexture(gl.TEXTURE6);
+  gl.bindTexture(gl.TEXTURE_2D, stampTex);
+  updateStamp();
+  gl.uniform1i(U("u_stamp"), 6);
   gl.uniform1i(U("u_pal"), 0);
   gl.uniform1i(U("u_prev"), 1);
 
@@ -6386,7 +7207,7 @@ function frame(now) {
       gl.bindTexture(gl.TEXTURE_2D, fade.pal.tex);
       gl.activeTexture(gl.TEXTURE1);
       gl.bindTexture(gl.TEXTURE_2D, fade.Y.tex);
-      setLook(fade.look, modsFor(fade.routes), fade.X.w, fade.X.h, fade.pal.palEnd);
+      setLook(fade.look, modsFor(fade.routes), fade.X.w, fade.X.h, fade.pal.palEnd, T, fade.pal.colors);
       gl.bindFramebuffer(gl.FRAMEBUFFER, fade.X.fb);
       gl.viewport(0, 0, fade.X.w, fade.X.h);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -6398,11 +7219,14 @@ function frame(now) {
   // echo: capture the clean frame into the ring every few frames (Spacing sets
   // how many). A reactivity route to Echo adds to the strength, and wakes the
   // trail even when the Screen kind is something else.
-  const echoAmt = Math.min(1, (state.screen === 4 ? state.screenAmt : 0) + m("echo"));
+  const sAmt = Math.min(1, state.screenAmt + m("screen"));        // the Screen route adds to Amount
+  const echoAmt = Math.min(1, (state.screen === 4 ? sAmt : 0) + m("echo"));
   const echoOn = echoAmt > 0.01;
-  const slitOn = state.screen === 5 && state.screenAmt > 0.01;
-  if (echoOn || slitOn) {
-    const every = Math.max(1, Math.round((state.screen === 4 || slitOn ? state.screenSize : 1) * 2));
+  const slitOn = state.screen === 5 && sAmt > 0.01;
+  const moshOn = state.screen === 7 && sAmt > 0.01;   // Datamosh wants every frame
+  const studyOn = state.screen === 9 && sAmt > 0.01;
+  if (echoOn || slitOn || moshOn || studyOn) {
+    const every = moshOn ? 1 : Math.max(1, Math.round((state.screen === 4 || slitOn || studyOn ? state.screenSize : 1) * 2));
     if (ringTick++ % every === 0) { captureRing(A.tex, ringHead); ringHead = (ringHead + 1) % 16; ringN = Math.min(16, ringN + 1); }
   }
   echoAngleT += dt * state.echoDrift * 0.5;
@@ -6428,10 +7252,20 @@ function frame(now) {
   gl.uniform1i(gl.getUniformLocation(copy, "u_rpal"), 3);
   gl.uniform1f(gl.getUniformLocation(copy, "u_mix"), mixK);
   gl.uniform1i(gl.getUniformLocation(copy, "u_fadeKind"), fadeKind);
-  gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), state.blur * state.blur * 24.0 * (outH / 1080));
+  const blurAmt = Math.min(1, state.blur + m("blur") * 0.5);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_blur"), blurAmt * blurAmt * 24.0 * (outH / 1080));
   gl.uniform1f(gl.getUniformLocation(copy, "u_echo"), echoOn ? echoAmt : 0);
-  gl.uniform1f(gl.getUniformLocation(copy, "u_slit"), slitOn ? state.screenAmt : 0);
-  gl.uniform1f(gl.getUniformLocation(copy, "u_fringe"), state.screen === 6 ? Math.min(2, state.screenAmt + m("fringe")) : Math.min(2, m("fringe")));
+  gl.uniform1f(gl.getUniformLocation(copy, "u_slit"), slitOn ? sAmt : 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_mosh"), moshOn ? sAmt : 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_moshSize"), state.screenSize);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_sort"), state.screen === 8 ? sAmt : 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_sortLen"), state.screenSize);
+  gl.uniform1i(gl.getUniformLocation(copy, "u_sortMode"), state.sortMode);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_study"), studyOn ? 4 : 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_tilt"), state.screen === 10 ? sAmt : 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_ghost"), state.screen === 11 ? sAmt : 0);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_ghostSize"), state.screenSize);
+  gl.uniform1f(gl.getUniformLocation(copy, "u_fringe"), state.screen === 6 ? Math.min(2, sAmt + m("fringe")) : Math.min(2, m("fringe")));
   gl.uniform1f(gl.getUniformLocation(copy, "u_fsize"), state.screen === 6 ? state.screenSize : 1);
   gl.uniform1f(gl.getUniformLocation(copy, "u_sAngle"), state.slitAngle * Math.PI / 180);
   gl.uniform1f(gl.getUniformLocation(copy, "u_ringN"), ringN);
