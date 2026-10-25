@@ -77,7 +77,13 @@ screens, shaded space above it, and a line in the AV spec. Devices is
 height and colour standing in front of the screens for scale; it stays out
 of the spec and the measurements. Background also takes a stage height and
 width (0.9.62): the build stands on a deck of that size, the room floor drops
-below it, and the ceiling is measured from the room floor.
+below it, and the ceiling is measured from the room floor. The deck can be
+selected and dragged sideways, with a centre mark that reports its offset
+from the grid's centre, and the view zooms about the pointer and pans
+(0.9.63), double-click on the background fitting everything again. Sizes
+read in the operator's unit (0.9.64): inches, feet and inches, centimetres,
+or pixels at a pixel pitch saved with the layout, and the AV spec follows,
+so an LED build can be specified in pixels directly.
 
 Output has a Multi-screen preview beside Full frame: screens laid out in inches,
 dragged and resized (TV diagonals, or since 0.9.58 custom panels with their
