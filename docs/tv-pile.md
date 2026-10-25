@@ -83,7 +83,9 @@ from the grid's centre, and the view zooms about the pointer and pans
 (0.9.63), double-click on the background fitting everything again. Sizes
 read in the operator's unit (0.9.64): inches, feet and inches, centimetres,
 or pixels at a pixel pitch saved with the layout, and the AV spec follows,
-so an LED build can be specified in pixels directly.
+so an LED build can be specified in pixels directly. With a stage set, the
+backdrop is locked to the deck's width and position (0.9.66), the overhang
+applying to the top only.
 
 Output has a Multi-screen preview beside Full frame: screens laid out in inches,
 dragged and resized (TV diagonals, or since 0.9.58 custom panels with their

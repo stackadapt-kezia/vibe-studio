@@ -1156,7 +1156,7 @@
         </select>
         <div class="row" id="solidRow" hidden style="margin-top:8px"><label for="solidCol">Colour</label><input type="color" id="solidCol"></div>
         <label class="pill" id="bdImgRow" hidden>Load backdrop artwork<input type="file" id="bdFile" accept="image/*" hidden></label>
-        <div class="row" id="ohRow" style="margin-top:8px"><label for="overhang">Overhang</label><input type="number" class="num wide" id="overhang" min="0" max="96"><span class="unit">in</span></div>
+        <div class="row" id="ohRow" style="margin-top:8px"><label for="overhang">Overhang</label><input type="number" class="num wide" id="overhang" min="0" max="96" title="How far the backdrop runs past the grid; with a stage, the top edge only"><span class="unit">in</span></div>
         <div class="row" style="margin-top:8px"><label for="ceilFt">Ceiling</label><input type="number" class="num wide" id="ceilFt" min="0" max="80" step="0.5" placeholder="none" title="Ceiling height in feet from the room floor; blank or 0 for none"><span class="unit">ft</span></div>
         <div class="row"><label for="stageHFt">Stage height</label><input type="number" class="num wide" id="stageHFt" min="0" max="20" step="0.25" placeholder="none" title="A raised deck the screens stand on, in feet; blank or 0 for none"><span class="unit">ft</span></div>
         <div class="row"><label for="stageWFt">Stage width</label><input type="number" class="num wide" id="stageWFt" min="0" max="200" step="0.5" placeholder="grid" title="Deck width in feet; blank for the grid's width"><span class="unit">ft</span></div>
@@ -1233,12 +1233,14 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.65";  // stage deck resizes by its edges and counts in the overall width
+const APP_VERSION = "0.9.67";  // ceiling drags; the hidden grid stops counting in the overall size
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.67", "The ceiling line can be grabbed and dragged up or down (or selected and given a height in its box), with a handle at its centre. Overall width and height count the mounting grid only while it is shown: hide it with the eye and the measurements follow the screens and the stage alone, so a grid left wide no longer pins the width."],
+  ["0.9.66", "With a stage set, the backdrop is exactly as wide as the deck and moves and resizes with it; Overhang then applies to the top edge only. Without a stage it spans the grid plus the overhang on each side, as before."],
   ["0.9.65", "The selected stage deck has handles on its sides and on its top and bottom: drag a side to set its width (the other side stays put), the top or bottom to set its height. The deck now counts toward Overall width on the stage and in the AV spec."],
   ["0.9.64", "Multi-screen measures in the unit you choose. A Units switch under Elements sets in, ft, cm or px for every screen size: the labels on the stage, the selection title, the screen mix and Copy spec for AV, including the position list. px uses a Pixel pitch in millimetres (2.5 to start) that is saved with the layout and listed in the spec, so an LED build can be read straight off in pixels. The Background rows now all show their unit the same way. A person always stands in front of everything, so it can be picked up wherever it is."],
   ["0.9.63", "Multi-screen can zoom: scroll (or pinch) over the stage to zoom about the pointer, shift-scroll or a sideways swipe to pan, drag the empty background to pan, and double-click the background to fit everything again; a corner note shows the zoom while it is off. The stage deck can be selected and dragged left or right (or given an offset in its box), and a centre mark on its face moves with it, naming how far it sits from the grid\u2019s centre."],
@@ -6188,6 +6190,12 @@ const PX = v => pox + v * psc, PY = v => pfloor - v * psc;
 const pstageCX = () => P.frame.x0 + P.frame.w / 2 + (P.bg.stageX || 0);        // the deck's centre; stageX is its offset from the grid's centre
 const pdeckPx = () => (P.bg.stageH > 0 ? P.bg.stageH * psc : 0);        // the stage deck, in pixels, below the layout's floor
 const pstageW = () => (P.bg.stageW > 0 ? P.bg.stageW : P.frame.w + 2 * (P.bg.backdrop !== "none" ? P.bg.overhang : 0) + 24);
+// the backdrop's left and right edges: locked to the deck when there is one, else the grid plus its overhang
+function pbdX() {
+  if (P.bg.stageH > 0) { const cx = pstageCX(), hw = pstageW() / 2; return { l: cx - hw, r: cx + hw }; }
+  const o = P.bg.backdrop !== "none" ? P.bg.overhang : 0;
+  return { l: P.frame.x0 - o, r: P.frame.x0 + P.frame.w + o };
+}
 const MAP_NOTES = {
   unified: "One image spans the whole pile. Each screen shows its own slice.",
   mirror: "Every screen shows the whole frame, cropped to fit. This is what a plain HDMI splitter gives you.",
@@ -6233,13 +6241,15 @@ function pgrid() {
 }
 function pbounds() {
   const f = P.frame;
-  let a = f.x0, b = f.x0 + f.w, t = f.h;
+  let a = Infinity, b = -Infinity, t = 0;
+  if (P.frame.show) { a = f.x0; b = f.x0 + f.w; t = f.h; }   // the grid counts only while it is shown
   for (const it of P.items) {
     if (it.type === "person") continue;             // a scale figure is not part of the build
     const d = pdims(it);
     a = Math.min(a, it.x - d.w / 2); b = Math.max(b, it.x + d.w / 2); t = Math.max(t, it.y + d.h);
   }
   if (P.bg.stageH > 0) { a = Math.min(a, pstageCX() - pstageW() / 2); b = Math.max(b, pstageCX() + pstageW() / 2); }   // the deck is part of the build
+  if (!isFinite(a)) { a = f.x0; b = f.x0 + f.w; t = f.h; }   // nothing at all: fall back to the grid
   return { minX: a, maxX: b, maxY: t, w: b - a, h: t };
 }
 // the extent the Unified picture spreads across: the Unified screens' outline,
@@ -6337,7 +6347,7 @@ function paddCamera() {
 }
 function paddPerson() {
   const it = pmk({ type: "person", ht: 68, col: PERSON_COL, x: 0, y: 0 });
-  pfreeSpot(it); it.x = P.frame.x0 - (P.bg.backdrop !== "none" ? P.bg.overhang : 0) - 42;   // stands beside the wall, clear of the height scale
+  pfreeSpot(it); it.x = pbdX().l - 42;              // stands beside the wall, clear of the height scale
   P.items.push(it); psel = { kind: "item", it }; pcommit();
 }
 function paddCab() {
@@ -6362,11 +6372,11 @@ function pfit() {
   if (!pW) return;
   const ins = pileInsets();
   pInsetKey = Math.round(ins.l) + "," + Math.round(ins.b);
-  const B = pbounds(), o = P.bg.backdrop !== "none" ? P.bg.overhang : 0;
+  const B = pbounds(), o = P.bg.backdrop !== "none" ? P.bg.overhang : 0, bdx = pbdX();
   const people = P.items.filter(i => i.type === "person");   // framed, though not measured
   const pMin = Math.min(Infinity, ...people.map(i => i.x - pdims(i).w / 2)), pMax = Math.max(-Infinity, ...people.map(i => i.x + pdims(i).w / 2));
   const sMin = P.bg.stageH > 0 ? pstageCX() - pstageW() / 2 - 12 : Infinity, sMax = P.bg.stageH > 0 ? pstageCX() + pstageW() / 2 + 12 : -Infinity;
-  const minX = Math.min(B.minX, P.frame.x0 - o, pMin, sMin) - 40, maxX = Math.max(B.maxX, P.frame.x0 + P.frame.w + o, pMax, sMax) + 30;
+  const minX = Math.min(B.minX, bdx.l, pMin, sMin) - 40, maxX = Math.max(B.maxX, bdx.r, pMax, sMax) + 30;
   const top = Math.max(B.maxY + o + 24, P.bg.ceiling > 0 ? P.bg.ceiling + 18 : 0);   // a ceiling stays in frame
   const left = ins.l + 24 * pdpr, right = pW - 24 * pdpr;
   // keep the bottom band clear for the presets panel even while it's closed,
@@ -6415,8 +6425,8 @@ function drawRoom() {
     c.fillStyle = "rgba(0,0,0,0.35)"; c.fillRect(sx, yRoom - 3 * pdpr, sw, 3 * pdpr);
   }
 
-  const f = P.frame, o = P.bg.overhang, bd = P.bg.backdrop;
-  const R = { x: PX(f.x0 - o), y: PY(f.h + o), w: (f.w + 2 * o) * psc, h: (f.h + o) * psc };
+  const f = P.frame, o = P.bg.overhang, bd = P.bg.backdrop, bx = pbdX();
+  const R = { x: PX(bx.l), y: PY(f.h + o), w: (bx.r - bx.l) * psc, h: (f.h + o) * psc };
   if (bd !== "none" && P.vis.bg) {
     c.save(); c.beginPath(); c.rect(R.x, R.y, R.w, R.h); c.clip();
     if (bd === "drape") {
@@ -6793,6 +6803,7 @@ function phandles() {
     const cx = pstageCX(), hw = pstageW() / 2, h = P.bg.stageH;
     return [{ k: "l", x: cx - hw, y: -h / 2 }, { k: "r", x: cx + hw, y: -h / 2 }, { k: "t", x: cx, y: 0 }, { k: "b", x: cx, y: -h }];
   }
+  if (psel.kind === "ceiling") { const B = pbounds(); return [{ k: "t", x: (B.minX + B.maxX) / 2, y: pceilY() }]; }
   if (psel.kind !== "frame") return [];
   const f = P.frame;
   return [{ k: "l", x: f.x0, y: f.h / 2 }, { k: "r", x: f.x0 + f.w, y: f.h / 2 }, { k: "t", x: f.x0 + f.w / 2, y: f.h },
@@ -6866,7 +6877,7 @@ function drawPileFg() {
   }
   // overall width under the pile, height up the left side
   const B = pbounds(), x1 = PX(B.minX), x2 = PX(B.maxX), yTop = PY(B.maxY), yRoom = pfloor + pdeckPx(), y = yRoom + 20 * pdpr;
-  const xs = PX(Math.min(B.minX, P.bg.backdrop !== "none" ? P.frame.x0 - P.bg.overhang : B.minX)) - 22 * pdpr;
+  const xs = PX(Math.min(B.minX, P.bg.backdrop !== "none" ? pbdX().l : B.minX)) - 22 * pdpr;
   const path = () => {
     c.beginPath();
     c.moveTo(x1, y); c.lineTo(x2, y);
@@ -6906,7 +6917,7 @@ function drawPileFg() {
     c.setLineDash([10 * pdpr, 6 * pdpr]); c.lineWidth = 1.5 * pdpr;
     c.beginPath(); c.moveTo(0, yc); c.lineTo(pW, yc);
     c.strokeStyle = "rgba(0,0,0,0.6)"; c.lineWidth = 3.5 * pdpr; c.stroke();
-    c.strokeStyle = gap >= 0 ? "#eceef4" : "#FF8A3D"; c.lineWidth = 1.5 * pdpr; c.stroke();
+    c.strokeStyle = psel && psel.kind === "ceiling" ? "#7FDFFD" : gap >= 0 ? "#eceef4" : "#FF8A3D"; c.lineWidth = 1.5 * pdpr; c.stroke();
     c.setLineDash([]);
     const note = gap >= 0 ? fmtLen(gap) + " above the screens" : "screens overshoot by " + fmtLen(-gap);
     plabel("Ceiling " + fmtLen(P.bg.ceiling) + "  \u00b7  " + note, pW / 2, yc - 14 * pdpr, font);
@@ -6936,6 +6947,9 @@ pileFg.addEventListener("dblclick", e => {
   if (!pitemAt(w) && !phandleAt(px, py) && !pinFrame(w) && !pinStage(w)) pzoomReset();
 });
 const pinStage = w => P.bg.stageH > 0 && w.y <= 0 && w.y >= -P.bg.stageH && Math.abs(w.x - pstageCX()) <= pstageW() / 2;
+const pceilY = () => P.bg.ceiling - P.bg.stageH;                                  // the ceiling line in layout units (above the deck)
+const pinCeiling = py => P.bg.ceiling > 0 && Math.abs(py - PY(pceilY())) <= 8 * pdpr;
+const pdragCeiling = w => { P.bg.ceiling = Math.max(P.bg.stageH + 12, Math.min(960, Math.round(P.bg.stageH + w.y))); psyncBg(); };
 
 /* ---- pointer editing ---- */
 const PCURS = { tl: "nwse-resize", br: "nwse-resize", tr: "nesw-resize", bl: "nesw-resize", l: "ew-resize", r: "ew-resize", t: "ns-resize", b: "ns-resize" };
@@ -6981,6 +6995,7 @@ pileFg.addEventListener("pointerdown", e => {
         ax: h.k.includes("l") ? it.x + d.w / 2 : it.x - d.w / 2,
         ay: h.k.includes("t") ? it.y : it.y + d.h };
     } else if (psel && psel.kind === "stage") pdrag = { type: "stage-edge", k: h.k, w0: pstageW(), x0: P.bg.stageX || 0, h0: P.bg.stageH };
+    else if (psel && psel.kind === "ceiling") pdrag = { type: "ceiling" };
     else pdrag = { type: "frame-edge", k: h.k, f0: { ...P.frame } };
   } else {
     let it = pitemAt(w);
@@ -6989,6 +7004,7 @@ pileFg.addEventListener("pointerdown", e => {
     if (it) { const fronted = pfront(it); psel = { kind: "item", it }; pdrag = { type: "move", it, w0: w, x0: it.x, y0: it.y, copy, fronted }; }
     else if (pinFrame(w)) { psel = { kind: "frame" }; pdrag = { type: "frame-move", w0: w, f0: { ...P.frame } }; }
     else if (pinStage(w)) { psel = { kind: "stage" }; pdrag = { type: "stage-move", w0: w, x0: P.bg.stageX || 0 }; }
+    else if (pinCeiling(py)) { psel = { kind: "ceiling" }; pdrag = { type: "ceiling" }; }
     else { psel = null; pdrag = { type: "pan", px, py, pan0: { ...ppan } }; }   // dragging the background pans the view
   }
   if (pdrag) { pdrag.moved = false; pileFg.setPointerCapture(e.pointerId); }
@@ -7001,7 +7017,7 @@ pileFg.addEventListener("pointermove", e => {
     phover = h ? null : pitemAt(w);
     const onRot = protBtn && Math.hypot(px - protBtn.x, py - protBtn.y) <= protBtn.r + 2 * pdpr;
     if (onRot) phover = protBtn.it;                                          // keep the button up while the pointer is on it
-    pileFg.style.cursor = onRot ? "pointer" : gpaint !== null && phover && phover.type === "screen" ? "crosshair" : h ? PCURS[h.k] : phover ? (e.altKey ? "copy" : "grab") : pinFrame(w) || pinStage(w) ? "move" : "default";
+    pileFg.style.cursor = onRot ? "pointer" : gpaint !== null && phover && phover.type === "screen" ? "crosshair" : h ? PCURS[h.k] : phover ? (e.altKey ? "copy" : "grab") : pinFrame(w) || pinStage(w) ? "move" : pinCeiling(py) ? "ns-resize" : "default";
     return;
   }
   if (pdrag.type === "pan") {
@@ -7043,6 +7059,8 @@ pileFg.addEventListener("pointermove", e => {
     const d = pdims(it);
     it.x = pdrag.ax + sx * d.w / 2;
     it.y = sy > 0 ? pdrag.ay : Math.max(0, pdrag.ay - d.h);
+  } else if (pdrag.type === "ceiling") {
+    pdragCeiling(w);
   } else if (pdrag.type === "stage-edge") {
     const k = pdrag.k, gcx = P.frame.x0 + P.frame.w / 2, l0 = gcx + pdrag.x0 - pdrag.w0 / 2, r0 = gcx + pdrag.x0 + pdrag.w0 / 2;
     if (k === "l") { const l = Math.min(r0 - 24, Math.round(w.x)); P.bg.stageW = r0 - l; P.bg.stageX = Math.round((l + r0) / 2 - gcx); }
@@ -7107,6 +7125,10 @@ function pstats() {
 function pselTitle() {
   if (!psel) return [];
   if (psel.kind === "frame") return ["Mounting grid"];
+  if (psel.kind === "ceiling") {
+    const gap = pceilY() - pbounds().maxY;
+    return ["Ceiling", fmtLen(P.bg.ceiling) + " from the room floor", gap >= 0 ? fmtLen(gap) + " above the screens" : "screens overshoot by " + fmtLen(-gap)];
+  }
   if (psel.kind === "stage") {
     const dx = P.bg.stageX || 0;
     return ["Stage", fmtLen(pstageW()) + " wide", fmtLen(P.bg.stageH) + " high", dx ? fmtLen(Math.abs(dx)) + (dx > 0 ? " right" : " left") + " of the grid centre" : "centred on the grid"];
@@ -7128,6 +7150,13 @@ function psyncSel(full = true) {
   if (psel.kind === "frame") {
     box.innerHTML = '<div class="t"></div>';
     barJoin(box.querySelector(".t"), pselTitle());
+    return;
+  }
+  if (psel.kind === "ceiling") {
+    box.innerHTML = '<div class="t"></div>'
+      + '<div class="row"><label for="selCeil">Height (ft)</label><input type="number" class="num wide" id="selCeil" min="1" max="80" step="0.5" value="' + +(P.bg.ceiling / 12).toFixed(2) + '"></div>';
+    barJoin(box.querySelector(".t"), pselTitle());
+    $("selCeil").onchange = e => { P.bg.ceiling = Math.round(Math.max(1, Math.min(80, +e.target.value || 1)) * 12); pcommit(); };
     return;
   }
   if (psel.kind === "stage") {
@@ -7438,7 +7467,7 @@ $("copySpec").addEventListener("click", () => {
     "Groups: " + P.groups.map(g => gname(g) + " (" + MAP_NAMES[g.mapping] + ", " + gscreens(g).length + " screens)").join("; "),
     "Speaker cabinets (props): " + P.items.filter(i => i.type === "cab").length,
     "Cameras: " + cams.length + (cams.length ? ", " + cams.map(cm => "x " + Math.round(cm.x - f.x0) + " / " + Math.round(cm.y) + "\" up").join("; ") : ""),
-    "Backdrop: " + bdName + (P.bg.backdrop !== "none" ? ", " + P.bg.overhang + "\" past the grid on sides and top" : ""),
+    "Backdrop: " + bdName + (P.bg.backdrop === "none" ? "" : P.bg.stageH > 0 ? ", as wide as the stage, " + P.bg.overhang + "\" past the grid top" : ", " + P.bg.overhang + "\" past the grid on sides and top"),
     ...(P.bg.stageH > 0 ? ["Stage: " + fmtLen(pstageW()) + " wide x " + fmtLen(P.bg.stageH) + " high" + (P.bg.stageX ? ", centre " + fmtLen(Math.abs(P.bg.stageX)) + (P.bg.stageX > 0 ? " right" : " left") + " of the grid centre" : ", centred on the grid") + "; screen heights below are from the deck"] : []),
     ...(P.bg.ceiling > 0 ? ["Ceiling: " + fmtLen(P.bg.ceiling) + " from the room floor" + (P.bg.ceiling - P.bg.stageH >= B.maxY ? ", " + fmtLen(P.bg.ceiling - P.bg.stageH - B.maxY) + " clear above the screens" : ", screens overshoot by " + fmtLen(B.maxY + P.bg.stageH - P.bg.ceiling))] : []),
     "Playback: " + Math.ceil(all.length / 2) + " Raspberry Pi 5 boards (2 HDMI outputs each), one shared mic and camera",
