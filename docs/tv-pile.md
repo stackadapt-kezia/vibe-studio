@@ -204,6 +204,24 @@ designing around it.
 It also matches the room: a camera sits at one physical spot and only makes
 sense for the screens near it, so camera is inherently zone-scoped.
 
+### Direct (built in 0.9.70)
+
+A group also carries `direct`. On, its screens sample the source texture
+itself (`gdirectFeed`: the held source's texture, or the stage source's
+`imgTex`) instead of the rendered frame or the group's own render, so the feed
+shows unfiltered: no pattern, Distort, Texture or Screen effects. The mapping
+still decides the spread: Unified crops the feed to the group's outline and
+slices it, Mirror and Scatter work as before against the feed's aspect, and a
+Chaos group on Direct behaves as Mirror and deals no presets (its render pairs
+are freed). With no picture held at all the group falls back to the look.
+A Direct group's set list stays visible but greyed and disabled, with a note,
+so nobody assigns pads to a group that runs no looks. Direct is saved with
+the layout and in mapping presets. The spec's Groups line says "direct feed"
+and a line per Direct group gives the signal path ("Centre — Direct
+(Unified), 1920×1080 from live tab source "Sponsor deck", unfiltered, no
+effects"), so AV can tell whether the path is clean. This is the toggle for a
+sponsor logo, a camera on the screens near it, or a live tab, straight.
+
 ### Rename (done in 0.9.38)
 
 "Video in" stopped being accurate the moment Text landed under it. The section

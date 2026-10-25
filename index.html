@@ -671,6 +671,9 @@
   .gpickrow { display: flex; gap: 6px; align-items: center; }
   .gpickrow select { flex: 1; min-width: 0; }
   .gchaos .chips { margin: 8px 0 0; }
+  /* a Direct group's set list stays in view but out of reach: it runs no looks */
+  .gchaos.off { opacity: .38; pointer-events: none; }
+  .gchaos .gnote { margin: 6px 0 0; font-size: 11px; color: var(--muted); }
   .mini.active { background: var(--accent); color: #fff; border-color: var(--accent); }
   textarea {
     width: 100%; min-height: 60px; background: var(--panel-2); border: 1px solid var(--line);
@@ -1246,12 +1249,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.69";  // the spec's playback line follows a Playback choice
+const APP_VERSION = "0.9.70";  // Direct: a group can show its source feed unfiltered
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.70", "Multi-screen: every group has a Direct toggle beside its Source menu. On, the group shows its picture source itself, unfiltered: no pattern, Distort, Texture or Screen effects, just the camera, picture, text or tab as it is. The mapping still says how it is spread: Unified fills the group\u2019s outline with the feed (cropped to fit), Mirror puts the whole feed on every screen, Scatter drifts over it; a Chaos group on Direct shows the feed like Mirror. With no picture source held the look plays as before. A Direct group\u2019s set list is greyed out, since it runs no looks and a pad assigned to it would do nothing. Direct is saved with the layout, kept in mapping presets and named in the spec\u2019s Groups line, and the spec adds a line per Direct group with its signal path, such as \u201cCentre \u2014 Direct (Unified), 1920\u00d71080 from live tab source \u201cSponsor deck\u201d, unfiltered, no effects\u201d, so AV can check the path is clean."],
   ["0.9.69", "Multi-screen: Pile layout has a Playback switch, Separate displays or LED panels, and the spec\u2019s playback line follows it instead of always counting Raspberry Pi boards. Separate displays counts video outputs the way the deployment notes do: every Unified or Scatter screen needs its own output, Mirror and Chaos screens share splitter feeds three to an output, and the outputs are spread over mini PCs at three each. LED panels reads as one machine driving one output into the LED processor, with the groups as regions of one canvas. The Pi 5 boards figure in Pile layout is now the Playback figure and follows the same choice. The choice is saved with the layout."],
   ["0.9.68", "Multi-screen: the wall photo now stands on the room floor, so a stage deck sits in front of it instead of the photo sitting on the deck. Elements can place a Door on the back wall (36\u2033 \u00d7 80\u2033 to start): set its width and height, make it a double door or hang an exit sign once it is selected. It stands on the room floor, moves left and right only, is left out of the overall width, and the spec lists where each door sits from the grid\u2019s left edge. The Mounting grid has a Rig switch: Pipe (the uprights and rails as before), Scaffold (standards, ledgers and diagonal braces on base jacks) or Truss (12\u2033 box truss towers with a header and rails of truss, on base plates). The field names follow the rig and the spec names it."],
   ["0.9.67", "The ceiling line can be grabbed and dragged up or down (or selected and given a height in its box), with a handle at its centre. Overall width and height count the mounting grid only while it is shown: hide it with the eye and the measurements follow the screens and the stage alone, so a grid left wide no longer pins the width."],
@@ -6166,7 +6170,7 @@ const PK = Math.hypot(16, 9), BEZEL = 0.7, PIPE = 1.9, PSTORE = "vibe-pile-layou
 const GROUP_MAX = 10, GCOLS = ["#3d84ff", "#EE5714", "#ECEEF4", "#FFB37A", "#7FDFFD", "#B0E64B", "#C98BFF", "#FFD23F", "#FF6FA3", "#2BD4B4"];
 let gid = 1;
 function gmk(o = {}) {
-  return { id: o.id != null ? o.id : gid++, name: o.name || "", mapping: o.mapping || "unified",
+  return { id: o.id != null ? o.id : gid++, name: o.name || "", mapping: o.mapping || "unified", direct: !!o.direct,
            source: o.source != null ? o.source : "stage", presets: Array.isArray(o.presets) ? o.presets.slice() : [] };
 }
 const P = {
@@ -6227,6 +6231,14 @@ const MAP_NOTES = {
   chaos: "Every screen plays a random saved preset, live, with its own trails. Up to 8 different looks run at once; past that, screens share. Screen effects (Fringe, Echo, Slit-scan, Blur) stay with the other mappings.",
 };
 const MAP_NAMES = { unified: "Unified", mirror: "Mirror", scatter: "Scatter", chaos: "Chaos" };
+const DIRECT_NOTE = "Direct: show the group\u2019s picture source itself, unfiltered. No pattern, Distort, Texture or Screen effects. The mapping still says how it is spread across the screens; Chaos shows it like Mirror.";
+// the feed a Direct group shows: its held source's texture, or the stage source's, with the picture's aspect; null while there is no picture
+function gdirectFeed(g) {
+  if (!g.direct) return null;
+  const sc = gsrc(g);
+  if (sc) return { tex: srcTexFor(sc), ar: sc.w / sc.h };
+  return imgSrc ? { tex: imgTex, ar: imgAspect } : null;
+}
 
 /* ---- model ---- */
 function pdims(it) {
@@ -6300,7 +6312,7 @@ function pubounds() {
 function pserialize() {
   return JSON.stringify({
     v: 2, frame: P.frame, bg: P.bg, vis: P.vis,
-    groups: P.groups.map(g => ({ id: g.id, name: g.name, mapping: g.mapping, source: g.source, presets: g.presets })),   // source ids are per session
+    groups: P.groups.map(g => ({ id: g.id, name: g.name, mapping: g.mapping, direct: !!g.direct, source: g.source, presets: g.presets })),   // source ids are per session
     maps: P.maps, pitch: P.pitch, play: P.play,
     items: P.items.map(it => it.type === "camera" ? { type: "camera", x: pr1(it.x), y: pr1(it.y) } : it.type === "person" ? { type: "person", x: pr1(it.x), y: 0, ht: it.ht, col: it.col || PERSON_COL } : it.type === "door" ? { type: "door", x: pr1(it.x), y: 0, w: pr1(it.w), h: pr1(it.h), dbl: !!it.dbl, exit: !!it.exit } : it.type === "cab"
       ? { type: "cab", x: pr1(it.x), y: pr1(it.y), w: pr1(it.w), h: pr1(it.h), wood: !!it.wood }
@@ -6318,7 +6330,7 @@ function papply(d, keepSources) {
   // a v1 layout had one global mapping: it becomes the single group
   const gs = Array.isArray(d.groups) ? d.groups.filter(g => g && typeof g === "object").slice(0, GROUP_MAX) : [];
   P.groups = gs.length
-    ? gs.map(g => gmk({ id: +g.id || undefined, name: String(g.name || "").slice(0, 24), mapping: MAP_NOTES[g.mapping] ? g.mapping : "unified",
+    ? gs.map(g => gmk({ id: +g.id || undefined, name: String(g.name || "").slice(0, 24), mapping: MAP_NOTES[g.mapping] ? g.mapping : "unified", direct: !!g.direct,
                         presets: Array.isArray(g.presets) ? g.presets.filter(x => typeof x === "string") : [],
                         source: keepSources && sources.some(sc => sc.id === g.source) ? g.source : "stage" }))   // held sources don't survive a reload
     : [gmk({ mapping: MAP_NOTES[d.mapping] ? d.mapping : "unified" })];
@@ -6713,7 +6725,7 @@ const pileProg = program(PILE_FRAG, PILE_VERT);
 const CHAOS_MAX = 8, CHAOS_W = 448, CHAOS_H = 252;
 let chaosAutoT = 0;
 function chaosLook(P) { return Object.assign({}, DEFAULT_LOOK, migrateLook(P.look)); }
-const chaosGroups = () => P.groups.filter(g => g.mapping === "chaos");
+const chaosGroups = () => P.groups.filter(g => g.mapping === "chaos" && !g.direct);   // a Direct group shows its feed, not presets
 const gch = g => g.ch || (g.ch = { slots: [], deal: new Map() });   // a group's render state; never saved
 function chaosFree(g) {
   if (!g.ch) return;
@@ -6797,7 +6809,7 @@ function renderChaos(now, dt, m, palEnd) {
   const live = preview === "pile" ? chaosGroups() : [];
   for (const g of P.groups) if (g.ch && !live.includes(g)) chaosFree(g);
   // groups showing their own source on the other mappings render the current look from it
-  const own = preview === "pile" ? P.groups.filter(g => g.mapping !== "chaos" && gsrc(g) && gscreens(g).length) : [];
+  const own = preview === "pile" ? P.groups.filter(g => g.mapping !== "chaos" && !g.direct && gsrc(g) && gscreens(g).length) : [];
   for (const g of P.groups) if (g.gr && !own.includes(g)) grFree(g);
   if (own.length) {
     gl.useProgram(scene);
@@ -6870,11 +6882,16 @@ function drawPileScreens() {
   const UB = pubounds(), tAR = fin.w / fin.h;
   if (!P.vis.devices) return;
   for (const s of pscreens()) {
-    const d = pdims(s), cy = s.y + d.h / 2, g = gof(s), map = g.mapping;
+    const d = pdims(s), cy = s.y + d.h / 2, g = gof(s), feed = gdirectFeed(g), map = feed && g.mapping === "chaos" ? "mirror" : g.mapping;
     gl.uniform4f(UP("u_rect"), PX(s.x), PY(cy), d.gw * psc, d.gh * psc);
     let src;
     const k = map === "chaos" && g.ch ? g.ch.deal.get(s.id) : undefined;
-    if (k !== undefined && g.ch.slots[k]) {
+    if (feed && map === "unified") {                   // the feed fills the group's outline, cropped to its shape
+      const B2 = gbounds(g), gar = B2.w / Math.max(1, B2.h);
+      let fw = 1, fh = 1; if (feed.ar > gar) fw = gar / feed.ar; else fh = feed.ar / gar;
+      gl.bindTexture(gl.TEXTURE_2D, feed.tex);
+      src = [(1 - fw) / 2 + fw * (s.x - d.gw / 2 - B2.minX) / B2.w, (1 - fh) / 2 + fh * (cy - d.gh / 2 - (B2.minY || 0)) / B2.h, fw * d.gw / B2.w, fh * d.gh / B2.h];
+    } else if (k !== undefined && g.ch.slots[k]) {
       gl.bindTexture(gl.TEXTURE_2D, g.ch.slots[k].Y.tex);
       const sar = d.gw / d.gh, tar = CHAOS_W / CHAOS_H;
       let w = 1, h = 1;
@@ -6885,7 +6902,7 @@ function drawPileScreens() {
       gl.bindTexture(gl.TEXTURE_2D, own ? own.Y.tex : fin.tex);
       src = [(s.x - d.gw / 2 - B2.minX) / B2.w, (cy - d.gh / 2 - (B2.minY || 0)) / B2.h, d.gw / B2.w, d.gh / B2.h];
     } else {
-      const sar = d.gw / d.gh, own = g.gr, ar = own ? own.w / own.h : tAR;
+      const sar = d.gw / d.gh, own = feed ? null : g.gr, ar = feed ? feed.ar : own ? own.w / own.h : tAR;
       let w = 1, h = 1;
       if (sar < ar) w = sar / ar; else h = ar / sar;
       if (map === "scatter") {
@@ -6894,7 +6911,7 @@ function drawPileScreens() {
         const cyy = 0.5 + (0.5 - h / 2) * Math.cos(now * 0.05 + s.seed * 17);
         src = [cx - w / 2, cyy - h / 2, w, h];
       } else src = [(1 - w) / 2, (1 - h) / 2, w, h];
-      gl.bindTexture(gl.TEXTURE_2D, own ? own.Y.tex : fin.tex);
+      gl.bindTexture(gl.TEXTURE_2D, feed ? feed.tex : own ? own.Y.tex : fin.tex);
     }
     gl.uniform4f(UP("u_src"), src[0], src[1], src[2], src[3]);
     gl.uniform1f(UP("u_dead"), s.dead ? 1 : 0);
@@ -7443,11 +7460,13 @@ function gsync() {
         + '<span class="gcount"></span><button class="mini gpaint" title="Click screens on the stage to move them into this group">Assign</button>'
         + (P.groups.length > 1 ? '<button class="mini gdel" title="Remove this group; its screens join the first group">×</button>' : "") + "</div>"
         + '<div class="gbody"><div class="gridseg gmap" data-cols="4">' + Object.keys(MAP_NAMES).map(m => '<button data-map="' + m + '" title="' + gesc(MAP_NOTES[m]) + '">' + MAP_NAMES[m] + "</button>").join("") + "</div>"
-        + '<div class="gside"><select class="gsrc" aria-label="Source this group shows" title="What this group shows: the stage source, or any held source">' + srcOpts + "</select>"
+        + '<div class="gside"><div class="gpickrow"><select class="gsrc" aria-label="Source this group shows" title="What this group shows: the stage source, or any held source">' + srcOpts + "</select>"
+        + '<button class="mini gdirect" title="' + gesc(DIRECT_NOTE) + '">Direct</button></div>'
         + '<div class="gchaos"' + (g.mapping === "chaos" ? "" : " hidden") + '><div class="gpickrow">'
         + '<select class="gpick" aria-label="Add a preset to this set list"><option value="">' + (g.presets.length ? "Add preset…" : "Whole library…") + "</option>" + setOpt + opts + "</select>"
         + '<button class="mini gshuffle">Shuffle</button></div>'
-        + (chips ? '<div class="chips">' + chips + "</div>" : "") + "</div></div></div></div>";
+        + (chips ? '<div class="chips">' + chips + "</div>" : "")
+        + '<p class="gnote" hidden>Not in use: this group shows its feed directly and runs no looks.</p></div></div></div></div>';
     }).join("");
     host.querySelectorAll(".gmap").forEach(gridTable);
   }
@@ -7463,6 +7482,11 @@ function gsync() {
     row.querySelector(".gpaint").classList.toggle("active", gpaint === g.id);
     row.querySelectorAll(".gmap button").forEach(b => b.classList.toggle("active", b.dataset.map === g.mapping));
     const srcSel = row.querySelector(".gsrc"); srcSel.value = gsrc(g) ? String(g.source) : "stage";
+    row.querySelector(".gdirect").classList.toggle("active", !!g.direct);
+    const ch = row.querySelector(".gchaos");                                   // a Direct group's set list is shown greyed, so pads aren't assigned to it by mistake
+    ch.hidden = g.mapping !== "chaos"; ch.classList.toggle("off", !!g.direct);
+    ch.querySelectorAll("select, button").forEach(el => { el.disabled = !!g.direct; });
+    ch.querySelector(".gnote").hidden = !g.direct;
   });
   $("gAdd").hidden = P.groups.length >= GROUP_MAX;
   gmapSync();
@@ -7475,11 +7499,11 @@ const gmapSig = s => [Math.round(s.x), Math.round(s.y), psizeKey(s), s.portrait 
 function gmapSnapshot() {
   const gi = g => P.groups.indexOf(g);
   return {
-    groups: P.groups.map(g => { const sc = gsrc(g); return { name: g.name, mapping: g.mapping, presets: g.presets.slice(), src: sc ? { kind: sc.kind, name: sc.name } : null }; }),
+    groups: P.groups.map(g => { const sc = gsrc(g); return { name: g.name, mapping: g.mapping, direct: !!g.direct, presets: g.presets.slice(), src: sc ? { kind: sc.kind, name: sc.name } : null }; }),
     screens: pscreens().map(s => ({ sig: gmapSig(s), g: gi(gof(s)) })),
   };
 }
-const gmapKey = m => JSON.stringify([m.groups.map(g => [g.mapping, g.presets, g.src]), m.screens]);
+const gmapKey = m => JSON.stringify([m.groups.map(g => [g.mapping, !!g.direct, g.presets, g.src]), m.screens]);
 function gmapSave(name) {
   name = (name || "").trim().slice(0, 24) || "Mapping " + (P.maps.length + 1);
   const snap = gmapSnapshot(), id = Date.now().toString(36);
@@ -7493,7 +7517,7 @@ function gmapRecall(m) {
   chaosFreeAll();
   P.groups = m.groups.slice(0, GROUP_MAX).map(g => {
     const sc = g.src ? sources.find(x => x.kind === g.src.kind && x.name === g.src.name) : null;
-    return gmk({ name: g.name, mapping: MAP_NOTES[g.mapping] ? g.mapping : "unified", presets: g.presets, source: sc ? sc.id : "stage" });
+    return gmk({ name: g.name, mapping: MAP_NOTES[g.mapping] ? g.mapping : "unified", direct: !!g.direct, presets: g.presets, source: sc ? sc.id : "stage" });
   });
   if (!P.groups.length) P.groups = [gmk()];
   const bySig = new Map(m.screens.map(s => [s.sig, s.g]));
@@ -7534,6 +7558,10 @@ $("gList").addEventListener("click", e => {
     pcommit();
   } else if (b.classList.contains("gshuffle")) { chaosShuffle(g); ptoast("Presets shuffled across " + gname(g) + "."); }
   else if (b.classList.contains("gpre")) { g.presets = g.presets.filter(id => id !== b.dataset.id); pcommit(); if (g.ch) chaosShuffle(g); }
+  else if (b.classList.contains("gdirect")) {
+    g.direct = !g.direct; chaosFree(g); grFree(g); pcommit();
+    if (g.direct && !gdirectFeed(g)) ptoast(gname(g) + " is on Direct, but there is no picture source yet: add one under Picture Source.");
+  }
   else if (b.dataset.map) { g.mapping = b.dataset.map; pcommit(); }
 });
 $("gList").addEventListener("change", e => {
@@ -7600,7 +7628,13 @@ $("copySpec").addEventListener("click", () => {
     "Mounting grid (" + rig[0].toLowerCase() + "): " + fmtLen(f.w) + " wide x " + fmtLen(f.h) + " tall, " + (g.n + 1) + " " + rig[3] + "s at " + g.sp.toFixed(1) + "\" centres, " + prigRails(g).length + " horizontal " + rig[4] + "s" + (f.kind === "truss" ? " (" + TRUSS_W + "\" box truss)" : ""),
     "Screens (" + all.length + "): " + pmix(all).map(([k, n]) => n + " x " + k).join(", ") + (portraits ? " (" + portraits + " portrait)" : "") + "  [sizes in " + unitName() + "]",
     ...(pui.units === "px" ? ["Pixel pitch: " + P.pitch + " mm"] : []),
-    "Groups: " + P.groups.map(g => gname(g) + " (" + MAP_NAMES[g.mapping] + ", " + gscreens(g).length + " screens)").join("; "),
+    "Groups: " + P.groups.map(g => gname(g) + " (" + MAP_NAMES[g.mapping] + (g.direct ? ", direct feed" : "") + ", " + gscreens(g).length + " screens)").join("; "),
+    ...P.groups.filter(g => g.direct).map(g => {                      // the signal path of every unfiltered feed, so AV can check it is clean
+      const sc = gsrc(g) || activeSource();
+      return "  " + gname(g) + " \u2014 Direct (" + MAP_NAMES[g.direct && g.mapping === "chaos" ? "mirror" : g.mapping] + "), "
+        + (sc ? sc.w + "\u00d7" + sc.h + " from " + KIND_NAME[sc.kind].toLowerCase() + " source \u201c" + sc.name + "\u201d" + (gsrc(g) ? "" : " (the stage source)") : "no picture source held: the feed is not set")
+        + ", unfiltered, no effects";
+    }),
     "Speaker cabinets (props): " + P.items.filter(i => i.type === "cab").length,
     "Cameras: " + cams.length + (cams.length ? ", " + cams.map(cm => "x " + Math.round(cm.x - f.x0) + " / " + Math.round(cm.y) + "\" up").join("; ") : ""),
     ...(doors.length ? ["Doors in the back wall (centre x from grid left edge, on the room floor): " + doors.slice().sort((a, b) => a.x - b.x).map(d => (d.dbl ? "double " : "") + Math.round(d.w) + "\" x " + Math.round(d.h) + "\" at " + fmtLen(d.x - f.x0) + (d.exit ? ", exit sign" : "")).join("; ")] : []),
@@ -7609,7 +7643,7 @@ $("copySpec").addEventListener("click", () => {
     ...(P.bg.ceiling > 0 ? ["Ceiling: " + fmtLen(P.bg.ceiling) + " from the room floor" + (P.bg.ceiling - P.bg.stageH >= B.maxY ? ", " + fmtLen(P.bg.ceiling - P.bg.stageH - B.maxY) + " clear above the screens" : ", screens overshoot by " + fmtLen(B.maxY + P.bg.stageH - P.bg.ceiling))] : []),
     P.play === "led"
       ? "Playback: LED panels, one machine driving one output into the LED processor; the groups are regions of one canvas"
-      : "Playback: separate displays, " + out.outputs + " video outputs (" + out.own + " for the Unified and Scatter screens, one each; " + out.feeds + " splitter feeds for the Mirror and Chaos screens, up to 3 screens per feed) on " + out.machines + " mini PC" + (out.machines === 1 ? "" : "s") + " at 3 outputs each; one shared mic and camera on the master",
+      : "Playback: separate displays, " + out.outputs + " video outputs (" + out.own + " for the Unified and Scatter screens, one each; " + out.feeds + " splitter feed" + (out.feeds === 1 ? "" : "s") + " for the Mirror and Chaos screens, up to 3 screens per feed) on " + out.machines + " mini PC" + (out.machines === 1 ? "" : "s") + " at 3 outputs each; one shared mic and camera on the master",
     "",
     "Screen positions (centre x from grid left edge, bottom edge height from the deck, in " + unitName() + "):",
     ...all.slice().sort((a, b) => a.x - b.x).map((s, i) =>
