@@ -4,9 +4,67 @@ Feature spec and design intent for the Conversion installation — a pile of
 20-plus mismatched HDMI screens. The previewer shipped in 0.9.34 and 0.9.35;
 groups with their own mapping in 0.9.37.
 
-**Only "Next build: source is a group property" is still a build.** Everything
-from "Deployment model" onward is recorded intent for when the screen count is
-known, after the December site visit. Do not build the networking yet.
+**Nothing below is a build right now.** Groups and per-group sources shipped in
+0.9.37 to 0.9.39. Everything from "Deployment model" onward is conditional on a
+decision that has not been made yet — see the next section. **Do not build the
+networking.** It is likely to be unnecessary.
+
+## The display technology is not settled, and it gates everything
+
+The installation may not be separate HDMI screens at all. The team is now
+discussing **custom screen panels**, built by the same AV crew as last year —
+the crew that assembled an 80ft curved LED wall piece by piece and flew it.
+
+If it is **modular LED tiles**, the architecture collapses:
+
+- The processor treats the whole array as **one canvas**. One machine, one
+  video output. No multiple machines, no output assignment, no splitters.
+- **Node mode, the WebSocket broadcast and clock sync all become
+  unnecessary.** Everything in "Deployment model" and most of "Zones" is moot.
+- **Groups survive unchanged.** They become regions of one canvas, which is
+  already how the previewer works: it renders one frame and `drawPileScreens()`
+  slices it.
+- Low pixel density suits this app. A large LED wall may total 1920x1080 or
+  less, and the whole aesthetic is low-resolution anyway.
+- Power, rigging, heat and the processor become the vendor's responsibility
+  rather than ours.
+
+If it is **displays in custom fabricated housings**, the sections below stand,
+with two additions: enclosed displays need designed-in venting or they cook,
+and custom fabrication lead times are months, which is the likelier schedule
+risk than anything technical.
+
+### Three questions that unblock the rest
+
+Ask the AV crew before building anything downstream:
+
+1. What LED product, and what is the tile size and pixel pitch?
+2. What does the processor take as input, and what is the total canvas
+   resolution?
+3. Can tiles be arranged irregularly — stepped, offset, with gaps?
+
+Tile size decides whether the layout tool should work in inches or in tile
+units. Canvas resolution decides what the app renders at. Irregular
+arrangement decides whether the pile concept survives at all, or whether it
+becomes a conventional flat video wall — which is the thing this was
+deliberately not meant to be.
+
+### Known defect in the AV spec
+
+`Copy spec for AV` hardcodes a playback line reading
+`N Raspberry Pi 5 boards (2 HDMI outputs each)`. That is wrong on both paths:
+Pis were ruled out on GPU grounds, and an LED build needs one machine with one
+output. Remove it or drive it from a Playback choice (Separate displays / LED
+panels) before the spec goes to AV.
+
+### Build-anything-now list
+
+Safe under either outcome:
+
+- Fix the playback line above.
+- Make the render resolution settable, so the app can output an arbitrary
+  canvas size rather than the window's. Needed for whatever number the
+  processor returns.
 
 ## What exists
 
@@ -131,7 +189,10 @@ rectangle, and it draws its own crop of a picture no machine ever holds whole.
 That is what makes a distributed wall viable, and it is why per-screen mapping
 is natural rather than awkward: each screen is told individually what to do.
 
-## Deployment model (intent, not yet built)
+## Deployment model (only if separate displays)
+
+**Superseded if the build is LED tiles** — in that case there is one machine
+and one output, and none of this applies. Kept for the separate-display path.
 
 **Broadcast commands, not pixels.** No capture cards, no HDMI matrix, no NDI.
 
@@ -148,7 +209,11 @@ is natural rather than awkward: each screen is told individually what to do.
 Each screen needs a stable id and an output assignment; positions already
 exist in the layout.
 
-## Zones
+## Zones (only if separate displays)
+
+On an LED build the word still has a creative use — a cluster of the canvas
+that shares a look — but it stops being a hardware boundary. The rest of this
+section is about hardware.
 
 A **zone** is the set of screens one machine drives, chosen so those screens
 also belong together creatively. Three nested units, smallest first:
@@ -194,7 +259,12 @@ The point is eyes-free operation in a dark venue, not feature count.
 
 ## Hardware
 
-Intel N100-class mini PCs for zones, not Raspberry Pis. Mesh is ray-marched and
+**If LED tiles: one machine, driving one output into the processor.** A single
+capable laptop is enough; the vendor supplies everything downstream of the
+cable. Ignore the rest of this section.
+
+For the separate-display path: Intel N100-class mini PCs for zones, not
+Raspberry Pis. Mesh is ray-marched and
 a Pi will struggle; twenty Pis is twenty SD cards and twenty failure points on
 show day. A Pi is the right test rig for a single node, and a good hobby build,
 but it is a separate project from this deployment.
@@ -213,6 +283,8 @@ but it is a separate project from this deployment.
 
 ## Open questions
 
+- **Panels or separate displays** — the question that gates the rest. See
+  "The display technology is not settled" above.
 - Screen count and sizes — unknown until the December site visit.
 - Camera placement, and who owns housings and fabrication.
 - Whether **Copy spec for AV** should also emit zone and output assignments.
