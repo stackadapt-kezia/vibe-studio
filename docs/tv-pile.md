@@ -68,7 +68,18 @@ Safe under either outcome:
 
 ## What exists
 
-Output has a TV pile preview beside Full frame: screens laid out in inches,
+In the app the view is called **Multi-screen** (renamed from TV pile in
+0.9.60, since it designs stage screens as much as piles; this document keeps
+the original name) and the room section is **Background**, which also takes
+a ceiling height: a dashed line at that height with the clearance above the
+screens, shaded space above it, and a line in the AV spec. Devices is
+**Elements** (0.9.61) and can place a Person, a flat silhouette of settable
+height and colour standing in front of the screens for scale; it stays out
+of the spec and the measurements. Background also takes a stage height and
+width (0.9.62): the build stands on a deck of that size, the room floor drops
+below it, and the ceiling is measured from the room floor.
+
+Output has a Multi-screen preview beside Full frame: screens laid out in inches,
 dragged and resized (TV diagonals, or since 0.9.58 custom panels with their
 own width and height, for the LED-tile path), with speaker cabinets, a mounting grid of uprights and
 rails, a backdrop (wall, photo of the real wall scaled to feet, drape, palette

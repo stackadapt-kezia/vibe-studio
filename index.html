@@ -158,6 +158,7 @@
     font: 500 10px/1.3 "Space Grotesk", sans-serif; text-transform: uppercase; letter-spacing: .05em;
   }
   .row input[type=range] { flex: 1; accent-color: var(--accent); min-width: 0; }
+  .row .unit { color: var(--muted); font-size: 11px; }
   .row output {
     flex: 0 0 38px; text-align: right; font-size: 12px; color: var(--text);
     font-variant-numeric: tabular-nums; cursor: text;
@@ -1084,7 +1085,7 @@
       <legend>Output</legend>
       <div class="seg" id="previewSeg">
         <button data-preview="full">Full frame</button>
-        <button data-preview="pile">TV pile</button>
+        <button data-preview="pile">Multi-screen</button>
       </div>
       <p class="note warn" id="outNote" hidden></p>
     </fieldset>
@@ -1109,9 +1110,9 @@
       </fieldset>
 
       <fieldset>
-        <legend>Devices<button class="eye" type="button" data-vis="devices" aria-pressed="true" aria-label="Show or hide the devices" title="Show or hide the devices"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
+        <legend>Elements<button class="eye" type="button" data-vis="devices" aria-pressed="true" aria-label="Show or hide the elements" title="Show or hide the elements"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
         <div class="chips" id="addSizes"></div>
-        <div class="chips"><button class="chip add" id="addCab">Speaker cabinet</button><button class="chip add" id="addCamera">Camera</button></div>
+        <div class="chips"><button class="chip add" id="addCab">Speaker cabinet</button><button class="chip add" id="addCamera">Camera</button><button class="chip add" id="addPerson" title="A standing figure for scale; set its height once selected">Person</button></div>
         <label class="check"><input type="checkbox" id="snapX" checked> Snap to uprights</label>
         <label class="check"><input type="checkbox" id="snapSize" checked> Snap to real TV sizes</label>
         <label class="check"><input type="checkbox" id="pLabels"> Show sizes on screens</label>
@@ -1129,7 +1130,7 @@
       </fieldset>
 
       <fieldset>
-        <legend>Behind the pile<button class="eye" type="button" data-vis="bg" aria-pressed="true" aria-label="Show or hide what is behind the pile" title="Show or hide what is behind the pile"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
+        <legend>Background<button class="eye" type="button" data-vis="bg" aria-pressed="true" aria-label="Show or hide the background" title="Show or hide the background"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
         <div class="seg" id="wallSeg">
           <button data-wall="plain">Plain wall</button>
           <button data-wall="photo">Wall photo</button>
@@ -1149,6 +1150,9 @@
         <div class="row" id="solidRow" hidden style="margin-top:8px"><label for="solidCol">Colour</label><input type="color" id="solidCol"></div>
         <label class="pill" id="bdImgRow" hidden>Load backdrop artwork<input type="file" id="bdFile" accept="image/*" hidden></label>
         <div class="row" id="ohRow" style="margin-top:8px"><label for="overhang">Overhang</label><input type="number" class="num wide" id="overhang" min="0" max="96"><output>in</output></div>
+        <div class="row" style="margin-top:8px"><label for="ceilFt">Ceiling</label><input type="number" class="num wide" id="ceilFt" min="0" max="80" step="0.5" placeholder="none" title="Ceiling height in feet from the room floor; blank or 0 for none"><span class="unit">ft</span></div>
+        <div class="row"><label for="stageHFt">Stage height</label><input type="number" class="num wide" id="stageHFt" min="0" max="20" step="0.25" placeholder="none" title="A raised deck the screens stand on, in feet; blank or 0 for none"><span class="unit">ft</span></div>
+        <div class="row"><label for="stageWFt">Stage width</label><input type="number" class="num wide" id="stageWFt" min="0" max="200" step="0.5" placeholder="grid" title="Deck width in feet; blank for the grid's width"><span class="unit">ft</span></div>
         <div class="seg" id="lightSeg" style="margin-top:10px">
           <button data-light="bright">Bright lobby</button>
           <button data-light="dim">Event dim</button>
@@ -1184,7 +1188,7 @@
   <main class="stage" id="stage">
     <canvas id="pileBg" hidden></canvas>
     <canvas id="gl"></canvas>
-    <canvas id="pileFg" hidden aria-label="TV pile layout. Drag screens to move them, drag a corner to resize."></canvas>
+    <canvas id="pileFg" hidden aria-label="Multi-screen layout. Drag screens to move them, drag a corner or edge to resize."></canvas>
     <div class="setlist-overlay" id="setOverlay" hidden>
       <div class="ovbar">
         <span class="ovtitle">Presets</span>
@@ -1222,12 +1226,15 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.59";  // panels and cabinets resize from their edges too
+const APP_VERSION = "0.9.62";  // stage deck height and width; person silhouette joins
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.62", "Background gains Stage height and Stage width under Ceiling: the screens, grid and people stand on a raised deck of that size, the room floor drops below it, the ceiling clearance is measured from the room floor, and the stage goes into Copy spec for AV. The scale person\u2019s arms now join the shoulders cleanly and its selection outline is a smooth halo round the figure."],
+  ["0.9.61", "Multi-screen: Devices is now Elements, and it can place a Person on the floor for scale, a flat standing silhouette whose height and colour you set once it is selected (5\u20328\u2033 and off-white to start). It stands in front of the screens, its outline hugs the figure when selected, and it is left out of the AV spec and the overall width."],
+  ["0.9.60", "The TV pile is now called Multi-screen, since it designs stage screens as much as piles, and Behind the pile is Background. Background gains a Ceiling height in feet: a dashed line runs across the stage at that height with the clearance above the screens (or how far they overshoot, in orange), the space above it is shaded, the view zooms out to keep it in frame, and it goes into Copy spec for AV."],
   ["0.9.59", "A selected panel or speaker cabinet in the TV pile has handles on all four edges as well as its corners: drag a side to change only its width, the top or bottom to change only its height. TV screens keep corner handles, since their shape is fixed."],
   ["0.9.58", "TV pile screens can be any size, not just TV diagonals. A Panel chip under Devices adds a 24\u00d724 inch panel; pick Custom in a selected screen\u2019s Size menu to give it its own width and height in inches, or drag a corner and a custom panel resizes freely in both directions. Labels, the screen mix and Copy spec for AV show panels as width \u00d7 height, and panels save with the layout and in mapping presets."],
   ["0.9.57", "The TV pile allows up to ten groups, each with its own colour on the bezels and in the Groups list."],
@@ -6138,7 +6145,7 @@ function gmk(o = {}) {
 const P = {
   frame: { x0: 0, w: 240, h: 108, pitch: 30, rail: 48, show: true },
   items: [],
-  bg: { wall: "plain", backdrop: "drape", solid: "#0061FF", overhang: 12, light: "dim", photoFt: 20 },
+  bg: { wall: "plain", backdrop: "drape", solid: "#0061FF", overhang: 12, light: "dim", photoFt: 20, ceiling: 0, stageH: 0, stageW: 0 },   // inches; 0 = none (stageW 0 = as wide as the grid)
   vis: { devices: true, bg: true },                // the grid's own flag is frame.show
   groups: [gmk()],
   maps: [],                                        // mapping presets: named group setups, see gmapSave
@@ -6155,6 +6162,8 @@ let pid = 1, psel = null, photoImg = null, bdImg = null, roomDirty = true, pdrag
 let protBtn = null;                               // the rotate button drawn this frame: { it, x, y, r } in canvas px
 let pW = 0, pH = 0, pdpr = 1, psc = 1, pox = 0, pfloor = 0;
 const PX = v => pox + v * psc, PY = v => pfloor - v * psc;
+const pdeckPx = () => (P.bg.stageH > 0 ? P.bg.stageH * psc : 0);        // the stage deck, in pixels, below the layout's floor
+const pstageW = () => (P.bg.stageW > 0 ? P.bg.stageW : P.frame.w + 2 * (P.bg.backdrop !== "none" ? P.bg.overhang : 0) + 24);
 const MAP_NOTES = {
   unified: "One image spans the whole pile. Each screen shows its own slice.",
   mirror: "Every screen shows the whole frame, cropped to fit. This is what a plain HDMI splitter gives you.",
@@ -6167,6 +6176,7 @@ const MAP_NAMES = { unified: "Unified", mirror: "Mirror", scatter: "Scatter", ch
 function pdims(it) {
   if (it.type === "camera") return { w: 6, h: 4 };
   if (it.type === "cab") return { w: it.w, h: it.h };
+  if (it.type === "person") return { w: it.ht * 0.36, h: it.ht };
   let gw = it.diag * 16 / PK, gh = it.diag * 9 / PK;
   if (it.cw > 0 && it.ch > 0) { gw = it.cw; gh = it.ch; }      // a custom panel: its own glass width and height
   if (it.portrait) [gw, gh] = [gh, gw];
@@ -6192,6 +6202,7 @@ function pbounds() {
   const f = P.frame;
   let a = f.x0, b = f.x0 + f.w, t = f.h;
   for (const it of P.items) {
+    if (it.type === "person") continue;             // a scale figure is not part of the build
     const d = pdims(it);
     a = Math.min(a, it.x - d.w / 2); b = Math.max(b, it.x + d.w / 2); t = Math.max(t, it.y + d.h);
   }
@@ -6217,7 +6228,7 @@ function pserialize() {
     v: 2, frame: P.frame, bg: P.bg, vis: P.vis,
     groups: P.groups.map(g => ({ id: g.id, name: g.name, mapping: g.mapping, source: g.source, presets: g.presets })),   // source ids are per session
     maps: P.maps,
-    items: P.items.map(it => it.type === "camera" ? { type: "camera", x: pr1(it.x), y: pr1(it.y) } : it.type === "cab"
+    items: P.items.map(it => it.type === "camera" ? { type: "camera", x: pr1(it.x), y: pr1(it.y) } : it.type === "person" ? { type: "person", x: pr1(it.x), y: 0, ht: it.ht, col: it.col || PERSON_COL } : it.type === "cab"
       ? { type: "cab", x: pr1(it.x), y: pr1(it.y), w: pr1(it.w), h: pr1(it.h), wood: !!it.wood }
       : { type: "screen", diag: it.diag, portrait: !!it.portrait, x: pr1(it.x), y: pr1(it.y), dead: !!it.dead, g: it.g, cw: it.cw || undefined, ch: it.ch || undefined }),
   });
@@ -6238,7 +6249,7 @@ function papply(d, keepSources) {
     : [gmk({ mapping: MAP_NOTES[d.mapping] ? d.mapping : "unified" })];
   gid = Math.max(gid, ...P.groups.map(g => g.id)) + 1;
   P.maps = Array.isArray(d.maps) ? d.maps.filter(m => m && typeof m.name === "string" && Array.isArray(m.groups) && Array.isArray(m.screens)).slice(0, 16) : [];
-  P.items = d.items.filter(o => o && (o.type === "screen" || o.type === "cab" || o.type === "camera")).map(pmk);
+  P.items = d.items.filter(o => o && (o.type === "screen" || o.type === "cab" || o.type === "camera" || (o.type === "person" && o.ht > 0))).map(pmk);
   for (const it of P.items) if (it.type === "screen" && !P.groups.some(g => g.id === it.g)) it.g = P.groups[0].id;
   if (gpaint !== null && !P.groups.some(g => g.id === gpaint)) gpaint = null;
   psel = null;
@@ -6270,12 +6281,12 @@ function pfreeSpot(it) {
   for (let k = 0; k <= g.n * 2; k++) xs.push(f.x0 + k * g.sp / 2);
   for (let y = f.h - d.h - 4; y >= 4; y -= 6) {
     for (const x of [...xs].sort(() => Math.random() - 0.5)) {
-      it.x = x; it.y = it.type === "cab" ? 0 : y;
+      it.x = x; it.y = it.type === "cab" || it.type === "person" ? 0 : y;
       if (pfits(it, d) && !poverlaps(it)) return;
     }
-    if (it.type === "cab") break;
+    if (it.type === "cab" || it.type === "person") break;
   }
-  it.x = f.x0 + f.w / 2; it.y = it.type === "cab" ? 0 : Math.max(4, f.h / 2 - d.h / 2);
+  it.x = f.x0 + f.w / 2; it.y = it.type === "cab" || it.type === "person" ? 0 : Math.max(4, f.h / 2 - d.h / 2);
 }
 function paddPanel() {
   const it = pmk({ type: "screen", diag: 34, cw: 24, ch: 24, portrait: false, dead: false, x: 0, y: 0, g: gpaint !== null ? gpaint : P.groups[0].id });
@@ -6288,6 +6299,11 @@ function paddScreen(diag) {
 function paddCamera() {
   const it = pmk({ type: "camera", x: 0, y: 0 });
   pfreeSpot(it); P.items.push(it); psel = { kind: "item", it }; pcommit();
+}
+function paddPerson() {
+  const it = pmk({ type: "person", ht: 68, col: PERSON_COL, x: 0, y: 0 });
+  pfreeSpot(it); it.x = P.frame.x0 - (P.bg.backdrop !== "none" ? P.bg.overhang : 0) - 42;   // stands beside the wall, clear of the height scale
+  P.items.push(it); psel = { kind: "item", it }; pcommit();
 }
 function paddCab() {
   const it = pmk({ type: "cab", w: 22, h: 34, wood: Math.random() < 0.5, x: 0, y: 0 });
@@ -6312,12 +6328,16 @@ function pfit() {
   const ins = pileInsets();
   pInsetKey = Math.round(ins.l) + "," + Math.round(ins.b);
   const B = pbounds(), o = P.bg.backdrop !== "none" ? P.bg.overhang : 0;
-  const minX = Math.min(B.minX, P.frame.x0 - o) - 40, maxX = Math.max(B.maxX, P.frame.x0 + P.frame.w + o) + 30, top = B.maxY + o + 24;
+  const people = P.items.filter(i => i.type === "person");   // framed, though not measured
+  const pMin = Math.min(Infinity, ...people.map(i => i.x - pdims(i).w / 2)), pMax = Math.max(-Infinity, ...people.map(i => i.x + pdims(i).w / 2));
+  const minX = Math.min(B.minX, P.frame.x0 - o, pMin) - 40, maxX = Math.max(B.maxX, P.frame.x0 + P.frame.w + o, pMax) + 30;
+  const top = Math.max(B.maxY + o + 24, P.bg.ceiling > 0 ? P.bg.ceiling + 18 : 0);   // a ceiling stays in frame
   const left = ins.l + 24 * pdpr, right = pW - 24 * pdpr;
   // keep the bottom band clear for the presets panel even while it's closed,
   // plus room under the pile for the width scale
   pfloor = pH - Math.max(ins.b, 120 * pdpr) - 84 * pdpr;
-  psc = Math.max(0.1, Math.min((right - left) / (maxX - minX), (pfloor - 56 * pdpr) / top));
+  psc = Math.max(0.1, Math.min((right - left) / (maxX - minX), (pfloor - 56 * pdpr) / (top + P.bg.stageH)));
+  pfloor -= pdeckPx();                               // the layout's floor is the deck; the room floor sits below
   pox = (left + right) / 2 - ((minX + maxX) / 2) * psc;
   const UB = pubounds();
   pileAR = Math.max(0.3, Math.min(8, UB.w / Math.max(1, UB.h)));
@@ -6334,9 +6354,9 @@ function drawRoom() {
   const c = rmx;
   c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, pW, pH);
   const plain = () => {
-    const g = c.createLinearGradient(0, 0, 0, pfloor);
+    const yR = pfloor + pdeckPx(), g = c.createLinearGradient(0, 0, 0, yR);
     g.addColorStop(0, "#DADCE2"); g.addColorStop(1, "#C9CCD3");
-    c.fillStyle = g; c.fillRect(0, 0, pW, pfloor);
+    c.fillStyle = g; c.fillRect(0, 0, pW, yR);
   };
   if (P.bg.wall === "photo" && photoImg && P.vis.bg) {
     plain();
@@ -6344,8 +6364,15 @@ function drawRoom() {
     c.drawImage(photoImg, PX(cx - pw / 2), PY(ph), pw * psc, ph * psc);
   } else plain();
 
-  c.fillStyle = "#6E7178"; c.fillRect(0, pfloor, pW, pH - pfloor);
-  c.fillStyle = "rgba(0,0,0,0.25)"; c.fillRect(0, pfloor, pW, 3 * pdpr);
+  const yRoom = pfloor + pdeckPx();
+  c.fillStyle = "#6E7178"; c.fillRect(0, yRoom, pW, pH - yRoom);
+  c.fillStyle = "rgba(0,0,0,0.25)"; c.fillRect(0, yRoom, pW, 3 * pdpr);
+  if (P.bg.stageH > 0) {                              // the deck: a dark slab the build stands on, with a lit front edge
+    const sw = pstageW() * psc, sx = PX(P.frame.x0 + P.frame.w / 2) - sw / 2;
+    c.fillStyle = "#17181D"; c.fillRect(sx, pfloor, sw, yRoom - pfloor);
+    c.fillStyle = "rgba(255,255,255,0.14)"; c.fillRect(sx, pfloor, sw, 2 * pdpr);
+    c.fillStyle = "rgba(0,0,0,0.35)"; c.fillRect(sx, yRoom - 3 * pdpr, sw, 3 * pdpr);
+  }
 
   const f = P.frame, o = P.bg.overhang, bd = P.bg.backdrop;
   const R = { x: PX(f.x0 - o), y: PY(f.h + o), w: (f.w + 2 * o) * psc, h: (f.h + o) * psc };
@@ -6440,6 +6467,8 @@ function drawPileBg() {
         c.strokeStyle = "rgba(255,255,255,0.10)"; c.lineWidth = 1.5 * pdpr; c.stroke();
         c.beginPath(); c.arc(px, py, r * (0.3 + 0.08 * band.bass), 0, 7); c.fillStyle = "#1C1C21"; c.fill();
       }
+    } else if (it.type === "person") {
+      // drawn in the overlay, over the screens: see drawPileFg
     } else if (it.type === "camera") {                 // a small box with a lens
       prr(c, x, y, w, h, 1.5 * pdpr); c.fillStyle = "#1A1A20"; c.fill();
       c.strokeStyle = "rgba(255,255,255,0.14)"; c.lineWidth = pdpr; c.stroke();
@@ -6454,6 +6483,27 @@ function drawPileBg() {
     }
   }
 }
+
+// a flat standing silhouette for scale: head, shoulders, arms at the sides,
+// legs; proportions of height H, built as one path so it can be filled for
+// the figure and stroked for its outline
+function personPath(c, x, y, w, h) {
+  const H = h, cx = x + w / 2, base = y + h, u = H / 100;
+  // every part runs the same way round, so overlaps add under the nonzero rule instead of cancelling to holes
+  const poly = pts => { pts.forEach(([px, py], i) => { if (i) c.lineTo(cx + px * u, base - py * u); else c.moveTo(cx + px * u, base - py * u); }); c.closePath(); };
+  const mirror = pts => pts.map(([px, py]) => [-px, py]).reverse();
+  c.beginPath();
+  c.moveTo(cx + 6.5 * u, base - 93 * u); c.arc(cx, base - 93 * u, 6.5 * u, 0, 7);              // head
+  c.moveTo(cx - 2.6 * u, base - 87 * u); c.lineTo(cx + 2.6 * u, base - 87 * u);                 // neck and torso
+  c.lineTo(cx + 3 * u, base - 83 * u); c.quadraticCurveTo(cx + 13 * u, base - 80 * u, cx + 13.5 * u, base - 72 * u);
+  c.lineTo(cx + 10 * u, base - 50 * u); c.lineTo(cx + 9.5 * u, base - 46 * u); c.lineTo(cx - 9.5 * u, base - 46 * u);
+  c.lineTo(cx - 10 * u, base - 50 * u); c.lineTo(cx - 13.5 * u, base - 72 * u); c.quadraticCurveTo(cx - 13 * u, base - 80 * u, cx - 3 * u, base - 83 * u);
+  c.closePath();
+  const arm = [[7, 81], [14.5, 75], [18.5, 50], [17.5, 40], [14, 40], [12.5, 50], [9, 64]];      // rooted inside the shoulder
+  const leg = [[1, 46], [9.5, 46], [8, 4], [11, 0], [2, 0], [2.5, 24]];
+  poly(arm); poly(mirror(arm)); poly(leg); poly(mirror(leg));
+}
+const PERSON_COL = "#ECEEF4";
 
 /* ---- GL: slice the rendered frame onto each screen ---- */
 const PILE_VERT = `
@@ -6691,7 +6741,7 @@ function drawPileScreens() {
 function phandles() {
   if (!psel) return [];
   if (psel.kind === "item") {
-    const it = psel.it; if (it.type === "camera") return [];            // a camera has one size
+    const it = psel.it; if (it.type === "camera" || it.type === "person") return [];   // sized by their fields, not by dragging
     const d = pdims(it), l = it.x - d.w / 2, r = it.x + d.w / 2, b = it.y, t = it.y + d.h;
     const hs = [{ k: "tl", x: l, y: t }, { k: "tr", x: r, y: t }, { k: "bl", x: l, y: b }, { k: "br", x: r, y: b }];
     if (it.type === "cab" || pcustom(it))                                // free shapes resize from their edges too
@@ -6731,11 +6781,22 @@ function drawPileFg() {
   c.textAlign = "center"; c.textBaseline = "middle";
   protBtn = null;
   const lf = "600 " + 11 * pdpr + 'px "Space Grotesk", sans-serif';
+  if (P.vis.devices) for (const it of P.items) if (it.type === "person") {   // people stand in front of the screens
+    const d = pdims(it), isSel = psel && psel.kind === "item" && psel.it === it, isHov = phover === it;
+    const x = PX(it.x - d.w / 2), y = PY(it.y + d.h), w = d.w * psc, h = d.h * psc;
+    if (isSel || isHov) {                                // the outline is a halo: the figure again, a little larger, behind it
+      const k = 1 + 5 * pdpr / h, hw = w * k, hh = h * k;
+      personPath(c, x + w / 2 - hw / 2, y + h - hh, hw, hh);
+      c.fillStyle = isSel ? "#7FDFFD" : "rgba(127,223,253,0.55)"; c.fill();
+    }
+    personPath(c, x, y, w, h);
+    c.fillStyle = it.col || PERSON_COL; c.fill();
+  }
   if (P.vis.devices) for (const it of P.items) {
     const d = pdims(it), isSel = psel && psel.kind === "item" && psel.it === it, isHov = phover === it;
     if (isSel || isHov) {
       c.strokeStyle = isSel ? "#7FDFFD" : "rgba(127,223,253,0.55)"; c.lineWidth = 2 * pdpr;
-      c.strokeRect(PX(it.x - d.w / 2), PY(it.y + d.h), d.w * psc, d.h * psc);
+      if (it.type !== "person") c.strokeRect(PX(it.x - d.w / 2), PY(it.y + d.h), d.w * psc, d.h * psc);   // a person's halo is drawn above
     }
     if (it.type === "screen" && (P.groups.length > 1 || gpaint !== null) && !isSel) {   // group colour on the bezel
       c.strokeStyle = gcol(gof(it)); c.globalAlpha = gpaint !== null && gof(it).id !== gpaint ? 0.35 : 0.9; c.lineWidth = 2 * pdpr;
@@ -6758,7 +6819,7 @@ function drawPileFg() {
     c.fillRect(PX(h.x) - s / 2, PY(h.y) - s / 2, s, s); c.strokeRect(PX(h.x) - s / 2, PY(h.y) - s / 2, s, s);
   }
   // overall width under the pile, height up the left side
-  const B = pbounds(), x1 = PX(B.minX), x2 = PX(B.maxX), yTop = PY(B.maxY), y = pfloor + 20 * pdpr;
+  const B = pbounds(), x1 = PX(B.minX), x2 = PX(B.maxX), yTop = PY(B.maxY), yRoom = pfloor + pdeckPx(), y = yRoom + 20 * pdpr;
   const xs = PX(Math.min(B.minX, P.bg.backdrop !== "none" ? P.frame.x0 - P.bg.overhang : B.minX)) - 22 * pdpr;
   const path = () => {
     c.beginPath();
@@ -6775,6 +6836,23 @@ function drawPileFg() {
   plabel("Overall width " + fmtLen(B.w), (x1 + x2) / 2, y + 22 * pdpr, font);
   c.save(); c.translate(xs - 14 * pdpr, (pfloor + yTop) / 2); c.rotate(-Math.PI / 2);
   plabel("Height " + fmtLen(B.h), 0, 0, font); c.restore();
+  // the ceiling: a dashed line across the room at that height, the space above it shaded,
+  // and the clearance between the top of the screens and the ceiling (or the overshoot)
+  if (P.bg.stageH > 0) {
+    const sw = pstageW() * psc, sx = PX(P.frame.x0 + P.frame.w / 2) - sw / 2;
+    plabel("Stage " + fmtLen(pstageW()) + " wide \u00b7 " + fmtLen(P.bg.stageH) + " high", sx + sw / 2, (pfloor + yRoom) / 2, font);
+  }
+  if (P.bg.ceiling > 0) {
+    const yc = PY(P.bg.ceiling - P.bg.stageH), gap = P.bg.ceiling - P.bg.stageH - B.maxY;   // the ceiling is measured from the room floor
+    c.fillStyle = "rgba(0,0,0,0.45)"; c.fillRect(0, 0, pW, Math.max(0, yc));
+    c.setLineDash([10 * pdpr, 6 * pdpr]); c.lineWidth = 1.5 * pdpr;
+    c.beginPath(); c.moveTo(0, yc); c.lineTo(pW, yc);
+    c.strokeStyle = "rgba(0,0,0,0.6)"; c.lineWidth = 3.5 * pdpr; c.stroke();
+    c.strokeStyle = gap >= 0 ? "#eceef4" : "#FF8A3D"; c.lineWidth = 1.5 * pdpr; c.stroke();
+    c.setLineDash([]);
+    const note = gap >= 0 ? fmtLen(gap) + " above the screens" : "screens overshoot by " + fmtLen(-gap);
+    plabel("Ceiling " + fmtLen(P.bg.ceiling) + "  \u00b7  " + note, pW / 2, yc - 14 * pdpr, font);
+  }
 }
 
 /* ---- pointer editing ---- */
@@ -6934,6 +7012,7 @@ function pselTitle() {
   return it.type === "screen"
     ? [psize(it) + (pcustom(it) ? "″ panel" : "″ screen"), d.w.toFixed(1) + "″ × " + d.h.toFixed(1) + "″", ftHint(it.y) + " up", P.groups.length > 1 ? gname(gof(it)) : ""]
     : it.type === "cab" ? ["Speaker cabinet", Math.round(it.w) + "″ × " + Math.round(it.h) + "″"]
+    : it.type === "person" ? ["Person", fmtLen(it.ht) + " tall"]
     : ["Camera", ftHint(it.y) + " up"];
 }
 function psyncSel(full = true) {
@@ -6976,6 +7055,14 @@ function psyncSel(full = true) {
     $("selDead").onchange = e => { it.dead = e.target.checked; pcommit(); };
   } else if (it.type === "camera") {
     box.innerHTML = '<div class="t"></div><div class="btnrow"><button class="pill" id="selDup">Duplicate</button><button class="pill" id="selDel">Remove</button></div>';
+  } else if (it.type === "person") {
+    box.innerHTML = '<div class="t"></div>'
+      + '<div class="row"><label for="selHt">Height (in)</label><input type="number" class="num wide" id="selHt" min="30" max="96" value="' + Math.round(it.ht) + '"></div>'
+      + '<div class="row"><label for="selCol">Colour</label><input type="color" id="selCol" value="' + (it.col || PERSON_COL) + '"></div>'
+      + '<div class="btnrow"><button class="pill" id="selDup">Duplicate</button><button class="pill" id="selDel">Remove</button></div>';
+    $("selHt").onchange = e => { it.ht = Math.max(30, Math.min(96, Math.round(+e.target.value) || it.ht)); pcommit(); psyncSel(true); };
+    $("selCol").oninput = e => { it.col = e.target.value; psave(); };
+    $("selCol").onchange = () => pcommit();
   } else {
     box.innerHTML = '<div class="t"></div>'
       + '<div class="row"><label for="selW">Width (in)</label><input type="number" class="num wide" id="selW" min="8" max="96" value="' + Math.round(it.w) + '"></div>'
@@ -7003,6 +7090,9 @@ function psyncBg() {
   $("bdImgRow").hidden = P.bg.backdrop !== "image";
   $("ohRow").hidden = P.bg.backdrop === "none";
   $("solidCol").value = P.bg.solid; $("overhang").value = P.bg.overhang; $("photoFt").value = P.bg.photoFt;
+  $("ceilFt").value = P.bg.ceiling > 0 ? +(P.bg.ceiling / 12).toFixed(2) : "";
+  $("stageHFt").value = P.bg.stageH > 0 ? +(P.bg.stageH / 12).toFixed(2) : "";
+  $("stageWFt").value = P.bg.stageW > 0 ? +(P.bg.stageW / 12).toFixed(2) : "";
   syncWall(); syncLight();
 }
 function prefresh() { pfit(); psyncGrid(); pstats(); psyncSel(); psyncBg(); gsync(); }
@@ -7021,6 +7111,7 @@ PSIZES.filter(s => s <= 75).forEach(s => {
 }
 $("addCab").addEventListener("click", paddCab);
 $("addCamera").addEventListener("click", paddCamera);
+$("addPerson").addEventListener("click", paddPerson);
 $("snapX").addEventListener("change", e => { pui.snapX = e.target.checked; });
 $("snapSize").addEventListener("change", e => { pui.snapSize = e.target.checked; });
 $("pLabels").addEventListener("change", e => { pui.labels = e.target.checked; });
@@ -7188,6 +7279,9 @@ $("bdSel").addEventListener("change", e => { P.bg.backdrop = e.target.value; pco
 $("solidCol").addEventListener("input", e => { P.bg.solid = e.target.value; roomDirty = true; });
 $("solidCol").addEventListener("change", () => pcommit());
 $("overhang").addEventListener("change", e => { P.bg.overhang = Math.max(0, Math.min(96, +e.target.value || 0)); pcommit(); });
+$("ceilFt").addEventListener("change", e => { P.bg.ceiling = Math.round(Math.max(0, Math.min(80, +e.target.value || 0)) * 12); pcommit(); });
+$("stageHFt").addEventListener("change", e => { P.bg.stageH = Math.round(Math.max(0, Math.min(20, +e.target.value || 0)) * 12); roomDirty = true; pcommit(); });
+$("stageWFt").addEventListener("change", e => { P.bg.stageW = Math.round(Math.max(0, Math.min(200, +e.target.value || 0)) * 12); pcommit(); });
 $("photoFt").addEventListener("change", e => { P.bg.photoFt = Math.max(4, Math.min(200, +e.target.value || 20)); pcommit(); });
 function ploadImg(file, cb) {
   const img = new Image();
@@ -7219,14 +7313,16 @@ $("copySpec").addEventListener("click", () => {
                    solid: "Solid colour " + P.bg.solid, image: "Printed fabric, custom artwork" }[P.bg.backdrop];
   const portraits = all.filter(s => s.portrait).length, cams = P.items.filter(i => i.type === "camera");
   const lines = [
-    "TV pile installation, Conversion 2027",
+    "Multi-screen installation, Conversion 2027",
     "Overall: " + fmtLen(B.w) + " wide x " + fmtLen(B.h) + " tall",
     "Mounting grid: " + fmtLen(f.w) + " wide x " + fmtLen(f.h) + " tall, " + (g.n + 1) + " uprights at " + g.sp.toFixed(1) + "\" centres, " + g.rails.length + " horizontal rails",
-    "Screens (" + all.length + "): " + Object.keys(mix).sort((a, b) => b - a).map(k => mix[k] + " x " + k + "\"").join(", ") + (portraits ? " (" + portraits + " portrait)" : ""),
+    "Screens (" + all.length + "): " + Object.keys(mix).sort((a, b) => parseFloat(b) - parseFloat(a)).map(k => mix[k] + " x " + k + "\"").join(", ") + (portraits ? " (" + portraits + " portrait)" : ""),
     "Groups: " + P.groups.map(g => gname(g) + " (" + MAP_NAMES[g.mapping] + ", " + gscreens(g).length + " screens)").join("; "),
     "Speaker cabinets (props): " + P.items.filter(i => i.type === "cab").length,
     "Cameras: " + cams.length + (cams.length ? ", " + cams.map(cm => "x " + Math.round(cm.x - f.x0) + " / " + Math.round(cm.y) + "\" up").join("; ") : ""),
     "Backdrop: " + bdName + (P.bg.backdrop !== "none" ? ", " + P.bg.overhang + "\" past the grid on sides and top" : ""),
+    ...(P.bg.stageH > 0 ? ["Stage: " + fmtLen(pstageW()) + " wide x " + fmtLen(P.bg.stageH) + " high; screen heights below are from the deck"] : []),
+    ...(P.bg.ceiling > 0 ? ["Ceiling: " + fmtLen(P.bg.ceiling) + " from the room floor" + (P.bg.ceiling - P.bg.stageH >= B.maxY ? ", " + fmtLen(P.bg.ceiling - P.bg.stageH - B.maxY) + " clear above the screens" : ", screens overshoot by " + fmtLen(B.maxY + P.bg.stageH - P.bg.ceiling))] : []),
     "Playback: " + Math.ceil(all.length / 2) + " Raspberry Pi 5 boards (2 HDMI outputs each), one shared mic and camera",
     "",
     "Screen positions (centre x from grid left edge, bottom edge height from floor, inches):",
@@ -7237,7 +7333,7 @@ $("copySpec").addEventListener("click", () => {
 });
 $("loadLayout").addEventListener("click", () => {
   try { papply(JSON.parse($("layoutBox").value)); pcommit(); ptoast("Layout loaded."); }
-  catch (e) { ptoast("That isn't pile layout code. Copy it again with Copy layout code."); }
+  catch (e) { ptoast("That isn't layout code. Copy it again with Copy layout code."); }
 });
 
 const syncPreview = seg("previewSeg", "preview", () => preview, v => {
