@@ -49,19 +49,21 @@ arrangement decides whether the pile concept survives at all, or whether it
 becomes a conventional flat video wall — which is the thing this was
 deliberately not meant to be.
 
-### Known defect in the AV spec
+### Playback in the AV spec (fixed in 0.9.69)
 
-`Copy spec for AV` hardcodes a playback line reading
-`N Raspberry Pi 5 boards (2 HDMI outputs each)`. That is wrong on both paths:
-Pis were ruled out on GPU grounds, and an LED build needs one machine with one
-output. Remove it or drive it from a Playback choice (Separate displays / LED
-panels) before the spec goes to AV.
+`Copy spec for AV` used to hardcode `N Raspberry Pi 5 boards (2 HDMI outputs
+each)`, wrong on both paths. Pile layout now has a **Playback** switch,
+Separate displays or LED panels, saved with the layout, and the spec line and
+the Pile layout figure follow it. Separate displays counts outputs by the
+rules under Zones (a Unified or Scatter screen needs its own output; Mirror
+and Chaos screens share splitter feeds, three to a feed) and spreads them over
+mini PCs at three outputs each. LED panels reads as one machine and one
+output into the processor.
 
 ### Build-anything-now list
 
 Safe under either outcome:
 
-- Fix the playback line above.
 - Make the render resolution settable, so the app can output an arbitrary
   canvas size rather than the window's. Needed for whatever number the
   processor returns.

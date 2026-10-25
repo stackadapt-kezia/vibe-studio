@@ -1178,11 +1178,17 @@
         <div class="pstats" style="margin:0 0 10px">
           <div class="pstat"><span>Screens</span><b id="psScreens">0</b></div>
           <div class="pstat"><span>Glass coverage</span><b id="psCover">0%</b></div>
-          <div class="pstat"><span>Pi 5 boards</span><b id="psPis">0</b></div>
+          <div class="pstat"><span id="psPlayLab">Outputs</span><b id="psPis">0</b></div>
           <div class="pstat"><span>Cabinets</span><b id="psCabs">0</b></div>
           <div class="pstat"><span>Cameras</span><b id="psCams">0</b></div>
           <div class="pstat"><span>Overall size</span><b id="psSize">&mdash;</b></div>
           <div class="pstat wide"><span>Screen mix</span><b id="psMix">&mdash;</b></div>
+        </div>
+        <div class="row" style="margin:0 0 10px"><label>Playback</label>
+          <div class="seg mini-seg" id="playSeg" aria-label="Playback">
+            <button data-play="displays" title="Each screen is its own display: one video output per Unified or Scatter screen, splitter feeds for Mirror and Chaos, on mini PCs">Displays</button>
+            <button data-play="led" title="Modular LED tiles: one machine, one output into the LED processor">LED</button>
+          </div>
         </div>
         <div class="btnrow"><button class="pill" id="copySpec">Copy spec for AV</button><button class="pill" id="copyLayout">Copy layout code</button></div>
         <textarea id="layoutBox" aria-label="Layout code" placeholder="Paste layout code here, then Load"></textarea>
@@ -1240,12 +1246,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.68";  // wall photo on the room floor, doors, scaffold and truss rigs
+const APP_VERSION = "0.9.69";  // the spec's playback line follows a Playback choice
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.69", "Multi-screen: Pile layout has a Playback switch, Separate displays or LED panels, and the spec\u2019s playback line follows it instead of always counting Raspberry Pi boards. Separate displays counts video outputs the way the deployment notes do: every Unified or Scatter screen needs its own output, Mirror and Chaos screens share splitter feeds three to an output, and the outputs are spread over mini PCs at three each. LED panels reads as one machine driving one output into the LED processor, with the groups as regions of one canvas. The Pi 5 boards figure in Pile layout is now the Playback figure and follows the same choice. The choice is saved with the layout."],
   ["0.9.68", "Multi-screen: the wall photo now stands on the room floor, so a stage deck sits in front of it instead of the photo sitting on the deck. Elements can place a Door on the back wall (36\u2033 \u00d7 80\u2033 to start): set its width and height, make it a double door or hang an exit sign once it is selected. It stands on the room floor, moves left and right only, is left out of the overall width, and the spec lists where each door sits from the grid\u2019s left edge. The Mounting grid has a Rig switch: Pipe (the uprights and rails as before), Scaffold (standards, ledgers and diagonal braces on base jacks) or Truss (12\u2033 box truss towers with a header and rails of truss, on base plates). The field names follow the rig and the spec names it."],
   ["0.9.67", "The ceiling line can be grabbed and dragged up or down (or selected and given a height in its box), with a handle at its centre. Overall width and height count the mounting grid only while it is shown: hide it with the eye and the measurements follow the screens and the stage alone, so a grid left wide no longer pins the width."],
   ["0.9.66", "With a stage set, the backdrop is exactly as wide as the deck and moves and resizes with it; Overhang then applies to the top edge only. Without a stage it spans the grid plus the overhang on each side, as before."],
@@ -6170,7 +6177,16 @@ const P = {
   groups: [gmk()],
   maps: [],                                        // mapping presets: named group setups, see gmapSave
   pitch: 2.5,                                      // the build's pixel pitch in mm, for sizes in px
+  play: "displays",                                // playback: "displays" (one output per screen or splitter feed, on mini PCs) or "led" (one machine into an LED processor)
 };
+const PLAYS = { displays: "Separate displays", led: "LED panels" };
+// video outputs for the separate-display path, by the rules in docs/tv-pile.md: a Unified or Scatter
+// screen needs its own output; Mirror and Chaos screens may share a splitter, three to a feed
+function poutputs() {
+  let own = 0, feeds = 0;
+  for (const g of P.groups) { const n = gscreens(g).length; if (g.mapping === "unified" || g.mapping === "scatter") own += n; else feeds += Math.ceil(n / 3); }
+  return { own, feeds, outputs: own + feeds, machines: Math.ceil((own + feeds) / 3) };
+}
 // sizes in the operator's unit: inches, feet and inches, centimetres, or pixels at the pixel pitch
 const fmtFtIn = v => { let ft = Math.floor(v / 12), inch = Math.round(v - ft * 12); if (inch === 12) { ft++; inch = 0; } return ft + "\u2032 " + inch + "\u2033"; };
 function fmtU(v, unitless) {
@@ -6285,7 +6301,7 @@ function pserialize() {
   return JSON.stringify({
     v: 2, frame: P.frame, bg: P.bg, vis: P.vis,
     groups: P.groups.map(g => ({ id: g.id, name: g.name, mapping: g.mapping, source: g.source, presets: g.presets })),   // source ids are per session
-    maps: P.maps, pitch: P.pitch,
+    maps: P.maps, pitch: P.pitch, play: P.play,
     items: P.items.map(it => it.type === "camera" ? { type: "camera", x: pr1(it.x), y: pr1(it.y) } : it.type === "person" ? { type: "person", x: pr1(it.x), y: 0, ht: it.ht, col: it.col || PERSON_COL } : it.type === "door" ? { type: "door", x: pr1(it.x), y: 0, w: pr1(it.w), h: pr1(it.h), dbl: !!it.dbl, exit: !!it.exit } : it.type === "cab"
       ? { type: "cab", x: pr1(it.x), y: pr1(it.y), w: pr1(it.w), h: pr1(it.h), wood: !!it.wood }
       : { type: "screen", diag: it.diag, portrait: !!it.portrait, x: pr1(it.x), y: pr1(it.y), dead: !!it.dead, g: it.g, cw: it.cw || undefined, ch: it.ch || undefined }),
@@ -6308,6 +6324,7 @@ function papply(d, keepSources) {
     : [gmk({ mapping: MAP_NOTES[d.mapping] ? d.mapping : "unified" })];
   gid = Math.max(gid, ...P.groups.map(g => g.id)) + 1;
   P.pitch = d.pitch > 0 ? +d.pitch : 2.5;
+  P.play = PLAYS[d.play] ? d.play : "displays";
   P.maps = Array.isArray(d.maps) ? d.maps.filter(m => m && typeof m.name === "string" && Array.isArray(m.groups) && Array.isArray(m.screens)).slice(0, 16) : [];
   P.items = d.items.filter(o => o && (o.type === "screen" || o.type === "cab" || o.type === "camera" || (o.type === "person" && o.ht > 0) || (o.type === "door" && o.w > 0 && o.h > 0))).map(pmk);
   psettle();
@@ -7219,7 +7236,10 @@ function pstats() {
   $("psCabs").textContent = P.items.filter(i => i.type === "cab").length;
   $("psCams").textContent = P.items.filter(i => i.type === "camera").length;
   $("psCover").textContent = Math.round(glass / (f.w * f.h) * 100) + "%";
-  $("psPis").textContent = Math.ceil(all.length / 2);
+  const o = poutputs();
+  $("psPlayLab").textContent = P.play === "led" ? "Playback" : "Outputs";
+  $("psPis").textContent = P.play === "led" ? "1 machine" : o.outputs + " on " + o.machines + (o.machines === 1 ? " PC" : " PCs");
+  document.querySelectorAll("#playSeg button").forEach(b => b.classList.toggle("active", b.dataset.play === P.play));
   $("psSize").textContent = fmtLen(B.w) + " × " + ftHint(B.h);
   $("psMix").textContent = pmix(all).map(([k, n]) => n + "\u00d7 " + k).join(", ") || "No screens yet";
 }
@@ -7366,6 +7386,7 @@ $("addCamera").addEventListener("click", paddCamera);
 $("addPerson").addEventListener("click", paddPerson);
 $("addDoor").addEventListener("click", paddDoor);
 seg("rigSeg", "rig", () => P.frame.kind, v => { P.frame.kind = v; roomDirty = true; pcommit(); });
+seg("playSeg", "play", () => P.play, v => { P.play = v; pcommit(); });
 $("snapX").addEventListener("change", e => { pui.snapX = e.target.checked; });
 $("snapSize").addEventListener("change", e => { pui.snapSize = e.target.checked; });
 const segUnit = seg("unitSeg", "unit", () => pui.units, v => {
@@ -7572,7 +7593,7 @@ $("copySpec").addEventListener("click", () => {
   const f = P.frame, g = pgrid(), B = pbounds(), all = pscreens();
   const bdName = { none: "None", drape: "Black drape", gradient: "Printed fabric, palette gradient", tiles: "Printed fabric, palette tiles",
                    solid: "Solid colour " + P.bg.solid, image: "Printed fabric, custom artwork" }[P.bg.backdrop];
-  const portraits = all.filter(s => s.portrait).length, cams = P.items.filter(i => i.type === "camera"), doors = P.items.filter(i => i.type === "door"), rig = RIGS[f.kind] || RIGS.pipe;
+  const portraits = all.filter(s => s.portrait).length, cams = P.items.filter(i => i.type === "camera"), doors = P.items.filter(i => i.type === "door"), rig = RIGS[f.kind] || RIGS.pipe, out = poutputs();
   const lines = [
     "Multi-screen installation, Conversion 2027",
     "Overall: " + fmtLen(B.w) + " wide x " + fmtLen(B.h) + " tall",
@@ -7586,7 +7607,9 @@ $("copySpec").addEventListener("click", () => {
     "Backdrop: " + bdName + (P.bg.backdrop === "none" ? "" : P.bg.stageH > 0 ? ", as wide as the stage, " + P.bg.overhang + "\" past the grid top" : ", " + P.bg.overhang + "\" past the grid on sides and top"),
     ...(P.bg.stageH > 0 ? ["Stage: " + fmtLen(pstageW()) + " wide x " + fmtLen(P.bg.stageH) + " high" + (P.bg.stageX ? ", centre " + fmtLen(Math.abs(P.bg.stageX)) + (P.bg.stageX > 0 ? " right" : " left") + " of the grid centre" : ", centred on the grid") + "; screen heights below are from the deck"] : []),
     ...(P.bg.ceiling > 0 ? ["Ceiling: " + fmtLen(P.bg.ceiling) + " from the room floor" + (P.bg.ceiling - P.bg.stageH >= B.maxY ? ", " + fmtLen(P.bg.ceiling - P.bg.stageH - B.maxY) + " clear above the screens" : ", screens overshoot by " + fmtLen(B.maxY + P.bg.stageH - P.bg.ceiling))] : []),
-    "Playback: " + Math.ceil(all.length / 2) + " Raspberry Pi 5 boards (2 HDMI outputs each), one shared mic and camera",
+    P.play === "led"
+      ? "Playback: LED panels, one machine driving one output into the LED processor; the groups are regions of one canvas"
+      : "Playback: separate displays, " + out.outputs + " video outputs (" + out.own + " for the Unified and Scatter screens, one each; " + out.feeds + " splitter feeds for the Mirror and Chaos screens, up to 3 screens per feed) on " + out.machines + " mini PC" + (out.machines === 1 ? "" : "s") + " at 3 outputs each; one shared mic and camera on the master",
     "",
     "Screen positions (centre x from grid left edge, bottom edge height from the deck, in " + unitName() + "):",
     ...all.slice().sort((a, b) => a.x - b.x).map((s, i) =>
