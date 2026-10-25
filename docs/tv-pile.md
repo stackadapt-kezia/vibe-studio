@@ -69,13 +69,14 @@ Safe under either outcome:
 ## What exists
 
 Output has a TV pile preview beside Full frame: screens laid out in inches,
-dragged and resized, with speaker cabinets, a mounting grid of uprights and
+dragged and resized (TV diagonals, or since 0.9.58 custom panels with their
+own width and height, for the LED-tile path), with speaker cabinets, a mounting grid of uprights and
 rails, a backdrop (wall, photo of the real wall scaled to feet, drape, palette
 fabric, solid colour or artwork), event-dim or bright-lobby lighting, and
 **Copy spec for AV**. The layout persists in this browser.
 
 The renderer draws one frame into `fin` and `drawPileScreens()` slices it onto
-each screen. Every screen belongs to one **group** (up to five), and each group
+each screen. Every screen belongs to one **group** (up to ten since 0.9.57), and each group
 carries its own mapping:
 
 | Mapping | What it does |
