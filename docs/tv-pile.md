@@ -85,7 +85,15 @@ read in the operator's unit (0.9.64): inches, feet and inches, centimetres,
 or pixels at a pixel pitch saved with the layout, and the AV spec follows,
 so an LED build can be specified in pixels directly. With a stage set, the
 backdrop is locked to the deck's width and position (0.9.66), the overhang
-applying to the top only.
+applying to the top only. Since 0.9.68 the wall photo stands on the room
+floor rather than on the deck, Elements can place a **Door** in the back wall
+(single or double, settable size, optional exit sign; it keeps to the room
+floor, moves sideways only, and is listed in the spec by its distance from
+the grid's left edge but left out of the overall width), and the mounting
+grid has a **Rig** switch: Pipe, Scaffold (standards in bays, ledgers at each
+lift, braces) or Truss (12-inch box truss towers with a header). The rig
+changes the drawing, the field names and the spec line; snapping and the
+grid geometry are the same for all three.
 
 Output has a Multi-screen preview beside Full frame: screens laid out in inches,
 dragged and resized (TV diagonals, or since 0.9.58 custom panels with their

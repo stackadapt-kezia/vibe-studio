@@ -1112,7 +1112,7 @@
       <fieldset>
         <legend>Elements<button class="eye" type="button" data-vis="devices" aria-pressed="true" aria-label="Show or hide the elements" title="Show or hide the elements"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
         <div class="chips" id="addSizes"></div>
-        <div class="chips"><button class="chip add" id="addCab">Speaker cabinet</button><button class="chip add" id="addCamera">Camera</button><button class="chip add" id="addPerson" title="A standing figure for scale; set its height once selected">Person</button></div>
+        <div class="chips"><button class="chip add" id="addCab">Speaker cabinet</button><button class="chip add" id="addCamera">Camera</button><button class="chip add" id="addPerson" title="A standing figure for scale; set its height once selected">Person</button><button class="chip add" id="addDoor" title="A door in the back wall, standing on the room floor; set its size once selected">Door</button></div>
         <label class="check"><input type="checkbox" id="snapX" checked> Snap to uprights</label>
         <label class="check"><input type="checkbox" id="snapSize" checked> Snap to real TV sizes</label>
         <label class="check"><input type="checkbox" id="pLabels"> Show sizes on screens</label>
@@ -1128,11 +1128,18 @@
 
       <fieldset>
         <legend>Mounting grid<button class="eye" type="button" data-vis="grid" aria-pressed="true" aria-label="Show or hide the mounting grid" title="Show or hide the mounting grid"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
-        <div class="gfields">
+        <div class="row"><label>Rig</label>
+          <div class="seg mini-seg" id="rigSeg" aria-label="Rig type">
+            <button data-rig="pipe" title="Steel pipe uprights and horizontal rails">Pipe</button>
+            <button data-rig="scaffold" title="Modular scaffold: standards in bays, ledgers at each lift, diagonal braces">Scaffold</button>
+            <button data-rig="truss" title="12-inch box truss towers with a header and rails of truss">Truss</button>
+          </div>
+        </div>
+        <div class="gfields" style="margin-top:10px">
           <label><span>Width in</span><input type="number" class="num" id="gW" min="24" max="720"><output id="gWft"></output></label>
           <label><span>Height in</span><input type="number" class="num" id="gH" min="24" max="240"><output id="gHft"></output></label>
-          <label><span>Uprights in</span><input type="number" class="num" id="gP" min="12" max="96"><output id="gPn"></output></label>
-          <label><span>Rails in</span><input type="number" class="num" id="gR" min="12" max="120"><output>spacing</output></label>
+          <label><span id="gPLab">Uprights in</span><input type="number" class="num" id="gP" min="12" max="96"><output id="gPn"></output></label>
+          <label><span id="gRLab">Rails in</span><input type="number" class="num" id="gR" min="12" max="120"><output>spacing</output></label>
         </div>
       </fieldset>
 
@@ -1233,12 +1240,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.67";  // ceiling drags; the hidden grid stops counting in the overall size
+const APP_VERSION = "0.9.68";  // wall photo on the room floor, doors, scaffold and truss rigs
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.68", "Multi-screen: the wall photo now stands on the room floor, so a stage deck sits in front of it instead of the photo sitting on the deck. Elements can place a Door on the back wall (36\u2033 \u00d7 80\u2033 to start): set its width and height, make it a double door or hang an exit sign once it is selected. It stands on the room floor, moves left and right only, is left out of the overall width, and the spec lists where each door sits from the grid\u2019s left edge. The Mounting grid has a Rig switch: Pipe (the uprights and rails as before), Scaffold (standards, ledgers and diagonal braces on base jacks) or Truss (12\u2033 box truss towers with a header and rails of truss, on base plates). The field names follow the rig and the spec names it."],
   ["0.9.67", "The ceiling line can be grabbed and dragged up or down (or selected and given a height in its box), with a handle at its centre. Overall width and height count the mounting grid only while it is shown: hide it with the eye and the measurements follow the screens and the stage alone, so a grid left wide no longer pins the width."],
   ["0.9.66", "With a stage set, the backdrop is exactly as wide as the deck and moves and resizes with it; Overhang then applies to the top edge only. Without a stage it spans the grid plus the overhang on each side, as before."],
   ["0.9.65", "The selected stage deck has handles on its sides and on its top and bottom: drag a side to set its width (the other side stays put), the top or bottom to set its height. The deck now counts toward Overall width on the stage and in the AV spec."],
@@ -6155,7 +6163,7 @@ function gmk(o = {}) {
            source: o.source != null ? o.source : "stage", presets: Array.isArray(o.presets) ? o.presets.slice() : [] };
 }
 const P = {
-  frame: { x0: 0, w: 240, h: 108, pitch: 30, rail: 48, show: true },
+  frame: { x0: 0, w: 240, h: 108, pitch: 30, rail: 48, show: true, kind: "pipe" },   // kind: pipe, scaffold or truss
   items: [],
   bg: { wall: "plain", backdrop: "drape", solid: "#0061FF", overhang: 12, light: "dim", photoFt: 20, ceiling: 0, stageH: 0, stageW: 0 },   // inches; 0 = none (stageW 0 = as wide as the grid)
   vis: { devices: true, bg: true },                // the grid's own flag is frame.show
@@ -6209,6 +6217,7 @@ function pdims(it) {
   if (it.type === "camera") return { w: 6, h: 4 };
   if (it.type === "cab") return { w: it.w, h: it.h };
   if (it.type === "person") return { w: it.ht * 0.36, h: it.ht };
+  if (it.type === "door") return { w: it.w, h: it.h };
   let gw = it.diag * 16 / PK, gh = it.diag * 9 / PK;
   if (it.cw > 0 && it.ch > 0) { gw = it.cw; gh = it.ch; }      // a custom panel: its own glass width and height
   if (it.portrait) [gw, gh] = [gh, gw];
@@ -6232,6 +6241,11 @@ function pmix(all) {
 }
 const pscreens = () => P.items.filter(i => i.type === "screen");
 const pr1 = v => Math.round(v * 10) / 10;
+// the rig the screens hang on, and what its parts are called
+const RIGS = { pipe: ["Pipe grid", "Uprights", "Rails", "upright", "rail"], scaffold: ["Scaffold", "Bays", "Lifts", "standard", "ledger"], truss: ["Truss", "Towers", "Rails", "tower", "truss run"] };
+const TRUSS_W = 12;                                   // box truss, inches across
+// the horizontal runs the rig actually draws: a truss has none down at the floor, it stands on base plates
+const prigRails = g => P.frame.kind === "truss" ? g.rails.filter(y => y >= TRUSS_W) : g.rails;
 function pgrid() {
   const f = P.frame, n = Math.max(1, Math.round(f.w / f.pitch)), sp = f.w / n;
   const rails = [f.h];
@@ -6244,7 +6258,7 @@ function pbounds() {
   let a = Infinity, b = -Infinity, t = 0;
   if (P.frame.show) { a = f.x0; b = f.x0 + f.w; t = f.h; }   // the grid counts only while it is shown
   for (const it of P.items) {
-    if (it.type === "person") continue;             // a scale figure is not part of the build
+    if (it.type === "person" || it.type === "door") continue;   // a scale figure and the room's doors are not part of the build
     const d = pdims(it);
     a = Math.min(a, it.x - d.w / 2); b = Math.max(b, it.x + d.w / 2); t = Math.max(t, it.y + d.h);
   }
@@ -6272,7 +6286,7 @@ function pserialize() {
     v: 2, frame: P.frame, bg: P.bg, vis: P.vis,
     groups: P.groups.map(g => ({ id: g.id, name: g.name, mapping: g.mapping, source: g.source, presets: g.presets })),   // source ids are per session
     maps: P.maps, pitch: P.pitch,
-    items: P.items.map(it => it.type === "camera" ? { type: "camera", x: pr1(it.x), y: pr1(it.y) } : it.type === "person" ? { type: "person", x: pr1(it.x), y: 0, ht: it.ht, col: it.col || PERSON_COL } : it.type === "cab"
+    items: P.items.map(it => it.type === "camera" ? { type: "camera", x: pr1(it.x), y: pr1(it.y) } : it.type === "person" ? { type: "person", x: pr1(it.x), y: 0, ht: it.ht, col: it.col || PERSON_COL } : it.type === "door" ? { type: "door", x: pr1(it.x), y: 0, w: pr1(it.w), h: pr1(it.h), dbl: !!it.dbl, exit: !!it.exit } : it.type === "cab"
       ? { type: "cab", x: pr1(it.x), y: pr1(it.y), w: pr1(it.w), h: pr1(it.h), wood: !!it.wood }
       : { type: "screen", diag: it.diag, portrait: !!it.portrait, x: pr1(it.x), y: pr1(it.y), dead: !!it.dead, g: it.g, cw: it.cw || undefined, ch: it.ch || undefined }),
   });
@@ -6280,6 +6294,7 @@ function pserialize() {
 function papply(d, keepSources) {
   if (!d || !d.frame || !Array.isArray(d.items)) throw new Error("not a pile layout");
   Object.assign(P.frame, d.frame);
+  if (!RIGS[P.frame.kind]) P.frame.kind = "pipe";
   if (d.bg) Object.assign(P.bg, d.bg);
   P.vis = { devices: true, bg: true }; if (d.vis) Object.assign(P.vis, d.vis);
   if (P.bg.wall !== "photo") P.bg.wall = "plain";
@@ -6294,14 +6309,18 @@ function papply(d, keepSources) {
   gid = Math.max(gid, ...P.groups.map(g => g.id)) + 1;
   P.pitch = d.pitch > 0 ? +d.pitch : 2.5;
   P.maps = Array.isArray(d.maps) ? d.maps.filter(m => m && typeof m.name === "string" && Array.isArray(m.groups) && Array.isArray(m.screens)).slice(0, 16) : [];
-  P.items = d.items.filter(o => o && (o.type === "screen" || o.type === "cab" || o.type === "camera" || (o.type === "person" && o.ht > 0))).map(pmk);
+  P.items = d.items.filter(o => o && (o.type === "screen" || o.type === "cab" || o.type === "camera" || (o.type === "person" && o.ht > 0) || (o.type === "door" && o.w > 0 && o.h > 0))).map(pmk);
+  psettle();
   for (const it of P.items) if (it.type === "screen" && !P.groups.some(g => g.id === it.g)) it.g = P.groups[0].id;
   if (gpaint !== null && !P.groups.some(g => g.id === gpaint)) gpaint = null;
   psel = null;
 }
 const phist = [];
+// doors stand on the room floor, which is the deck's height below the layout floor
+function psettle() { for (const it of P.items) if (it.type === "door") it.y = -P.bg.stageH; }
 function psave() { try { localStorage.setItem(PSTORE, pserialize()); } catch (e) { /* storage blocked */ } }
 function pcommit() {
+  psettle();
   const s = pserialize();
   if (phist[phist.length - 1] !== s) { phist.push(s); if (phist.length > 80) phist.shift(); }
   psave(); prefresh();
@@ -6350,6 +6369,12 @@ function paddPerson() {
   pfreeSpot(it); it.x = pbdX().l - 42;              // stands beside the wall, clear of the height scale
   P.items.push(it); psel = { kind: "item", it }; pcommit();
 }
+function paddDoor() {
+  const it = pmk({ type: "door", w: 36, h: 80, dbl: false, exit: false, x: 0, y: -P.bg.stageH });
+  const edge = Math.max(pbdX().r + 48, ...P.items.filter(i => i.type === "door").map(d => d.x + d.w / 2 + 24));
+  it.x = edge + it.w / 2;                           // on the wall past the build, clear of any door already there
+  P.items.push(it); psel = { kind: "item", it }; pcommit();
+}
 function paddCab() {
   const it = pmk({ type: "cab", w: 22, h: 34, wood: Math.random() < 0.5, x: 0, y: 0 });
   pfreeSpot(it); P.items.push(it); psel = { kind: "item", it }; pcommit();
@@ -6373,7 +6398,7 @@ function pfit() {
   const ins = pileInsets();
   pInsetKey = Math.round(ins.l) + "," + Math.round(ins.b);
   const B = pbounds(), o = P.bg.backdrop !== "none" ? P.bg.overhang : 0, bdx = pbdX();
-  const people = P.items.filter(i => i.type === "person");   // framed, though not measured
+  const people = P.items.filter(i => i.type === "person" || i.type === "door");   // framed, though not measured
   const pMin = Math.min(Infinity, ...people.map(i => i.x - pdims(i).w / 2)), pMax = Math.max(-Infinity, ...people.map(i => i.x + pdims(i).w / 2));
   const sMin = P.bg.stageH > 0 ? pstageCX() - pstageW() / 2 - 12 : Infinity, sMax = P.bg.stageH > 0 ? pstageCX() + pstageW() / 2 + 12 : -Infinity;
   const minX = Math.min(B.minX, bdx.l, pMin, sMin) - 40, maxX = Math.max(B.maxX, bdx.r, pMax, sMax) + 30;
@@ -6412,7 +6437,7 @@ function drawRoom() {
   if (P.bg.wall === "photo" && photoImg && P.vis.bg) {
     plain();
     const B = pbounds(), cx = (B.minX + B.maxX) / 2, pw = P.bg.photoFt * 12, ph = pw * photoImg.height / photoImg.width;
-    c.drawImage(photoImg, PX(cx - pw / 2), PY(ph), pw * psc, ph * psc);
+    c.drawImage(photoImg, PX(cx - pw / 2), PY(ph - P.bg.stageH), pw * psc, ph * psc);   // its bottom edge is the room floor, so the deck stands in front of it
   } else plain();
 
   const yRoom = pfloor + pdeckPx();
@@ -6493,17 +6518,7 @@ function drawPileBg() {
     c.fillStyle = gr; c.fillRect(0, 0, pW, pH);
   }
   const f = P.frame;
-  if (f.show) {
-    const g = pgrid(), pw = Math.max(1.5 * pdpr, PIPE * psc);
-    c.fillStyle = dim ? "#20263A" : "#3A3F4C";
-    for (const y of g.rails) c.fillRect(PX(f.x0) - pw / 2, PY(y) - pw / 2, f.w * psc + pw, pw);
-    for (let i = 0; i <= g.n; i++) {
-      const x = PX(f.x0 + i * g.sp);
-      c.fillStyle = dim ? "#262D42" : "#454B59"; c.fillRect(x - pw / 2, PY(f.h) - pw / 2, pw, f.h * psc + pw / 2);
-      c.fillStyle = "rgba(255,255,255,0.10)"; c.fillRect(x - pw / 2, PY(f.h) - pw / 2, Math.max(pdpr, pw * 0.25), f.h * psc);
-      c.fillStyle = dim ? "#14182A" : "#2E323C"; c.fillRect(x - pw * 3, pfloor - pw * 0.6, pw * 6, pw * 0.6);
-    }
-  }
+  if (f.show) drawRig(c, dim);
   if (P.vis.devices) for (const it of P.items) {
     const d = pdims(it), x = PX(it.x - d.w / 2), y = PY(it.y + d.h), w = d.w * psc, h = d.h * psc;
     if (it.type === "cab") {
@@ -6520,6 +6535,8 @@ function drawPileBg() {
       }
     } else if (it.type === "person") {
       // drawn in the overlay, over the screens: see drawPileFg
+    } else if (it.type === "door") {
+      drawDoor(c, it, x, y, w, h);
     } else if (it.type === "camera") {                 // a small box with a lens
       prr(c, x, y, w, h, 1.5 * pdpr); c.fillStyle = "#1A1A20"; c.fill();
       c.strokeStyle = "rgba(255,255,255,0.14)"; c.lineWidth = pdpr; c.stroke();
@@ -6532,6 +6549,86 @@ function drawPileBg() {
       prr(c, x, y, w, h, 1.2 * pdpr); c.fillStyle = "#0B0C10"; c.fill();
       c.strokeStyle = "rgba(255,255,255,0.10)"; c.lineWidth = pdpr; c.stroke();
     }
+  }
+}
+
+// the rig: a pipe grid of uprights and rails, a modular scaffold, or box truss
+function drawRig(c, dim) {
+  const f = P.frame, g = pgrid(), rails = prigRails(g), x0 = PX(f.x0), x1 = PX(f.x0 + f.w), yT = PY(f.h);
+  const pw = Math.max(1.5 * pdpr, PIPE * psc);
+  if (f.kind === "scaffold") {                          // galvanised tube: standards, ledgers, a brace across every bay, base jacks
+    const tube = dim ? "#5A6070" : "#8B909C", tubeHi = "rgba(255,255,255,0.18)", coupler = dim ? "#2E3340" : "#4A4F5C";
+    c.fillStyle = tube;
+    for (const y of rails) c.fillRect(x0 - pw / 2, PY(y) - pw / 2, f.w * psc + pw, pw);
+    for (let i = 0; i <= g.n; i++) {
+      const x = PX(f.x0 + i * g.sp);
+      c.fillStyle = tube; c.fillRect(x - pw / 2, yT - pw / 2, pw, f.h * psc + pw / 2);
+      c.fillStyle = tubeHi; c.fillRect(x - pw / 2, yT - pw / 2, Math.max(pdpr, pw * 0.3), f.h * psc);
+      c.fillStyle = coupler; c.fillRect(x - pw * 2.2, pfloor - pw * 0.8, pw * 4.4, pw * 0.8);   // base jack
+      c.fillRect(x - pw * 0.9, pfloor - pw * 3, pw * 1.8, pw * 2.2);
+    }
+    c.strokeStyle = dim ? "rgba(140,148,170,0.55)" : "rgba(120,126,140,0.75)"; c.lineWidth = Math.max(pdpr, pw * 0.7); c.lineCap = "round";
+    const ys = rails.slice().sort((a, b) => a - b);     // braces run between neighbouring ledgers, alternating direction bay by bay
+    for (let i = 0; i < g.n; i++) for (let j = 0; j + 1 < ys.length; j++) {
+      const xa = PX(f.x0 + i * g.sp), xb = PX(f.x0 + (i + 1) * g.sp), flip = (i + j) % 2;
+      c.beginPath(); c.moveTo(flip ? xb : xa, PY(ys[j])); c.lineTo(flip ? xa : xb, PY(ys[j + 1])); c.stroke();
+    }
+    c.fillStyle = coupler;                               // couplers where ledgers meet standards
+    for (const y of rails) for (let i = 0; i <= g.n; i++) { const x = PX(f.x0 + i * g.sp); c.fillRect(x - pw * 0.9, PY(y) - pw * 0.9, pw * 1.8, pw * 1.8); }
+    return;
+  }
+  if (f.kind === "truss") {                             // aluminium box truss: two chords with zigzag lacing, towers and header
+    const tw = Math.max(4 * pdpr, TRUSS_W * psc), cw = Math.max(pdpr, 1.6 * psc), lace = Math.max(pdpr, 0.9 * psc);
+    const chord = dim ? "#7C8290" : "#B4B9C4", lacing = dim ? "rgba(160,166,180,0.6)" : "rgba(150,156,170,0.8)", plate = dim ? "#2E3340" : "#4A4F5C";
+    const run = (ax, ay, bx, by) => {                     // a straight truss from a to b (canvas px), tw across
+      const L = Math.hypot(bx - ax, by - ay), ang = Math.atan2(by - ay, bx - ax);
+      c.save(); c.translate(ax, ay); c.rotate(ang);
+      c.fillStyle = chord; c.fillRect(0, -tw / 2, L, cw); c.fillRect(0, tw / 2 - cw, L, cw);
+      c.strokeStyle = lacing; c.lineWidth = lace; c.lineCap = "round"; c.beginPath();
+      const step = tw * 0.9, n = Math.max(1, Math.round(L / step)), st = L / n;
+      for (let k = 0; k <= n; k++) { const x = k * st, y = k % 2 ? -tw / 2 + cw : tw / 2 - cw; if (k) c.lineTo(x, y); else c.moveTo(x, y); }
+      c.stroke();
+      c.fillStyle = plate; c.fillRect(-cw, -tw / 2, cw, tw); c.fillRect(L, -tw / 2, cw, tw);   // end plates
+      c.restore();
+    };
+    for (let i = 0; i <= g.n; i++) {                     // towers, with a base plate wider than the truss
+      const x = PX(f.x0 + i * g.sp);
+      run(x, pfloor, x, yT);
+      c.fillStyle = plate; c.fillRect(x - tw * 1.1, pfloor - Math.max(pdpr, 1.2 * psc), tw * 2.2, Math.max(pdpr, 1.2 * psc));
+    }
+    for (const y of rails) { const yc = y >= f.h - TRUSS_W / 2 ? f.h - TRUSS_W / 2 : y; run(x0 - tw / 2, PY(yc), x1 + tw / 2, PY(yc)); }   // the header sits under the top
+    return;
+  }
+  // pipe: the plain grid
+  c.fillStyle = dim ? "#20263A" : "#3A3F4C";
+  for (const y of rails) c.fillRect(x0 - pw / 2, PY(y) - pw / 2, f.w * psc + pw, pw);
+  for (let i = 0; i <= g.n; i++) {
+    const x = PX(f.x0 + i * g.sp);
+    c.fillStyle = dim ? "#262D42" : "#454B59"; c.fillRect(x - pw / 2, yT - pw / 2, pw, f.h * psc + pw / 2);
+    c.fillStyle = "rgba(255,255,255,0.10)"; c.fillRect(x - pw / 2, yT - pw / 2, Math.max(pdpr, pw * 0.25), f.h * psc);
+    c.fillStyle = dim ? "#14182A" : "#2E323C"; c.fillRect(x - pw * 3, pfloor - pw * 0.6, pw * 6, pw * 0.6);
+  }
+}
+// a door in the back wall: frame, one or two leaves with a handle, an exit sign if asked
+function drawDoor(c, it, x, y, w, h) {
+  const fr = Math.max(pdpr, Math.min(w, h) * 0.04);
+  c.fillStyle = "#6A6F7B"; c.fillRect(x - fr, y - fr, w + 2 * fr, h + fr);          // the frame
+  c.fillStyle = "#4E535E"; c.fillRect(x, y, w, h);                                   // the leaf: a mid grey that reads on a dim or a lit wall
+  const leaves = it.dbl ? 2 : 1, lw = w / leaves;
+  for (let i = 0; i < leaves; i++) {
+    const lx = x + i * lw, m = lw * 0.12;
+    c.strokeStyle = "rgba(0,0,0,0.35)"; c.lineWidth = pdpr; c.strokeRect(lx + m, y + h * 0.08, lw - 2 * m, h * 0.36);   // panels
+    c.strokeRect(lx + m, y + h * 0.52, lw - 2 * m, h * 0.4);
+    if (i) { c.fillStyle = "rgba(0,0,0,0.5)"; c.fillRect(lx - pdpr / 2, y, pdpr, h); }                          // the meeting stile
+    const hx = leaves === 1 ? x + w - lw * 0.18 : i ? lx + lw * 0.14 : lx + lw - lw * 0.14;                       // handles meet in the middle
+    c.fillStyle = "#D4D8E0"; c.fillRect(hx - Math.max(pdpr, w * 0.02), y + h * 0.47, Math.max(2 * pdpr, w * 0.04), Math.max(2 * pdpr, h * 0.06));
+  }
+  if (it.exit) {
+    const sw = Math.max(14 * pdpr, w * 0.6), sh = sw * 0.36, sx = x + w / 2 - sw / 2, sy = y - fr - sh - Math.max(2 * pdpr, h * 0.03);
+    c.fillStyle = "#13341C"; c.fillRect(sx, sy, sw, sh);
+    c.strokeStyle = "rgba(255,255,255,0.18)"; c.lineWidth = pdpr; c.strokeRect(sx, sy, sw, sh);
+    c.fillStyle = "#6CF08A"; c.font = "700 " + sh * 0.68 + 'px "Space Grotesk", sans-serif'; c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillText("EXIT", sx + sw / 2, sy + sh / 2 + sh * 0.04);
   }
 }
 
@@ -6795,7 +6892,7 @@ function phandles() {
     const it = psel.it; if (it.type === "camera" || it.type === "person") return [];   // sized by their fields, not by dragging
     const d = pdims(it), l = it.x - d.w / 2, r = it.x + d.w / 2, b = it.y, t = it.y + d.h;
     const hs = [{ k: "tl", x: l, y: t }, { k: "tr", x: r, y: t }, { k: "bl", x: l, y: b }, { k: "br", x: r, y: b }];
-    if (it.type === "cab" || pcustom(it))                                // free shapes resize from their edges too
+    if (it.type === "cab" || it.type === "door" || pcustom(it))          // free shapes resize from their edges too
       hs.push({ k: "l", x: l, y: (b + t) / 2 }, { k: "r", x: r, y: (b + t) / 2 }, { k: "t", x: it.x, y: t }, { k: "b", x: it.x, y: b });
     return hs;
   }
@@ -7037,13 +7134,14 @@ pileFg.addEventListener("pointermove", e => {
       if (Math.abs(sx - nx) * psc < 14 * pdpr) nx = sx;
     }
     if (ny * psc < 10 * pdpr) ny = 0;
+    if (it.type === "door") ny = -P.bg.stageH;                               // a door is part of the room: it stays on the room floor
     it.x = Math.round(nx * 2) / 2; it.y = Math.round(ny * 2) / 2;
     pileFg.style.cursor = "grabbing";
   } else if (pdrag.type === "resize") {
     const it = pdrag.it, k = pdrag.k, sx = k.includes("l") ? -1 : 1, sy = k.includes("t") ? 1 : -1, d0 = pdims(it);
     const ww = k === "t" || k === "b" ? d0.w : Math.max(6, (w.x - pdrag.ax) * sx);   // an edge handle moves one dimension only
     const hh = k === "l" || k === "r" ? d0.h : Math.max(6, (w.y - pdrag.ay) * sy);
-    if (it.type === "cab") { it.w = Math.round(ww); it.h = Math.round(hh); }
+    if (it.type === "cab" || it.type === "door") { it.w = Math.round(ww); it.h = Math.round(hh); }
     else if (pcustom(it)) {
       const gw = Math.max(4, Math.round(ww - 2 * BEZEL)), gh = Math.max(4, Math.round(hh - 2 * BEZEL));
       if (it.portrait) { it.cw = gh; it.ch = gw; } else { it.cw = gw; it.ch = gh; }
@@ -7067,7 +7165,7 @@ pileFg.addEventListener("pointermove", e => {
     else if (k === "r") { const r = Math.max(l0 + 24, Math.round(w.x)); P.bg.stageW = r - l0; P.bg.stageX = Math.round((l0 + r) / 2 - gcx); }
     else if (k === "t") P.bg.stageH = Math.max(2, Math.min(240, Math.round(pdrag.h0 + w.y)));
     else P.bg.stageH = Math.max(2, Math.min(240, Math.round(-w.y)));
-    roomDirty = true; psyncBg();
+    psettle(); roomDirty = true; psyncBg();
   } else if (pdrag.type === "stage-move") {
     P.bg.stageX = Math.round(pdrag.x0 + (w.x - pdrag.w0.x)); roomDirty = true;
   } else if (pdrag.type === "frame-move") {
@@ -7103,6 +7201,9 @@ function psyncGrid() {
   const set = (id, v) => { if (document.activeElement !== $(id)) $(id).value = v; };
   set("gW", Math.round(f.w)); set("gH", Math.round(f.h)); set("gP", f.pitch); set("gR", f.rail);
   $("gWft").textContent = ftHint(f.w); $("gHft").textContent = ftHint(f.h); $("gPn").textContent = (g.n + 1) + " up";
+  const R = RIGS[f.kind] || RIGS.pipe;
+  $("gPLab").textContent = R[1] + " in"; $("gRLab").textContent = R[2] + " in";
+  document.querySelectorAll("#rigSeg button").forEach(b => b.classList.toggle("active", b.dataset.rig === f.kind));
   syncEyes();
 }
 function syncEyes() {
@@ -7124,7 +7225,7 @@ function pstats() {
 }
 function pselTitle() {
   if (!psel) return [];
-  if (psel.kind === "frame") return ["Mounting grid"];
+  if (psel.kind === "frame") return ["Mounting grid", (RIGS[P.frame.kind] || RIGS.pipe)[0]];
   if (psel.kind === "ceiling") {
     const gap = pceilY() - pbounds().maxY;
     return ["Ceiling", fmtLen(P.bg.ceiling) + " from the room floor", gap >= 0 ? fmtLen(gap) + " above the screens" : "screens overshoot by " + fmtLen(-gap)];
@@ -7138,6 +7239,7 @@ function pselTitle() {
     ? [psize(it) + (pcustom(it) ? " panel" : " screen"), fmtU(d.w, true) + " \u00d7 " + fmtU(d.h) + " outside", ftHint(it.y) + " up", P.groups.length > 1 ? gname(gof(it)) : ""]
     : it.type === "cab" ? ["Speaker cabinet", Math.round(it.w) + "″ × " + Math.round(it.h) + "″"]
     : it.type === "person" ? ["Person", fmtLen(it.ht) + " tall"]
+    : it.type === "door" ? [(it.dbl ? "Double door" : "Door"), Math.round(it.w) + "\u2033 \u00d7 " + Math.round(it.h) + "\u2033", "on the room floor"]
     : ["Camera", ftHint(it.y) + " up"];
 }
 function psyncSel(full = true) {
@@ -7194,6 +7296,17 @@ function psyncSel(full = true) {
     $("selDead").onchange = e => { it.dead = e.target.checked; pcommit(); };
   } else if (it.type === "camera") {
     box.innerHTML = '<div class="t"></div><div class="btnrow"><button class="pill" id="selDup">Duplicate</button><button class="pill" id="selDel">Remove</button></div>';
+  } else if (it.type === "door") {
+    box.innerHTML = '<div class="t"></div>'
+      + '<div class="row"><label for="selW">Width (in)</label><input type="number" class="num wide" id="selW" min="18" max="240" value="' + Math.round(it.w) + '"></div>'
+      + '<div class="row"><label for="selH">Height (in)</label><input type="number" class="num wide" id="selH" min="60" max="240" value="' + Math.round(it.h) + '"></div>'
+      + '<label class="check"><input type="checkbox" id="selDbl"' + (it.dbl ? " checked" : "") + "> Double door</label>"
+      + '<label class="check"><input type="checkbox" id="selExit"' + (it.exit ? " checked" : "") + "> Exit sign above</label>"
+      + '<div class="btnrow"><button class="pill" id="selDup">Duplicate</button><button class="pill" id="selDel">Remove</button></div>';
+    $("selW").onchange = e => { it.w = Math.max(18, Math.min(240, Math.round(+e.target.value) || it.w)); pcommit(); };
+    $("selH").onchange = e => { it.h = Math.max(60, Math.min(240, Math.round(+e.target.value) || it.h)); pcommit(); };
+    $("selDbl").onchange = e => { it.dbl = e.target.checked; if (it.dbl && it.w < 60) it.w = 72; pcommit(); psyncSel(true); };
+    $("selExit").onchange = e => { it.exit = e.target.checked; pcommit(); };
   } else if (it.type === "person") {
     box.innerHTML = '<div class="t"></div>'
       + '<div class="row"><label for="selHt">Height (in)</label><input type="number" class="num wide" id="selHt" min="30" max="96" value="' + Math.round(it.ht) + '"></div>'
@@ -7251,6 +7364,8 @@ PSIZES.filter(s => s <= 75).forEach(s => {
 $("addCab").addEventListener("click", paddCab);
 $("addCamera").addEventListener("click", paddCamera);
 $("addPerson").addEventListener("click", paddPerson);
+$("addDoor").addEventListener("click", paddDoor);
+seg("rigSeg", "rig", () => P.frame.kind, v => { P.frame.kind = v; roomDirty = true; pcommit(); });
 $("snapX").addEventListener("change", e => { pui.snapX = e.target.checked; });
 $("snapSize").addEventListener("change", e => { pui.snapSize = e.target.checked; });
 const segUnit = seg("unitSeg", "unit", () => pui.units, v => {
@@ -7457,16 +7572,17 @@ $("copySpec").addEventListener("click", () => {
   const f = P.frame, g = pgrid(), B = pbounds(), all = pscreens();
   const bdName = { none: "None", drape: "Black drape", gradient: "Printed fabric, palette gradient", tiles: "Printed fabric, palette tiles",
                    solid: "Solid colour " + P.bg.solid, image: "Printed fabric, custom artwork" }[P.bg.backdrop];
-  const portraits = all.filter(s => s.portrait).length, cams = P.items.filter(i => i.type === "camera");
+  const portraits = all.filter(s => s.portrait).length, cams = P.items.filter(i => i.type === "camera"), doors = P.items.filter(i => i.type === "door"), rig = RIGS[f.kind] || RIGS.pipe;
   const lines = [
     "Multi-screen installation, Conversion 2027",
     "Overall: " + fmtLen(B.w) + " wide x " + fmtLen(B.h) + " tall",
-    "Mounting grid: " + fmtLen(f.w) + " wide x " + fmtLen(f.h) + " tall, " + (g.n + 1) + " uprights at " + g.sp.toFixed(1) + "\" centres, " + g.rails.length + " horizontal rails",
+    "Mounting grid (" + rig[0].toLowerCase() + "): " + fmtLen(f.w) + " wide x " + fmtLen(f.h) + " tall, " + (g.n + 1) + " " + rig[3] + "s at " + g.sp.toFixed(1) + "\" centres, " + prigRails(g).length + " horizontal " + rig[4] + "s" + (f.kind === "truss" ? " (" + TRUSS_W + "\" box truss)" : ""),
     "Screens (" + all.length + "): " + pmix(all).map(([k, n]) => n + " x " + k).join(", ") + (portraits ? " (" + portraits + " portrait)" : "") + "  [sizes in " + unitName() + "]",
     ...(pui.units === "px" ? ["Pixel pitch: " + P.pitch + " mm"] : []),
     "Groups: " + P.groups.map(g => gname(g) + " (" + MAP_NAMES[g.mapping] + ", " + gscreens(g).length + " screens)").join("; "),
     "Speaker cabinets (props): " + P.items.filter(i => i.type === "cab").length,
     "Cameras: " + cams.length + (cams.length ? ", " + cams.map(cm => "x " + Math.round(cm.x - f.x0) + " / " + Math.round(cm.y) + "\" up").join("; ") : ""),
+    ...(doors.length ? ["Doors in the back wall (centre x from grid left edge, on the room floor): " + doors.slice().sort((a, b) => a.x - b.x).map(d => (d.dbl ? "double " : "") + Math.round(d.w) + "\" x " + Math.round(d.h) + "\" at " + fmtLen(d.x - f.x0) + (d.exit ? ", exit sign" : "")).join("; ")] : []),
     "Backdrop: " + bdName + (P.bg.backdrop === "none" ? "" : P.bg.stageH > 0 ? ", as wide as the stage, " + P.bg.overhang + "\" past the grid top" : ", " + P.bg.overhang + "\" past the grid on sides and top"),
     ...(P.bg.stageH > 0 ? ["Stage: " + fmtLen(pstageW()) + " wide x " + fmtLen(P.bg.stageH) + " high" + (P.bg.stageX ? ", centre " + fmtLen(Math.abs(P.bg.stageX)) + (P.bg.stageX > 0 ? " right" : " left") + " of the grid centre" : ", centred on the grid") + "; screen heights below are from the deck"] : []),
     ...(P.bg.ceiling > 0 ? ["Ceiling: " + fmtLen(P.bg.ceiling) + " from the room floor" + (P.bg.ceiling - P.bg.stageH >= B.maxY ? ", " + fmtLen(P.bg.ceiling - P.bg.stageH - B.maxY) + " clear above the screens" : ", screens overshoot by " + fmtLen(B.maxY + P.bg.stageH - P.bg.ceiling))] : []),
