@@ -58,6 +58,7 @@ deployed https address; a `file://` copy cannot ask for permission.
 - Runs unattended for hours on a projector. Multi-hour stability beats any
   individual effect.
 - Audio comes from a line feed via a USB audio interface, not a laptop mic.
-- Songs live in the operator's browser (IndexedDB), never in the repo. The one
-  bundled image is `presets/thumb.jpg`, the reference source for preset
-  thumbnails; keep it small, since git keeps every version of a binary.
+- Songs, fonts and loaded pictures live in the operator's browser (IndexedDB),
+  never in the repo; text sources persist in localStorage. The one bundled
+  image is `presets/thumb.jpg`, the reference source for preset thumbnails;
+  keep it small, since git keeps every version of a binary.

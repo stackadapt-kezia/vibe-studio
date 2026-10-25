@@ -27,6 +27,15 @@ carries its own mapping:
 | Scatter | Each screen takes its own drifting crop |
 | Chaos | Each screen plays a different saved preset, up to 8 distinct |
 
+**Mapping presets** (0.9.54) sit under Groups: a named snapshot of the groups
+(name, mapping, source, set list) and of which screen is in which group, saved
+from a pad row and recalled by pressing a pad; the pad matching the wall is
+lit. Screens are matched back by position and size, since item ids are
+reissued on every load, and a held source by kind and name. The presets are
+part of the layout, so they persist with it and travel in Copy layout code.
+This is the "pads: preset recall, per group" line of the control surface,
+done first as on-screen pads.
+
 Unified spreads one picture across the outline of the Unified screens, so a
 central cluster can be Unified while the outer screens run Chaos. A Chaos group
 deals from its own set list, or from the whole library when the set list is

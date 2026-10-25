@@ -578,6 +578,8 @@
   .srclist .thumb { width: 100%; height: 52px; border: 0; border-radius: 0; display: block; }
   .srclist .tmeta { padding: 4px 6px 5px; }
   .srclist .tmeta b { font-size: 11px; }
+  .srclist .tmeta b.rn { cursor: text; }
+  .srclist .tmeta .rnin { width: 100%; padding: 1px 4px; font-size: 11px; border-radius: 3px; }
   .srclist .tmeta small { font-size: 10px; }
   .srclist .track > button { position: absolute; top: 2px; right: 2px; background: rgba(0, 0, 0, .65); border-radius: 999px; font-size: 12px; line-height: 1; padding: 2px 6px; opacity: 0; }
   .srclist .track:hover > button, .srclist .track > button:focus-visible { opacity: 1; }
@@ -633,6 +635,11 @@
     padding: 5px 10px; border-radius: 999px; font: inherit; font-size: 12px; cursor: pointer;
   }
   .chip:hover { border-color: var(--accent); }
+  .chip.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); color: #fff; }
+  .chip .x { margin-left: 7px; color: var(--muted); }
+  .chip .x:hover { color: #fff; }
+  .gmaprow input { flex: 1; min-width: 0; }
+  .gmaprow .pill { flex: 0 0 auto; }
   .chip.add::before { content: "+ "; color: var(--accent); }
   .check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); margin: 6px 0; cursor: pointer; }
   .check input { accent-color: var(--accent); }
@@ -1092,6 +1099,16 @@
       </fieldset>
 
       <fieldset>
+        <legend>Mapping presets</legend>
+        <div class="chips" id="gmapList"></div>
+        <p class="note" id="gmapNote">Save the groups as they are now: which screens, which mapping, which source and set list. Press a pad to bring a setup back.</p>
+        <div class="btnrow gmaprow">
+          <input type="text" id="gmapName" maxlength="24" spellcheck="false" placeholder="Name this mapping" aria-label="Mapping preset name">
+          <button class="pill" id="gmapSave">Save</button>
+        </div>
+      </fieldset>
+
+      <fieldset>
         <legend>Devices<button class="eye" type="button" data-vis="devices" aria-pressed="true" aria-label="Show or hide the devices" title="Show or hide the devices"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
         <div class="chips" id="addSizes"></div>
         <div class="chips"><button class="chip add" id="addCab">Speaker cabinet</button><button class="chip add" id="addCamera">Camera</button></div>
@@ -1205,12 +1222,15 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.53";  // Weight route; grid shift turns contents only; card edge glow; solid-stop beads; pixel sort modes with Drip
+const APP_VERSION = "0.9.56";  // rename kept pictures in the source strip
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.56", "Double-click a picture or video\u2019s name in the Picture Source strip to rename it. Enter keeps the name, Esc cancels, and the new name is remembered for next time and shows in the TV pile group menus."],
+  ["0.9.55", "Pictures stay loaded. Every image and video you add through Media is kept in this browser (alongside your songs and fonts) and comes back as a held source next time you open the app, with nothing put on the stage until you pick it. Text sources come back too, with their copy, font and every slider. Removing a source with \u00d7 forgets it. The last 24 pictures are kept; older ones fall off the shelf."],
+  ["0.9.54", "TV pile: Mapping presets. Under Groups, name the current group setup and press Save, and it becomes a pad: which screens sit in which group, each group\u2019s mapping, its source and its Chaos set list. Press a pad to bring that setup back; the pad that matches what is on the wall is lit. Screens are matched by position and size, so a preset survives moving or adding screens (a screen it doesn\u2019t know joins the first group), and a held source is matched by its name if it is loaded again. Presets save with the layout and travel in Copy layout code. \u00d7 on a pad removes it."],
   ["0.9.53", "Reactivity can drive type weight: a Weight target pumps a text source\u2019s variable font with the music (the text is pre-drawn at seven weights so it costs nothing per frame; it needs a variable font). Grid shift\u2019s Angle now turns what is inside each box while the boxes stay square. The panel hides its scrollbar and the drag handle is invisible: hover the right edge and the cards glow along that side to show it resizes. Beads take solid colours only, each one a stop from the palette rather than a blend between stops, so the bead effect holds. Pixel sort gains a Sort menu: Bright runs (as before), Dark runs, and Drip, where every bright pixel bleeds a sorted trail along Direction for the length of Reach, fading as it goes, for the melting look; Direction 270 drips downward. The TV pile\u2019s sections under Output are cards like the rest, and CLR is three cards: Palette, Brand colours and Swatch sets."],
   ["0.9.52", "The panel is a rail of four round buttons down the left edge, IN (audio and picture sources), CLR (palette), VIS (pattern, then geometry, distort, screen and texture) and OUT (reactivity and output), and the chosen one opens its sections as floating cards beside it, styled like the presets card. In translucent mode the slider tracks go see-through and number fields lose their box. Picture sources wrap into rows and scroll down instead of sideways. Beads are cut sharper: a crisp dark edge round the rim and the hole, a sliver of outer wall on the near side, the inner wall as a hard crescent down the hole, and a milky translucent top like real fusible beads. Text sources can hold several lines, align left, centre or right, set a line gap, vary each character\u2019s size, stretch, grow taller, twist round the centre and bloat or pucker; a Weight slider works on the variable Google Fonts (Inter, Sora, Outfit, Manrope, Roboto Flex, Unbounded and twenty more now in the list). Grid shift gains Angle and Random. Ghost fills the last Screen slot: a second print of the frame offset along Direction. Date stamp is now Stamp: type what it says (with {date}, {time} and {year}) and pick its font."],
   ["0.9.51", "The panel is four tabs: Sources (Audio and Picture), Look (Pattern with its controls beneath it, then Palette), Layers (Geometry, Distort, Screen and Texture, in the order they run) and Stage (Reactivity and Output, including the TV pile). The Look section is gone: a pattern\u2019s own rows sit under the pattern picker, and only the ones that pattern uses appear. The picture patterns are headed Image reactive, and every mode table runs four across to save height. Reactivity routes gain Screen, Texture, Blur and Geometry as targets; Size and Warp are named after what they mean for the current pattern (Bead size, Shine, Yarn\u2026); and Motion now really moves, running the pattern up to four times faster."],
@@ -3863,9 +3883,10 @@ function addSource(el, w, h, name, kind, extra = {}) {
     if (old) removeSource(old, true);
   }
   const live = kind === "video" || kind === "tab" || kind === "camera";
-  const sc = { id: srcSeq++, kind, name, el, w, h, video: live ? el : null, stream: extra.stream || null, text: extra.text || null, thumb: null, wasPlaying: true };
+  const sc = { id: srcSeq++, kind, name, el, w, h, video: live ? el : null, stream: extra.stream || null, text: extra.text || null, media: extra.media || null, thumb: null, wasPlaying: !extra.quiet };
   sources.push(sc);
-  activateSource(sc);
+  if (extra.quiet) { if (sc.kind === "video") sc.el.pause(); syncSourceUI(); }   // restored: held, not on the stage
+  else activateSource(sc);
   return sc;
 }
 function activateSource(sc) {
@@ -3888,6 +3909,8 @@ function removeSource(sc, quiet) {
   if (sc.video) { sc.video.pause(); if (sc.kind === "video") { sc.video.removeAttribute("src"); sc.video.load(); } }
   if (sc.kind === "camera" && was) stopFaces();
   sources = sources.filter(x => x !== sc);
+  if (sc.media) mediaDel(sc.media).catch(() => {});   // forgotten for next time too
+  if (sc.kind === "text") saveTexts();
   if (sc.tex) { gl.deleteTexture(sc.tex); sc.tex = null; }
   P.groups.forEach(g => { if (g.source === sc.id) g.source = "stage"; });
   if (typeof gsync === "function") gsync();
@@ -3921,6 +3944,10 @@ function syncSourceUI() {
     sc.thumb = th; drawThumb(sc);
     const meta = document.createElement("div"); meta.className = "tmeta";
     const b = document.createElement("b"); b.textContent = sc.name;
+    if (sc.kind === "image" || sc.kind === "video") {
+      b.className = "rn"; b.title = "Double-click to rename";
+      b.addEventListener("dblclick", e => { e.stopPropagation(); renameSource(sc, b); });
+    }
     const sm = document.createElement("small"); barJoin(sm, [KIND_NAME[sc.kind], sc.w + "\u00d7" + sc.h]);
     meta.append(b, sm);
     li.append(th, meta);
@@ -3952,14 +3979,47 @@ function syncSourceUI() {
   imgNoteDefault();
   if (typeof gsync === "function" && preview === "pile") gsync();   // the group Source menus list the held sources
 }
+// rename a kept picture in place: Enter keeps it, Esc puts the old name back
+function renameSource(sc, b) {
+  const inp = document.createElement("input");
+  inp.type = "text"; inp.value = sc.name; inp.maxLength = 48; inp.className = "rnin"; inp.spellcheck = false;
+  inp.setAttribute("aria-label", "Source name");
+  b.replaceWith(inp); inp.focus(); inp.select();
+  let done = false;
+  const finish = ok => {
+    if (done) return; done = true;
+    const v = inp.value.trim().slice(0, 48);
+    if (ok && v && v !== sc.name) {
+      sc.name = v;
+      if (sc.el === imgSrc) imgName = v;
+      if (sc.media) mediaGet(sc.media).then(r => { if (r) { r.name = v; return mediaPut(r); } }).catch(() => {});
+    }
+    syncSourceUI();
+    if (typeof gsync === "function") gsync();
+  };
+  inp.addEventListener("click", e => e.stopPropagation());
+  inp.addEventListener("keydown", e => { e.stopPropagation(); if (e.key === "Enter") finish(true); else if (e.key === "Escape") finish(false); });
+  inp.addEventListener("blur", () => finish(true));
+}
 function imgError(msg) { $("imgNote").hidden = false; $("imgNote").className = "note warn"; $("imgNote").textContent = msg; }
-function useImage(file) {
-  const url = URL.createObjectURL(file);
-  if (file.type.startsWith("video/")) {
+// Load a picture or video file as a source. A file the operator adds is also
+// kept in IndexedDB so it comes back next time (opts.id marks one being
+// restored, held quietly without taking the stage).
+function useImage(file, opts = {}) {
+  const url = URL.createObjectURL(file), name = opts.name || file.name || "Picture";
+  const keep = sc => {
+    if (opts.id) { sc.media = opts.id; return; }
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    sc.media = id;
+    mediaPut({ id, name, type: file.type, blob: file, added: Date.now() }).then(() => mediaAll()).then(rows => {
+      rows.sort((a, b) => a.added - b.added).slice(0, Math.max(0, rows.length - MEDIA_MAX)).forEach(r => mediaDel(r.id).catch(() => {}));
+    }).catch(() => imgError(name + " is on the stage but couldn\u2019t be kept for next time."));
+  };
+  if ((file.type || "").startsWith("video/")) {
     const v = document.createElement("video");
     v.src = url; v.muted = true; v.loop = true; v.playsInline = true;
-    v.addEventListener("loadeddata", () => addSource(v, v.videoWidth, v.videoHeight, file.name, "video"), { once: true });
-    v.play().catch(err => imgError("Couldn\u2019t play " + file.name + ": " + err.message));
+    v.addEventListener("loadeddata", () => keep(addSource(v, v.videoWidth, v.videoHeight, name, "video", { quiet: !!opts.quiet })), { once: true });
+    v.play().catch(err => { if (!opts.quiet) imgError("Couldn\u2019t play " + name + ": " + err.message); });
     return;
   }
   const im = new Image();
@@ -3971,9 +4031,9 @@ function useImage(file) {
     c.width = Math.max(1, Math.round(im.width * s));
     c.height = Math.max(1, Math.round(im.height * s));
     c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
-    addSource(c, im.width, im.height, file.name, "image");
+    keep(addSource(c, im.width, im.height, name, "image", { quiet: !!opts.quiet }));
   };
-  im.onerror = () => { URL.revokeObjectURL(url); imgError("Couldn\u2019t read " + file.name + " as an image."); };
+  im.onerror = () => { URL.revokeObjectURL(url); imgError("Couldn\u2019t read " + name + " as an image."); };
   im.src = url;
 }
 /* ================= text in ================= */
@@ -4006,15 +4066,37 @@ function textLineWidth(x, s, px, t, row) {
 // own size (Vary), the block stretches (Stretch, Height), then the whole thing
 // is warped on the CPU: Twist turns it round the centre, Bloat pushes it out
 // (or, below zero, puckers it in).
-function renderTextSource(sc) {
-  if (!sc) sc = addSource(document.createElement("canvas"), TEXT_W, TEXT_H, "Type", "text", { text: textDefaults() });
+function renderTextSource(sc, quiet) {
+  if (!sc) sc = addSource(document.createElement("canvas"), TEXT_W, TEXT_H, "Type", "text", { text: textDefaults(), quiet });
   drawText(sc);
   buildWeightSteps(sc);
   sc.name = (sc.text.copy || "").split("\n").map(s => s.trim()).filter(Boolean).join(" ") || "Type";
   if (sc.el === imgSrc) { imgDirty = true; imgName = sc.name; }
   syncSourceUI();
+  saveTexts();
   if (typeof requeueTiles === "function") setTimeout(requeueTiles, 50);
   return sc;
+}
+// text sources are kept in this browser (their settings, not pixels) and come back on load
+let restoringTexts = false, savedTextsAtLoad = [];
+try { savedTextsAtLoad = JSON.parse(localStorage.getItem("vibe.texts") || "[]"); } catch (e) { /* none */ }   // read once, before anything can save
+function saveTexts() {
+  if (restoringTexts) return;
+  try { localStorage.setItem("vibe.texts", JSON.stringify(sources.filter(sc => sc.kind === "text").map(sc => sc.text))); } catch (e) { /* no storage */ }
+}
+function restoreTexts() {
+  const saved = savedTextsAtLoad; savedTextsAtLoad = [];
+  if (!Array.isArray(saved) || !saved.length) return;
+  restoringTexts = true;
+  for (const t of saved.slice(0, 12)) {
+    if (!t || typeof t !== "object") continue;
+    const text = Object.assign(textDefaults(), t);
+    if (!text.font || typeof text.font !== "object") text.font = fontChoice;
+    const sc = addSource(document.createElement("canvas"), TEXT_W, TEXT_H, "Type", "text", { text, quiet: true });
+    if (text.font.kind === "google") loadGoogleFont(text.font.name);
+    renderTextSource(sc, true);
+  }
+  restoringTexts = false;
 }
 // lay out and warp one text source's copy onto its canvas
 function drawText(sc) {
@@ -4702,15 +4784,16 @@ function parseFLAC(u8) {
 // with the tags read once when a file is added. Falls back to a session-only
 // list if storage is unavailable.
 const LIB_MAX = 12;
-const DB_NAME = "vibe-studio", DB_STORE = "tracks", DB_FONTS = "fonts";
+const DB_NAME = "vibe-studio", DB_STORE = "tracks", DB_FONTS = "fonts", DB_MEDIA = "media";
+const MEDIA_MAX = 24;                              // pictures kept; the oldest falls off
 let lib = [], cur = -1, audioURL = null, coverURL = null;
 function dbOpen() {
   return new Promise((res, rej) => {
     if (!window.indexedDB) return rej(new Error("no IndexedDB"));
-    const r = indexedDB.open(DB_NAME, 2);
+    const r = indexedDB.open(DB_NAME, 3);
     r.onupgradeneeded = () => {
       const db = r.result;
-      for (const st of [DB_STORE, DB_FONTS]) if (!db.objectStoreNames.contains(st)) db.createObjectStore(st, { keyPath: "id" });
+      for (const st of [DB_STORE, DB_FONTS, DB_MEDIA]) if (!db.objectStoreNames.contains(st)) db.createObjectStore(st, { keyPath: "id" });
     };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
@@ -4729,6 +4812,10 @@ const dbDel = id => dbRun("readwrite", s => s.delete(id));
 const fontsAll = () => dbRun("readonly", s => s.getAll(), DB_FONTS);
 const fontPut = f => dbRun("readwrite", s => s.put(f), DB_FONTS);
 const fontDel = id => dbRun("readwrite", s => s.delete(id), DB_FONTS);
+const mediaAll = () => dbRun("readonly", s => s.getAll(), DB_MEDIA);
+const mediaPut = m => dbRun("readwrite", s => s.put(m), DB_MEDIA);
+const mediaDel = id => dbRun("readwrite", s => s.delete(id), DB_MEDIA);
+const mediaGet = id => dbRun("readonly", s => s.get(id), DB_MEDIA);
 
 /* ================= fonts ================= */
 // The text source's typeface: a Google Font by name (its stylesheet is
@@ -4832,8 +4919,16 @@ async function useFont(file) {
 fontsAll().then(async rows => {
   fontLib = rows.sort((a, b) => a.added - b.added);
   for (const f of fontLib) { try { await registerFont(f); } catch (e) { /* a broken file stays listed but falls back */ } }
-  applyFont(fontChoice);
-}).catch(() => applyFont(fontChoice));
+  await applyFont(fontChoice);
+}).catch(() => applyFont(fontChoice)).then(() => {
+  // the fonts are in: draw the restored text sources again with the right faces
+  sources.filter(sc => sc.kind === "text").forEach(sc => { drawText(sc); buildWeightSteps(sc); });
+  if (imgKind === "text") imgDirty = true;
+  syncSourceUI();
+});
+setTimeout(restoreTexts, 0);                       // after the whole script has run, before anyone can type
+// the pictures from last time come back as held sources, nothing on the stage until it is picked
+mediaAll().then(rows => rows.sort((a, b) => a.added - b.added).forEach(r => { if (r && r.blob) useImage(r.blob, { id: r.id, name: r.name, quiet: true }); })).catch(() => { /* no storage */ });
 
 const fmtClock = s => isFinite(s) ? Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0") : "0:00";
 const niceName = n => n.replace(/\.[^.]+$/, "").replace(/_+/g, " ").trim();
@@ -6043,6 +6138,7 @@ const P = {
   bg: { wall: "plain", backdrop: "drape", solid: "#0061FF", overhang: 12, light: "dim", photoFt: 20 },
   vis: { devices: true, bg: true },                // the grid's own flag is frame.show
   groups: [gmk()],
+  maps: [],                                        // mapping presets: named group setups, see gmapSave
 };
 const gof = s => P.groups.find(g => g.id === s.g) || P.groups[0];
 const gscreens = g => pscreens().filter(s => gof(s) === g);
@@ -6110,6 +6206,7 @@ function pserialize() {
   return JSON.stringify({
     v: 2, frame: P.frame, bg: P.bg, vis: P.vis,
     groups: P.groups.map(g => ({ id: g.id, name: g.name, mapping: g.mapping, source: g.source, presets: g.presets })),   // source ids are per session
+    maps: P.maps,
     items: P.items.map(it => it.type === "camera" ? { type: "camera", x: pr1(it.x), y: pr1(it.y) } : it.type === "cab"
       ? { type: "cab", x: pr1(it.x), y: pr1(it.y), w: pr1(it.w), h: pr1(it.h), wood: !!it.wood }
       : { type: "screen", diag: it.diag, portrait: !!it.portrait, x: pr1(it.x), y: pr1(it.y), dead: !!it.dead, g: it.g }),
@@ -6130,6 +6227,7 @@ function papply(d, keepSources) {
                         source: keepSources && sources.some(sc => sc.id === g.source) ? g.source : "stage" }))   // held sources don't survive a reload
     : [gmk({ mapping: MAP_NOTES[d.mapping] ? d.mapping : "unified" })];
   gid = Math.max(gid, ...P.groups.map(g => g.id)) + 1;
+  P.maps = Array.isArray(d.maps) ? d.maps.filter(m => m && typeof m.name === "string" && Array.isArray(m.groups) && Array.isArray(m.screens)).slice(0, 16) : [];
   P.items = d.items.filter(o => o && (o.type === "screen" || o.type === "cab" || o.type === "camera")).map(pmk);
   for (const it of P.items) if (it.type === "screen" && !P.groups.some(g => g.id === it.g)) it.g = P.groups[0].id;
   if (gpaint !== null && !P.groups.some(g => g.id === gpaint)) gpaint = null;
@@ -6952,7 +7050,60 @@ function gsync() {
     const srcSel = row.querySelector(".gsrc"); srcSel.value = gsrc(g) ? String(g.source) : "stage";
   });
   $("gAdd").hidden = P.groups.length >= GROUP_MAX;
+  gmapSync();
 }
+/* Mapping presets: a named snapshot of the groups and which screen is in
+   which. Screens are matched back by position and size (ids change on every
+   load), a held source by kind and name, so a preset survives layout edits
+   and reloads. They live in the layout, so they travel with its code. */
+const gmapSig = s => [Math.round(s.x), Math.round(s.y), s.diag, s.portrait ? 1 : 0].join(",");
+function gmapSnapshot() {
+  const gi = g => P.groups.indexOf(g);
+  return {
+    groups: P.groups.map(g => { const sc = gsrc(g); return { name: g.name, mapping: g.mapping, presets: g.presets.slice(), src: sc ? { kind: sc.kind, name: sc.name } : null }; }),
+    screens: pscreens().map(s => ({ sig: gmapSig(s), g: gi(gof(s)) })),
+  };
+}
+const gmapKey = m => JSON.stringify([m.groups.map(g => [g.mapping, g.presets, g.src]), m.screens]);
+function gmapSave(name) {
+  name = (name || "").trim().slice(0, 24) || "Mapping " + (P.maps.length + 1);
+  const snap = gmapSnapshot(), id = Date.now().toString(36);
+  const same = P.maps.find(m => m.name === name);
+  if (same) Object.assign(same, snap); else P.maps.push(Object.assign({ id, name }, snap));
+  if (P.maps.length > 16) P.maps.shift();
+  pcommit();
+  ptoast((same ? "Updated " : "Saved ") + name + ".");
+}
+function gmapRecall(m) {
+  chaosFreeAll();
+  P.groups = m.groups.slice(0, GROUP_MAX).map(g => {
+    const sc = g.src ? sources.find(x => x.kind === g.src.kind && x.name === g.src.name) : null;
+    return gmk({ name: g.name, mapping: MAP_NOTES[g.mapping] ? g.mapping : "unified", presets: g.presets, source: sc ? sc.id : "stage" });
+  });
+  if (!P.groups.length) P.groups = [gmk()];
+  const bySig = new Map(m.screens.map(s => [s.sig, s.g]));
+  for (const s of pscreens()) {
+    const gi = bySig.get(gmapSig(s));
+    s.g = (gi != null && P.groups[gi] ? P.groups[gi] : P.groups[0]).id;   // a screen the preset doesn't know joins the first group
+  }
+  gpaint = null;
+  pcommit();
+  ptoast("Mapping " + m.name + " on the wall.");
+}
+function gmapSync() {
+  const host = $("gmapList"), now = gmapKey(gmapSnapshot());
+  host.innerHTML = P.maps.map(m => '<button type="button" class="chip gmap' + (gmapKey(m) === now ? " on" : "") + '" data-id="' + gesc(m.id) + '" title="Bring this group setup back">'
+    + gesc(m.name) + '<span class="x" title="Remove this mapping preset">\u00d7</span></button>').join("");
+  $("gmapNote").hidden = P.maps.length > 0;
+}
+$("gmapList").addEventListener("click", e => {
+  const b = e.target.closest(".gmap"); if (!b) return;
+  const m = P.maps.find(x => x.id === b.dataset.id); if (!m) return;
+  if (e.target.classList.contains("x")) { P.maps = P.maps.filter(x => x !== m); pcommit(); ptoast("Removed " + m.name + "."); return; }
+  gmapRecall(m);
+});
+$("gmapSave").addEventListener("click", () => { gmapSave($("gmapName").value); $("gmapName").value = ""; });
+$("gmapName").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); gmapSave($("gmapName").value); $("gmapName").value = ""; } });
 const growOf = el => { const row = el.closest(".grow"); return row ? P.groups.find(g => g.id === +row.dataset.g) : null; };
 $("gList").addEventListener("click", e => {
   const g = growOf(e.target), b = e.target.closest("button"); if (!g || !b) return;
