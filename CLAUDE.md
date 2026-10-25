@@ -33,6 +33,10 @@ resource. Frontend code is modern ES (`const`/`let`, arrow functions,
   commands rather than pixels, splitters versus Unified, and what is
   deliberately out of scope. Read before touching the pile preview, the
   mappings, or anything about driving more than one screen.
+- `docs/plan-view.md` — screen depth and the plan projection: why the main
+  stage overlaps in depth rather than sitting on one plane, the deck depth
+  budget, the build order, and the sightline rays that decide how wide the
+  seating can be. Read before touching screen geometry or adding a projection.
 - `presets/library.json` — the canonical preset library. The short
   `BUILTIN_PRESETS` list in `index.html` is only a fallback for copies opened
   from disk; edit the JSON, not the fallback.
