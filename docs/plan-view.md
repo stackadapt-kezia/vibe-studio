@@ -200,6 +200,13 @@ the others and shrank the apron until the walkway or the back wall stopped it
 within a few inches. Stage to back wall lives in the Stage card and starts at
 0; the UI says stage, not deck, throughout.
 
+**The stage's eye (0.9.80).** The Stage card has an eye (`P.vis.stage`).
+Closed, `pstageOn()` is false and every read of the stage height goes through
+`pstageH()` as 0: no deck in either view, items and doors on the room floor,
+the ceiling from the floor, `pdeckFront`/`pdeckBack` collapsing to the
+screens so the seating measures from them, no stage lines in the spec. The
+fields keep their values for when it opens again.
+
 **Sightline rays** run from seven seats along the front row past each end of
 a front screen that has a screen behind it. A ray lands on a screen behind
 (green), passes outside the wing's outer end to the backdrop (grey, harmless),
