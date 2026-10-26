@@ -164,6 +164,42 @@ used to start on the screens' front line, which pinned the screens against
 it. The elevation draws the room's side walls too, and both views say "Held
 at the room wall" while a drag is being stopped.
 
+**Stage card, centre snap for all, the build rides (0.9.77).** The stage's
+fields moved out of Background into a Stage card (height, width, depth, apron,
+offset). The room's centre is stored absolutely (`P.room.cx`, layout
+inches; the Offset field is derived), since the build itself now moves and a
+room pinned to the grid would ride along with it. `psnapCentre()` settles anything dragged across the room's centre
+line onto it, in both views, ahead of the screen-to-screen snaps. Dragging the
+deck (`pstageDrag`) now moves the build: the grid and every item standing on
+the deck step with it, doors stay, and the deck's offset from the grid is
+unchanged; the Offset field moves the deck alone.
+
+**Automatic apron (0.9.77).** The Apron field is gone. `papronSync()` keeps
+the deck's back edge `backClear` behind the deepest screen's structure (48″ to
+start, dragged in the plan by the back-edge handle) and gives everything else
+to the apron, never under `APRON_MIN` (72″): a person can always walk in front
+of the screens. Setting the stage depth therefore moves the front edge only;
+the front-edge handle sets the depth by the apron; and a stage depth too small
+for the screens plus walkway is raised to fit.
+
+**Resize about the centre (0.9.77).** Control or Option held while dragging
+a size handle resizes symmetrically about the item's centre, read live from
+the pointer event so it can be pressed mid-drag: items in the elevation, the
+deck's sides in both views, the AV island, and the grid's sides. The context
+menu is suppressed over the stage so Control-click on a Mac does not interrupt.
+
+**Depth from the grid plane (0.9.79).** Depth is measured from the mounting
+grid's plane, upstage positive and downstage negative, and screens move
+freely either way. The stage is derived from the screens: its back edge is
+`backClear` behind the deepest screen's structure (`pdeckBack`), its front
+edge is the set stage depth in front of that, or further out if the frontmost
+screen needs its `APRON_MIN` walkway (`pdeckFront`), and the apron reads from
+the frontmost screen to the front edge. An earlier attempt made depth 0 the
+frontmost screen itself, which pinned that screen: dragging it only shifted
+the others and shrank the apron until the walkway or the back wall stopped it
+within a few inches. Stage to back wall lives in the Stage card and starts at
+0; the UI says stage, not deck, throughout.
+
 **Sightline rays** run from seven seats along the front row past each end of
 a front screen that has a screen behind it. A ray lands on a screen behind
 (green), passes outside the wing's outer end to the backdrop (grey, harmless),
