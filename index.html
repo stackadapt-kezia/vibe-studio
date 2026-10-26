@@ -1170,10 +1170,40 @@
         <div class="row" style="margin-top:8px"><label for="ceilFt">Ceiling</label><input type="number" class="num wide" id="ceilFt" min="0" max="80" step="0.5" placeholder="none" title="Ceiling height in feet from the room floor; blank or 0 for none"><span class="unit">ft</span></div>
         <div class="row"><label for="stageHFt">Stage height</label><input type="number" class="num wide" id="stageHFt" min="0" max="20" step="0.25" placeholder="none" title="A raised deck the screens stand on, in feet; blank or 0 for none"><span class="unit">ft</span></div>
         <div class="row"><label for="stageWFt">Stage width</label><input type="number" class="num wide" id="stageWFt" min="0" max="200" step="0.5" placeholder="grid" title="Deck width in feet; blank for the grid's width"><span class="unit">ft</span></div>
+        <div class="row"><label for="stageDFt">Stage depth</label><input type="number" class="num wide" id="stageDFt" min="0" max="100" step="0.5" placeholder="none" title="Deck depth in feet, front edge to back; shown in the Plan view and the spec"><span class="unit">ft</span></div>
+        <div class="row"><label for="apronFt">Apron</label><input type="number" class="num wide" id="apronFt" min="0" max="60" step="0.5" title="The performance area between the deck's front edge and the screens' front line, in feet"><span class="unit">ft</span></div>
         <div class="seg" id="lightSeg" style="margin-top:10px">
           <button data-light="bright">Bright lobby</button>
           <button data-light="dim">Event dim</button>
         </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Plan</legend>
+        <div class="row"><label>View</label>
+          <div class="seg mini-seg" id="viewSeg" aria-label="Projection">
+            <button data-view="elev" title="The wall from the audience: heights and widths">Elevation</button>
+            <button data-view="plan" title="The deck from above: widths and depths, seating, sightlines">Plan</button>
+          </div>
+        </div>
+        <p class="note">The plan draws the deck from above, with each screen at its depth, the walk-through gaps measured, and sightline rays from the front row past the ends of the front screens: green where they land on a screen behind, red where they see into the gap. Drag the deck\u2019s edges to set its depth, apron and width; drag the seating or the AV island to place them.</p>
+        <div class="row" style="margin-top:10px"><label for="seatLayout">Seating</label><select id="seatLayout" aria-label="Seating layout" title="How the house is laid out; the block is centred on the stage">
+          <option value="theatre">Theatre rows</option><option value="chevron">Chevron (angled sections)</option><option value="curved">Curved rows</option>
+          <option value="classroom">Classroom (tables)</option><option value="banquet">Banquet rounds (10)</option><option value="cabaret">Cabaret rounds (6)</option></select></div>
+        <div class="row" style="margin-top:8px"><label for="rowDFt">First row</label><input type="number" class="num wide" id="rowDFt" min="0" max="200" step="0.5" title="Distance from the deck's front edge to the first seating row, in feet"><span class="unit">ft</span></div>
+        <div class="row" style="margin-top:8px"><label for="rowWFt">Row width</label><input type="number" class="num wide" id="rowWFt" min="2" max="400" step="1" title="How wide the seating is, in feet; the sightline rays start along the first row"><span class="unit">ft</span></div>
+        <div class="row" style="margin-top:8px"><label for="seatRows">Rows</label><input type="number" class="num wide" id="seatRows" min="1" max="60" step="1" title="Rows of seats, or rows of tables"><span class="unit" id="seatCount"></span></div>
+        <div class="row" style="margin-top:8px"><label for="seatPitch">Row spacing</label><input type="number" class="num wide" id="seatPitch" min="24" max="240" step="1" title="Row to row (36 inches is a comfortable theatre pitch); for rounds, table centre to centre"><span class="unit">in</span></div>
+        <div class="row" id="seatWRow" style="margin-top:8px"><label for="seatW">Seat width</label><input type="number" class="num wide" id="seatW" min="12" max="48" step="1" title="Centre to centre along the row"><span class="unit">in</span></div>
+        <div class="row" id="taperRow" style="margin-top:8px"><label for="seatTaper">Taper</label><input type="number" class="num wide" id="seatTaper" min="-120" max="120" step="1" title="Inches each row grows from the one in front, so the rows fan out towards the back; a minus narrows them"><span class="unit">in/row</span></div>
+        <div class="row" id="aisleRow" style="margin-top:8px"><label for="seatAisles">Aisles</label><input type="number" class="num wide" id="seatAisles" min="0" max="8" step="1" title="How many aisles cut the rows; Chevron needs at least one"><span class="unit">of</span><input type="number" class="num wide" id="seatAisleW" min="24" max="120" step="1" title="Aisle width in inches" aria-label="Aisle width"><span class="unit">in</span></div>
+        <label class="check" style="margin-top:10px"><input type="checkbox" id="seatShowCount"> Attendee count on the plan</label>
+        <div class="row" style="margin-top:8px"><label for="seatAttendees">Expected</label><input type="number" class="num wide" id="seatAttendees" min="0" max="20000" step="1" placeholder="none" title="How many attendees are expected; the count then says how many seats are short or spare"><span class="unit">people</span></div>
+        <div class="row" style="margin-top:12px"><label for="roomWFt">Room width</label><input type="number" class="num wide" id="roomWFt" min="0" max="600" step="1" placeholder="none" title="The room, wall to wall across, in feet; with a depth it is drawn around the plan"><span class="unit">ft</span></div>
+        <div class="row" style="margin-top:8px"><label for="roomDFt">Room depth</label><input type="number" class="num wide" id="roomDFt" min="0" max="600" step="1" placeholder="none" title="The room front to back, in feet"><span class="unit">ft</span></div>
+        <div class="row" style="margin-top:8px"><label for="roomBackFt">Deck to back wall</label><input type="number" class="num wide" id="roomBackFt" min="0" max="200" step="0.5" title="Gap between the deck's back edge and the back wall, in feet"><span class="unit">ft</span></div>
+        <div class="row" style="margin-top:8px"><label for="roomXFt">Room offset</label><input type="number" class="num wide" id="roomXFt" min="-300" max="300" step="0.5" title="How far the room's centre sits right of the stage centre, in feet; negative is left"><span class="unit">ft</span></div>
+        <div class="row" style="margin-top:12px"><label for="avDFt">AV island</label><input type="number" class="num wide" id="avDFt" min="0" max="400" step="1" placeholder="none" title="Front of house position: how far behind the first row, in feet; blank for none. Drag it in the plan to place it."><span class="unit">ft</span></div>
       </fieldset>
 
       <fieldset>
@@ -1249,12 +1279,15 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.70";  // Direct: a group can show its source feed unfiltered
+const APP_VERSION = "0.9.73";  // Shift-click multi-select, AV island handles, room dimensions in the plan
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.73", "Multi-screen: hold Shift while clicking to select several things at once, in the elevation or the plan, and drag any of them to move them all together; the box shows what is selected, with Remove and Duplicate for the lot, a Group picker and a Depth field when they are all screens. The AV island has size handles in the plan: drag its edges to set its width and depth (12\u2032 \u00d7 8\u2032 to start), and the spec lists the size. The Plan card takes the room: width, depth, the gap from the deck\u2019s back edge to the back wall, and a sideways offset. The plan draws the walls with the room\u2019s dimensions (and the ceiling height when set), the doors from Elements appear in the back wall at their positions, and the spec gains a Room line. Seating gets a Taper: inches each row grows (or shrinks, with a minus) from the first, so theatre, chevron and classroom rows fan out towards the back. An Attendee count toggle puts the live seat count on the plan, and with an Expected figure it says how many are short or spare; both follow the seating as you change it."],
+  ["0.9.72", "The Plan view gets a seating maker and becomes editable. Seating has a Layout: Theatre (straight rows), Chevron (sections angled in towards the centre), Curved (rows on arcs centred on the stage), Classroom (rows with tables), Banquet (rounds of ten) or Cabaret (rounds of six, open towards the stage), with the number of rows, row spacing, seat width, aisles and aisle width, and the plan reports the seat count, which goes into the spec. The seating block is centred on the stage and follows it; drag it to set how far the first row sits from the deck. The AV island can be dragged anywhere in the house. The deck can be selected in the plan and its edges dragged: the back edge sets the stage depth, the front edge the apron, the sides the stage width. Screens still drag sideways and in depth."],
+  ["0.9.71", "Multi-screen gains depth. Every screen has a Depth in its box (0 to start; positive is upstage, away from the audience), and the elevation draws deeper screens first and a little dimmer, so a wing screen a few feet behind the centre screen overlaps it the way it will in the room. Background takes a Stage depth and an Apron (the performance area in front of the screens, 12\u2032 to start). A new Plan card switches the view between Elevation and Plan: the plan draws the deck from above with the screens at their depth, the walk-through gaps between overlapping screens measured and coloured (red under 4\u2032, amber under 6\u2032), the first seating row and the AV island at the distances you set, a 45\u00b0 viewing cone off the front screen, and sightline rays from seats along the front row past the ends of the front screens: green where they land on a screen behind, red where they see straight into the gap. The plan reports the seating width at which the overlap stops working. Screens can be dragged in the plan too, sideways and in depth. Downstage and upstage are labelled. The spec gains depth per screen, the stage depth and apron, the seating and the sightline result."],
   ["0.9.70", "Multi-screen: every group has a Direct toggle beside its Source menu. On, the group shows its picture source itself, unfiltered: no pattern, Distort, Texture or Screen effects, just the camera, picture, text or tab as it is. The mapping still says how it is spread: Unified fills the group\u2019s outline with the feed (cropped to fit), Mirror puts the whole feed on every screen, Scatter drifts over it; a Chaos group on Direct shows the feed like Mirror. With no picture source held the look plays as before. A Direct group\u2019s set list is greyed out, since it runs no looks and a pad assigned to it would do nothing. Direct is saved with the layout, kept in mapping presets and named in the spec\u2019s Groups line, and the spec adds a line per Direct group with its signal path, such as \u201cCentre \u2014 Direct (Unified), 1920\u00d71080 from live tab source \u201cSponsor deck\u201d, unfiltered, no effects\u201d, so AV can check the path is clean."],
   ["0.9.69", "Multi-screen: Pile layout has a Playback switch, Separate displays or LED panels, and the spec\u2019s playback line follows it instead of always counting Raspberry Pi boards. Separate displays counts video outputs the way the deployment notes do: every Unified or Scatter screen needs its own output, Mirror and Chaos screens share splitter feeds three to an output, and the outputs are spread over mini PCs at three each. LED panels reads as one machine driving one output into the LED processor, with the groups as regions of one canvas. The Pi 5 boards figure in Pile layout is now the Playback figure and follows the same choice. The choice is saved with the layout."],
   ["0.9.68", "Multi-screen: the wall photo now stands on the room floor, so a stage deck sits in front of it instead of the photo sitting on the deck. Elements can place a Door on the back wall (36\u2033 \u00d7 80\u2033 to start): set its width and height, make it a double door or hang an exit sign once it is selected. It stands on the room floor, moves left and right only, is left out of the overall width, and the spec lists where each door sits from the grid\u2019s left edge. The Mounting grid has a Rig switch: Pipe (the uprights and rails as before), Scaffold (standards, ledgers and diagonal braces on base jacks) or Truss (12\u2033 box truss towers with a header and rails of truss, on base plates). The field names follow the rig and the spec names it."],
@@ -6173,10 +6206,17 @@ function gmk(o = {}) {
   return { id: o.id != null ? o.id : gid++, name: o.name || "", mapping: o.mapping || "unified", direct: !!o.direct,
            source: o.source != null ? o.source : "stage", presets: Array.isArray(o.presets) ? o.presets.slice() : [] };
 }
+// the plan's house: the first row's distance from the deck edge and width, the seating layout and its
+// rows, row spacing, seat width, aisles and aisle width, and the AV island's distance behind the first row and sideways offset (inches)
+const PLAN_DEF = { rowD: 180, rowW: 480, layout: "theatre", rows: 10, pitch: 36, seat: 22, aisles: 2, aisleW: 48, taper: 0, avD: 0, avX: 0, avW: 144, avL: 96, showCount: false, attendees: 0 };
+const ROOM_DEF = { w: 0, d: 0, back: 0, x: 0 };      // the room in plan: width and depth (0 = not drawn), deck back edge to back wall, sideways offset (inches)
+const SEAT_LAYOUTS = { theatre: "Theatre", chevron: "Chevron", curved: "Curved", classroom: "Classroom", banquet: "Banquet rounds", cabaret: "Cabaret rounds" };
 const P = {
   frame: { x0: 0, w: 240, h: 108, pitch: 30, rail: 48, show: true, kind: "pipe" },   // kind: pipe, scaffold or truss
   items: [],
-  bg: { wall: "plain", backdrop: "drape", solid: "#0061FF", overhang: 12, light: "dim", photoFt: 20, ceiling: 0, stageH: 0, stageW: 0 },   // inches; 0 = none (stageW 0 = as wide as the grid)
+  bg: { wall: "plain", backdrop: "drape", solid: "#0061FF", overhang: 12, light: "dim", photoFt: 20, ceiling: 0, stageH: 0, stageW: 0, stageD: 0, apron: 144 },   // inches; 0 = none (stageW 0 = as wide as the grid); apron = deck in front of the screens' depth-0 line
+  plan: { ...PLAN_DEF },                           // the plan view: seating and the AV island, see PLAN_DEF
+  room: { ...ROOM_DEF },
   vis: { devices: true, bg: true },                // the grid's own flag is frame.show
   groups: [gmk()],
   maps: [],                                        // mapping presets: named group setups, see gmapSave
@@ -6268,6 +6308,12 @@ function pmix(all) {
   return [...m.entries()].sort((a, b) => b[1].d - a[1].d).map(([k, e]) => [k, e.n]);
 }
 const pscreens = () => P.items.filter(i => i.type === "screen");
+// drawing order: deeper (upstage) first, then the layout's own order, so a screen a few feet behind another is overlapped by it
+const pdepth = it => it.depth > 0 ? it.depth : 0;
+const pdrawOrder = () => P.items.map((it, i) => [it, i]).sort((a, b) => pdepth(b[0]) - pdepth(a[0]) || a[1] - b[1]).map(x => x[0]);
+const PLAN_T = 24;                                    // a screen's structure in plan: two feet from the glass face to its back
+let pview = "elev";                                   // "elev" or "plan": which projection Multi-screen draws
+try { if (localStorage.getItem("vibe.pileView") === "plan") pview = "plan"; } catch (e) { /* default */ }
 const pr1 = v => Math.round(v * 10) / 10;
 // the rig the screens hang on, and what its parts are called
 const RIGS = { pipe: ["Pipe grid", "Uprights", "Rails", "upright", "rail"], scaffold: ["Scaffold", "Bays", "Lifts", "standard", "ledger"], truss: ["Truss", "Towers", "Rails", "tower", "truss run"] };
@@ -6313,10 +6359,10 @@ function pserialize() {
   return JSON.stringify({
     v: 2, frame: P.frame, bg: P.bg, vis: P.vis,
     groups: P.groups.map(g => ({ id: g.id, name: g.name, mapping: g.mapping, direct: !!g.direct, source: g.source, presets: g.presets })),   // source ids are per session
-    maps: P.maps, pitch: P.pitch, play: P.play,
+    maps: P.maps, pitch: P.pitch, play: P.play, plan: P.plan, room: P.room,
     items: P.items.map(it => it.type === "camera" ? { type: "camera", x: pr1(it.x), y: pr1(it.y) } : it.type === "person" ? { type: "person", x: pr1(it.x), y: 0, ht: it.ht, col: it.col || PERSON_COL } : it.type === "door" ? { type: "door", x: pr1(it.x), y: 0, w: pr1(it.w), h: pr1(it.h), dbl: !!it.dbl, exit: !!it.exit } : it.type === "cab"
       ? { type: "cab", x: pr1(it.x), y: pr1(it.y), w: pr1(it.w), h: pr1(it.h), wood: !!it.wood }
-      : { type: "screen", diag: it.diag, portrait: !!it.portrait, x: pr1(it.x), y: pr1(it.y), dead: !!it.dead, g: it.g, cw: it.cw || undefined, ch: it.ch || undefined }),
+      : { type: "screen", diag: it.diag, portrait: !!it.portrait, x: pr1(it.x), y: pr1(it.y), dead: !!it.dead, g: it.g, cw: it.cw || undefined, ch: it.ch || undefined, depth: it.depth > 0 ? Math.round(it.depth) : undefined }),
   });
 }
 function papply(d, keepSources) {
@@ -6337,10 +6383,23 @@ function papply(d, keepSources) {
   gid = Math.max(gid, ...P.groups.map(g => g.id)) + 1;
   P.pitch = d.pitch > 0 ? +d.pitch : 2.5;
   P.play = PLAYS[d.play] ? d.play : "displays";
+  P.plan = { ...PLAN_DEF };
+  if (d.plan && typeof d.plan === "object") {
+    for (const k of ["rowD", "rowW", "rows", "pitch", "seat", "aisles", "aisleW", "avD"]) if (d.plan[k] >= 0) P.plan[k] = Math.round(+d.plan[k]);
+    for (const k of ["avW", "avL"]) if (d.plan[k] >= 24) P.plan[k] = Math.round(+d.plan[k]);
+    if (typeof d.plan.taper === "number") P.plan.taper = Math.max(-120, Math.min(120, Math.round(d.plan.taper)));
+    if (d.plan.attendees >= 0) P.plan.attendees = Math.round(+d.plan.attendees);
+    P.plan.showCount = !!d.plan.showCount;
+    if (typeof d.plan.avX === "number") P.plan.avX = Math.round(d.plan.avX);
+    if (SEAT_LAYOUTS[d.plan.layout]) P.plan.layout = d.plan.layout;
+  }
+  if (!(P.bg.stageD >= 0)) P.bg.stageD = 0; if (!(P.bg.apron >= 0)) P.bg.apron = 144;
+  P.room = { ...ROOM_DEF };
+  if (d.room && typeof d.room === "object") { for (const k of ["w", "d", "back"]) if (d.room[k] >= 0) P.room[k] = Math.round(+d.room[k]); if (typeof d.room.x === "number") P.room.x = Math.round(d.room.x); }
   P.maps = Array.isArray(d.maps) ? d.maps.filter(m => m && typeof m.name === "string" && Array.isArray(m.groups) && Array.isArray(m.screens)).slice(0, 16) : [];
   P.items = d.items.filter(o => o && (o.type === "screen" || o.type === "cab" || o.type === "camera" || (o.type === "person" && o.ht > 0) || (o.type === "door" && o.w > 0 && o.h > 0))).map(pmk);
   psettle();
-  for (const it of P.items) if (it.type === "screen" && !P.groups.some(g => g.id === it.g)) it.g = P.groups[0].id;
+  for (const it of P.items) if (it.type === "screen") { if (!P.groups.some(g => g.id === it.g)) it.g = P.groups[0].id; it.depth = it.depth > 0 ? Math.round(+it.depth) : 0; }
   if (gpaint !== null && !P.groups.some(g => g.id === gpaint)) gpaint = null;
   psel = null;
 }
@@ -6426,6 +6485,7 @@ function pfit() {
   if (!pW) return;
   const ins = pileInsets();
   pInsetKey = Math.round(ins.l) + "," + Math.round(ins.b);
+  if (pview === "plan") { pfitPlan(ins); return; }
   const B = pbounds(), o = P.bg.backdrop !== "none" ? P.bg.overhang : 0, bdx = pbdX();
   const people = P.items.filter(i => i.type === "person" || i.type === "door");   // framed, though not measured
   const pMin = Math.min(Infinity, ...people.map(i => i.x - pdims(i).w / 2)), pMax = Math.max(-Infinity, ...people.map(i => i.x + pdims(i).w / 2));
@@ -6548,7 +6608,7 @@ function drawPileBg() {
   }
   const f = P.frame;
   if (f.show) drawRig(c, dim);
-  if (P.vis.devices) for (const it of P.items) {
+  if (P.vis.devices) for (const it of pdrawOrder()) {
     const d = pdims(it), x = PX(it.x - d.w / 2), y = PY(it.y + d.h), w = d.w * psc, h = d.h * psc;
     if (it.type === "cab") {
       prr(c, x, y, w, h, 2 * pdpr); c.fillStyle = it.wood ? "#2C1C11" : "#121215"; c.fill();
@@ -6698,7 +6758,7 @@ precision highp float;
 varying vec2 v_local;
 uniform sampler2D u_tex;
 uniform vec4 u_src;            // which part of the rendered frame this screen shows: x, y, w, h (0-1, y up)
-uniform float u_dead, u_ambient, u_time;
+uniform float u_dead, u_ambient, u_time, u_dim;
 float h2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 void main() {
   vec3 c;
@@ -6708,6 +6768,7 @@ void main() {
     c = texture2D(u_tex, u_src.xy + v_local * u_src.zw).rgb;
     vec2 v = v_local - 0.5;
     c *= 1.0 - 0.4 * dot(v, v);                      // panel falloff
+    c = mix(c, vec3(dot(c, vec3(0.333))), u_dim * 0.5) * (1.0 - u_dim);   // a screen set back reads a little dimmer and flatter
   }
   // bright room: lifted blacks, lower contrast, a glare streak
   c = mix(c, c * 0.8 + vec3(0.20, 0.19, 0.17), u_ambient);
@@ -6880,10 +6941,12 @@ function drawPileScreens() {
   const now = performance.now() / 1000;
   gl.uniform1f(UP("u_time"), now);
   const UB = pubounds(), tAR = fin.w / fin.h;
-  if (!P.vis.devices) return;
-  for (const s of pscreens()) {
+  if (!P.vis.devices || pview === "plan") return;    // the plan is a 2D drawing: the GL canvas stays clear
+  for (const s of pdrawOrder()) {
+    if (s.type !== "screen") continue;
     const d = pdims(s), cy = s.y + d.h / 2, g = gof(s), feed = gdirectFeed(g), map = feed && g.mapping === "chaos" ? "mirror" : g.mapping;
     gl.uniform4f(UP("u_rect"), PX(s.x), PY(cy), d.gw * psc, d.gh * psc);
+    gl.uniform1f(UP("u_dim"), pdepth(s) ? Math.min(0.5, 0.08 + pdepth(s) / 360 * 0.3) : 0);   // set back 8 ft reads about 15% dimmer
     let src;
     const k = map === "chaos" && g.ch ? g.ch.deal.get(s.id) : undefined;
     if (feed && map === "unified") {                   // the feed fills the group's outline, cropped to its shape
@@ -6922,8 +6985,14 @@ function drawPileScreens() {
 /* ---- overlay: selection, handles, labels, dimension lines ---- */
 function phandles() {
   if (!psel) return [];
+  if (pview === "plan") {                            // in the plan the deck and the AV island have edge handles
+    if (psel.kind === "av" && P.plan.avD > 0) { const a = pavRect(); return [{ k: "l", x: a.x0, y: a.cd }, { k: "r", x: a.x1, y: a.cd }, { k: "t", x: a.cx, y: a.d1 }, { k: "b", x: a.cx, y: a.d0 }]; }
+    if (psel.kind !== "stage" || !(P.bg.stageD > 0)) return [];
+    const cx = pstageCX(), hw = pstageW() / 2, front = -P.bg.apron, back = P.bg.stageD - P.bg.apron, mid = (front + back) / 2;
+    return [{ k: "l", x: cx - hw, y: mid }, { k: "r", x: cx + hw, y: mid }, { k: "t", x: cx, y: back }, { k: "b", x: cx, y: front }];
+  }
   if (psel.kind === "item") {
-    const it = psel.it; if (it.type === "camera" || it.type === "person") return [];   // sized by their fields, not by dragging
+    const it = psel.it; if (it.type === "camera" || it.type === "person" || (psel.more && psel.more.length)) return [];   // sized by their fields, not by dragging; a group of things has no handles
     const d = pdims(it), l = it.x - d.w / 2, r = it.x + d.w / 2, b = it.y, t = it.y + d.h;
     const hs = [{ k: "tl", x: l, y: t }, { k: "tr", x: r, y: t }, { k: "bl", x: l, y: b }, { k: "br", x: r, y: b }];
     if (it.type === "cab" || it.type === "door" || pcustom(it))          // free shapes resize from their edges too
@@ -6970,7 +7039,7 @@ function drawPileFg() {
   protBtn = null;
   const lf = "600 " + 11 * pdpr + 'px "Space Grotesk", sans-serif';
   if (P.vis.devices) for (const it of P.items) if (it.type === "person") {   // people stand in front of the screens
-    const d = pdims(it), isSel = psel && psel.kind === "item" && psel.it === it, isHov = phover === it;
+    const d = pdims(it), isSel = pselHas(it), isHov = phover === it;
     const x = PX(it.x - d.w / 2), y = PY(it.y + d.h), w = d.w * psc, h = d.h * psc;
     if (isSel || isHov) {                                // the outline is a halo: the figure again, a little larger, behind it
       const k = 1 + 5 * pdpr / h, hw = w * k, hh = h * k;
@@ -6980,8 +7049,8 @@ function drawPileFg() {
     personPath(c, x, y, w, h);
     c.fillStyle = it.col || PERSON_COL; c.fill();
   }
-  if (P.vis.devices) for (const it of P.items) {
-    const d = pdims(it), isSel = psel && psel.kind === "item" && psel.it === it, isHov = phover === it;
+  if (P.vis.devices) for (const it of pdrawOrder()) {
+    const d = pdims(it), isSel = pselHas(it), isHov = phover === it;
     if (isSel || isHov) {
       c.strokeStyle = isSel ? "#7FDFFD" : "rgba(127,223,253,0.55)"; c.lineWidth = 2 * pdpr;
       if (it.type !== "person") c.strokeRect(PX(it.x - d.w / 2), PY(it.y + d.h), d.w * psc, d.h * psc);   // a person's halo is drawn above
@@ -7055,6 +7124,285 @@ function drawPileFg() {
   }
 }
 
+/* ---- the plan: the deck from above, x across and depth up the canvas ----
+   Same data as the elevation drawn at (x, depth). PX is shared; PY maps depth
+   with pfloor as the canvas y of depth 0 (the screens' front line), so zoom,
+   pan and pworld work unchanged. Downstage (the audience) is at the bottom. */
+/* The seating maker. Everything is in plan units: x across (layout inches),
+   depth up (negative is downstage of the screens' front line). The block is
+   centred on the stage and starts rowD in front of the deck's front edge. */
+function pseating() {
+  const L = P.plan, cx = pstageCX(), row = -P.bg.apron - L.rowD, seats = [], tables = [], lines = [];
+  const rows = Math.max(1, L.rows), W = Math.max(24, L.rowW);
+  const round = L.layout === "banquet" || L.layout === "cabaret";
+  if (round) {                                        // rounds in a staggered grid, tables of 72" (ten) or 60" (six, open to the stage)
+    const dia = L.layout === "banquet" ? 72 : 60, n = L.layout === "banquet" ? 10 : 6, sp = Math.max(dia + 36, L.pitch), r = dia / 2 + 12;
+    const cols = Math.max(1, Math.floor((W + sp - dia) / sp));
+    for (let j = 0; j < rows; j++) {
+      const d = row - dia / 2 - j * sp, nc = j % 2 && cols > 1 ? cols - 1 : cols, x0 = cx - (nc - 1) * sp / 2;   // odd rows: one table fewer, centred, so they sit a half step in
+      for (let i = 0; i < nc; i++) {
+        const x = x0 + i * sp;
+        tables.push({ x, d, r: dia / 2 });
+        for (let k = 0; k < n; k++) {
+          const a = L.layout === "banquet" ? (k + 0.5) / n * Math.PI * 2 : Math.PI + (k + 0.5) / n * Math.PI;   // cabaret: the half facing the stage stays open
+          seats.push({ x: x + Math.cos(a) * r, d: d + Math.sin(a) * r });
+        }
+      }
+    }
+    return { seats, tables, lines, backD: row - rows * sp, count: seats.length, maxW: cols * sp };
+  }
+  const aisles = Math.max(0, L.aisles), aw = L.aisleW, secs = aisles + 1, secW = (W - aisles * aw) / secs, seat = Math.max(12, L.seat);
+  if (L.layout === "curved") {                        // arcs about the screens' front line, the first row at R0; aisles are angular gaps
+    const R0 = P.bg.apron + L.rowD, phi = W / 2 / R0;
+    for (let j = 0; j < rows; j++) {
+      const R = R0 + j * L.pitch, da = seat / R, gapA = aw / R, span = 2 * phi - aisles * gapA, secA = span / secs;
+      lines.push({ arc: true, R, a0: -phi, a1: phi });
+      for (let i = 0; i < secs; i++) {
+        const a0 = -phi + i * (secA + gapA), n = Math.floor(secA / da);
+        for (let k = 0; k < n; k++) { const a = a0 + (k + 0.5) * da + (secA - n * da) / 2; seats.push({ x: cx + Math.sin(a) * R, d: -Math.cos(a) * R }); }
+      }
+    }
+    return { seats, tables, lines, backD: -(R0 + (rows - 1) * L.pitch) - 18, count: seats.length, maxW: 2 * (R0 + (rows - 1) * L.pitch) * Math.sin(phi) };
+  }
+  const ang = L.layout === "chevron" ? 0.26 : 0;      // herringbone: outer sections turn about 15 degrees to face the centre
+  let maxW = W;
+  for (let j = 0; j < rows; j++) {
+    const d = row - j * L.pitch, Wj = Math.max(24, W + j * (L.taper || 0)), secWj = (Wj - aisles * aw) / secs;   // taper: each row grows (or shrinks) from the first
+    maxW = Math.max(maxW, Wj);
+    for (let i = 0; i < secs; i++) {
+      const x0 = cx - Wj / 2 + i * (secWj + aw), secW = secWj, n = Math.floor(secW / seat), pad = (secW - n * seat) / 2, mid = (secs - 1) / 2;
+      const turn = ang * Math.sign(i - mid);           // left sections lean one way, right the other; a centre section stays square
+      const pivot = turn < 0 ? x0 + secW : x0;         // the end nearest the centre aisle stays put and sits closest to the stage
+      const place = x => turn ? { x: pivot + (x - pivot) * Math.cos(turn), d: d - Math.abs(x - pivot) * Math.sin(Math.abs(turn)) } : { x, d };
+      lines.push({ a: place(x0), b: place(x0 + secW) });
+      for (let k = 0; k < n; k++) seats.push(place(x0 + pad + (k + 0.5) * seat));
+      if (L.layout === "classroom") tables.push({ rect: true, a: place(x0), b: place(x0 + secW), depth: 18 });
+    }
+  }
+  const lean = ang ? Math.sin(ang) * (maxW - aisles * aw) / secs : 0;
+  return { seats, tables, lines, backD: row - (rows - 1) * L.pitch - lean - 24, count: seats.length, maxW };
+}
+function planExtents() {
+  const cx = pstageCX(), hw = pstageW() / 2, deck = P.bg.stageD > 0;
+  const seating = pseating(), shw = Math.max(P.plan.rowW, seating.maxW) / 2;
+  let minX = Math.min(deck ? cx - hw : Infinity, cx - shw, P.frame.x0), maxX = Math.max(deck ? cx + hw : -Infinity, cx + shw, P.frame.x0 + P.frame.w);
+  let top = Math.max(deck ? P.bg.stageD - P.bg.apron : 0, PLAN_T + 12);
+  for (const s of pscreens()) { const d = pdims(s); minX = Math.min(minX, s.x - d.w / 2); maxX = Math.max(maxX, s.x + d.w / 2); top = Math.max(top, pdepth(s) + PLAN_T + 12); }
+  const front = -P.bg.apron, row = front - P.plan.rowD;
+  let bottom = Math.min(row - 36, seating.backD);
+  if (P.plan.avD > 0) { const a = pavRect(); bottom = Math.min(bottom, a.d0); minX = Math.min(minX, a.x0); maxX = Math.max(maxX, a.x1); }
+  const R = proom();
+  if (R) { minX = Math.min(minX, R.x0); maxX = Math.max(maxX, R.x1); top = Math.max(top, R.back); bottom = Math.min(bottom, R.front); }
+  return { minX: minX - 36, maxX: maxX + 36, top: top + 36, bottom: bottom - 30, front, row, seating };
+}
+// the AV island in plan units: 12' wide, 8' deep, avD behind the first row and avX off the stage centre
+function pavRect() {
+  const cx = pstageCX() + (P.plan.avX || 0), d1 = -P.bg.apron - P.plan.rowD - P.plan.avD, w = P.plan.avW || 144, l = P.plan.avL || 96;
+  return { x0: cx - w / 2, x1: cx + w / 2, d0: d1 - l, d1, cx, cd: d1 - l / 2, w, l };
+}
+// the room in plan units: back wall a gap behind the deck's back edge (or the deepest screen), side walls about the stage centre plus an offset
+function proom() {
+  if (!(P.room.w > 0 && P.room.d > 0)) return null;
+  const deckBack = P.bg.stageD > 0 ? P.bg.stageD - P.bg.apron : Math.max(PLAN_T, ...pscreens().map(s => pdepth(s) + PLAN_T));
+  const back = deckBack + P.room.back, cx = pstageCX() + (P.room.x || 0);
+  return { x0: cx - P.room.w / 2, x1: cx + P.room.w / 2, back, front: back - P.room.d, cx };
+}
+const pinDeckPlan = w => P.bg.stageD > 0 && Math.abs(w.x - pstageCX()) <= pstageW() / 2 && w.y >= -P.bg.apron && w.y <= P.bg.stageD - P.bg.apron;
+const pinAvPlan = w => { if (!(P.plan.avD > 0)) return false; const a = pavRect(); return w.x >= a.x0 && w.x <= a.x1 && w.y >= a.d0 && w.y <= a.d1; };
+// the seating block: within its width and between the first row and the last
+function pinSeatsPlan(w) {
+  const S = pseating(), row = -P.bg.apron - P.plan.rowD, cx = pstageCX(), hw = Math.max(S.maxW, 72) / 2 + 24;
+  return Math.abs(w.x - cx) <= hw && w.y <= row + 18 && w.y >= S.backD;
+}
+function pfitPlan(ins) {
+  const E = planExtents();
+  const left = ins.l + 24 * pdpr, right = pW - 24 * pdpr, yTop = 48 * pdpr, yBot = pH - Math.max(ins.b, 120 * pdpr) - 24 * pdpr;
+  psc = Math.max(0.05, Math.min((right - left) / (E.maxX - E.minX), (yBot - yTop) / (E.top - E.bottom)));
+  pox = (left + right) / 2 - ((E.minX + E.maxX) / 2) * psc;
+  pfloor = (yTop + yBot) / 2 + ((E.top + E.bottom) / 2) * psc;
+  pbase = { psc, pox, pfloor };
+  const cx = pW / 2, cy = pH / 2;
+  psc = pbase.psc * pzoom; pox = cx + (pbase.pox - cx) * pzoom + ppan.x; pfloor = cy + (pbase.pfloor - cy) * pzoom + ppan.y;
+  const UB = pubounds(); pileAR = Math.max(0.3, Math.min(8, UB.w / Math.max(1, UB.h)));
+}
+// the screen under a plan point: front-most first
+function pplanAt(w) {
+  if (!P.vis.devices) return null;
+  const scr = pscreens().sort((a, b) => pdepth(a) - pdepth(b));
+  return scr.find(s => Math.abs(w.x - s.x) <= pdims(s).w / 2 && w.y >= pdepth(s) && w.y <= pdepth(s) + PLAN_T) || null;
+}
+// sightlines: the ends of front screens that have a screen behind them, and where a ray from a seat past such an end lands
+function psightEnds(scr) {
+  const ends = [];
+  for (const S of scr) {
+    const d = pdims(S), dS = pdepth(S);
+    for (const side of [-1, 1]) {
+      const ex = S.x + side * d.gw / 2;
+      const B = scr.filter(b => pdepth(b) > dS && Math.abs(ex - b.x) <= pdims(b).gw / 2).sort((a, b) => pdepth(a) - pdepth(b))[0];   // the nearest screen behind this end
+      if (B) ends.push({ S, ex, dS, side, inner: B.x - side * pdims(B).gw / 2, dB: pdepth(B) });   // inner: the end of B nearest S's centre
+    }
+  }
+  return ends;
+}
+// where a ray from a seat past an end lands: { B, x, d } on a screen behind; "out" past the wing's outer end (the backdrop, no harm);
+// null when it passes inside the wing's inner end into the walk-through, which is the failure
+function pcast(scr, seatY, sx, e) {
+  const dy = e.dS - seatY, dx = e.ex - sx;
+  for (const B of scr) {
+    const dB = pdepth(B); if (dB <= e.dS) continue;
+    const xB = sx + dx * (dB - seatY) / dy;
+    if (Math.abs(xB - B.x) <= pdims(B).gw / 2) return { B, x: xB, d: dB };
+  }
+  const xAt = sx + dx * (e.dB - seatY) / dy;
+  return (xAt - e.inner) * e.side < 0 ? null : "out";                  // past the inner end towards S's centre: into the gap
+}
+// the seating width at which the overlap stops hiding the gap: seats are tried from the centre outwards
+function psightline() {
+  const scr = pscreens().sort((a, b) => pdepth(a) - pdepth(b)), cx = pstageCX(), seatY = -P.bg.apron - P.plan.rowD, ends = psightEnds(scr);
+  if (!ends.length) return { ok: null, width: 0, text: "No screen sits behind another yet: give the wing screens a depth to check the overlap" };
+  const fails = off => [cx - off, cx + off].some(sx => ends.some(e => pcast(scr, seatY, sx, e) === null));
+  let limit = null;
+  for (let off = 0; off <= P.plan.rowW / 2 && limit === null; off += 6) if (fails(off)) limit = off;
+  if (limit === null) return { ok: true, width: P.plan.rowW, text: "Overlap holds across the whole front row (" + fmtLen(P.plan.rowW) + " wide)" };
+  if (limit === 0) return { ok: false, width: 0, text: "Overlap fails from the centre seat: the gap shows from everywhere" };
+  return { ok: false, width: 2 * limit, text: "Overlap holds to a seating width of " + fmtLen(2 * limit) + ", of " + fmtLen(P.plan.rowW) };
+}
+function drawPlan() {
+  const ins = pileInsets();
+  if (!pdrag && Math.round(ins.l) + "," + Math.round(ins.b) !== pInsetKey) pfit();
+  const c = pbx, f = pfx;
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, pW, pH); f.setTransform(1, 0, 0, 1, 0, 0); f.clearRect(0, 0, pW, pH); protBtn = null;
+  c.fillStyle = "#0E1016"; c.fillRect(0, 0, pW, pH);
+  f.textAlign = "center"; f.textBaseline = "middle";
+  const font = "500 " + 12 * pdpr + 'px "Space Grotesk", sans-serif', lf = "600 " + 11 * pdpr + 'px "Space Grotesk", sans-serif';
+  const E = planExtents(), cx = pstageCX(), hw = pstageW() / 2, front = -P.bg.apron, back = P.bg.stageD > 0 ? P.bg.stageD - P.bg.apron : null;
+  // the screens' front line, faint
+  c.setLineDash([4 * pdpr, 6 * pdpr]); c.strokeStyle = "rgba(236,238,244,0.22)"; c.lineWidth = pdpr;
+  c.beginPath(); c.moveTo(PX(P.frame.x0), PY(0)); c.lineTo(PX(P.frame.x0 + P.frame.w), PY(0)); c.stroke(); c.setLineDash([]);
+  if (back !== null) {                                 // the deck, its lit front edge, and the backdrop line at the back
+    const x = PX(cx - hw), y = PY(back), w = 2 * hw * psc, h = (back - front) * psc;
+    c.fillStyle = "#17181D"; c.fillRect(x, y, w, h);
+    c.strokeStyle = psel && psel.kind === "stage" ? "#7FDFFD" : "rgba(236,238,244,0.55)"; c.lineWidth = 1.5 * pdpr; c.strokeRect(x, y, w, h);
+    c.strokeStyle = "#ECEEF4"; c.lineWidth = 2.5 * pdpr; c.beginPath(); c.moveTo(x, y + h); c.lineTo(x + w, y + h); c.stroke();
+    if (P.bg.backdrop !== "none") {
+      c.setLineDash([8 * pdpr, 5 * pdpr]); c.strokeStyle = "#B0E64B"; c.lineWidth = 1.5 * pdpr;
+      c.beginPath(); c.moveTo(x, y + 4 * pdpr); c.lineTo(x + w, y + 4 * pdpr); c.stroke(); c.setLineDash([]);
+      plabel("Backdrop", x + w / 2, y - 12 * pdpr, lf);
+    }
+    plabel("Stage " + fmtLen(2 * hw) + " wide \u00b7 " + fmtLen(back - front) + " deep \u00b7 apron " + fmtLen(P.bg.apron), x + w / 2, y + h - 14 * pdpr, lf);
+  }
+  const scr = pdrawOrder().filter(i => i.type === "screen");   // deep first
+  if (P.vis.devices) for (const s of scr) {
+    const d = pdims(s), dp = pdepth(s), x = PX(s.x - d.w / 2), w = d.w * psc, y = PY(dp + PLAN_T), h = PLAN_T * psc, face = Math.max(2 * pdpr, 2 * psc);
+    const isSel = pselHas(s), isHov = phover === s;
+    c.fillStyle = "#23262E"; c.fillRect(x, y, w, h);
+    c.strokeStyle = "rgba(255,255,255,0.12)"; c.lineWidth = pdpr; c.strokeRect(x, y, w, h);
+    c.fillStyle = s.dead ? "#555A66" : gcol(gof(s)); c.fillRect(x, y + h - face, w, face);   // the glass face, on the downstage side
+    if (isSel || isHov) { f.strokeStyle = isSel ? "#7FDFFD" : "rgba(127,223,253,0.55)"; f.lineWidth = 2 * pdpr; f.strokeRect(x, y, w, h); }
+    if (pui.labels || isSel || isHov) plabel(psize(s) + (dp ? " \u00b7 " + ftHint(dp) + " upstage" : " \u00b7 front line"), x + w / 2, y - 12 * pdpr, lf);
+  }
+  // walk-through gaps: from the back of each screen's structure to the face of the nearest screen behind it that it overlaps
+  const byDepth = scr.slice().sort((a, b) => pdepth(a) - pdepth(b));
+  for (const S of byDepth) {
+    const dS = pdepth(S), ds = pdims(S), l1 = S.x - ds.w / 2, r1 = S.x + ds.w / 2;
+    let best = null;
+    for (const B of byDepth) {
+      if (B === S || pdepth(B) <= dS) continue;
+      const db = pdims(B), l2 = B.x - db.w / 2, r2 = B.x + db.w / 2, ol = Math.min(r1, r2) - Math.max(l1, l2);
+      if (ol > 0 && (!best || pdepth(B) < pdepth(best.B))) best = { B, xm: (Math.max(l1, l2) + Math.min(r1, r2)) / 2 };
+    }
+    if (!best) continue;
+    const gap = pdepth(best.B) - (dS + PLAN_T), x = PX(best.xm), y1 = PY(dS + PLAN_T), y2 = PY(pdepth(best.B));
+    const col = gap < 48 ? "#FF5A5A" : gap < 72 ? "#FFB37A" : "#B0E64B";
+    f.strokeStyle = col; f.lineWidth = 1.5 * pdpr; f.beginPath();
+    f.moveTo(x, y1); f.lineTo(x, y2); f.moveTo(x - 5 * pdpr, y1); f.lineTo(x + 5 * pdpr, y1); f.moveTo(x - 5 * pdpr, y2); f.lineTo(x + 5 * pdpr, y2); f.stroke();
+    plabel(gap <= 0 ? "Structures collide" : "Walk-through " + fmtLen(gap) + (gap < 48 ? " \u00b7 too tight" : gap < 72 ? " \u00b7 tight" : ""), x, (y1 + y2) / 2, lf);
+  }
+  // the house: the seating block from the maker, centred on the stage, and the AV island
+  const S = E.seating, seatSel = psel && psel.kind === "seating", rowY = PY(E.row), rl = PX(cx - P.plan.rowW / 2), rr = PX(cx + P.plan.rowW / 2);
+  c.strokeStyle = seatSel ? "#7FDFFD" : "rgba(236,238,244,0.7)"; c.lineWidth = 1.5 * pdpr; c.beginPath(); c.moveTo(rl, rowY); c.lineTo(rr, rowY); c.stroke();
+  c.strokeStyle = "rgba(236,238,244,0.18)"; c.lineWidth = pdpr;
+  for (const ln of S.lines) {
+    c.beginPath();
+    if (ln.arc) c.arc(PX(cx), PY(0), ln.R * psc, Math.PI / 2 - ln.a1, Math.PI / 2 - ln.a0);   // depth is up the canvas: the arc bows away from the stage
+    else { c.moveTo(PX(ln.a.x), PY(ln.a.d)); c.lineTo(PX(ln.b.x), PY(ln.b.d)); }
+    c.stroke();
+  }
+  for (const t of S.tables) {
+    if (t.rect) {                                      // a classroom table: a slab on the stage side of its row
+      const ax = PX(t.a.x), ay = PY(t.a.d), bx = PX(t.b.x), by = PY(t.b.d), nx = -(by - ay), ny = bx - ax, L = Math.hypot(nx, ny) || 1, dd = t.depth * psc;
+      c.fillStyle = "#2A2E38"; c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx, by); c.lineTo(bx + nx / L * dd, by + ny / L * dd); c.lineTo(ax + nx / L * dd, ay + ny / L * dd); c.closePath(); c.fill();
+    } else { c.fillStyle = "#2A2E38"; c.strokeStyle = "rgba(236,238,244,0.3)"; c.beginPath(); c.arc(PX(t.x), PY(t.d), t.r * psc, 0, 7); c.fill(); c.stroke(); }
+  }
+  c.fillStyle = seatSel ? "#7FDFFD" : "#4A5062";
+  const sr = Math.max(1.5 * pdpr, 8 * psc);
+  for (const st of S.seats) { c.beginPath(); c.arc(PX(st.x), PY(st.d), sr, 0, 7); c.fill(); }
+  if (seatSel) { const hw2 = (Math.max(S.maxW, P.plan.rowW) / 2 + 24) * psc; c.setLineDash([6 * pdpr, 5 * pdpr]); c.strokeStyle = "#7FDFFD"; c.lineWidth = 1.5 * pdpr; c.strokeRect(PX(cx) - hw2, rowY - 18 * psc, 2 * hw2, (E.row - S.backD) * psc + 18 * psc); c.setLineDash([]); }
+  plabel(SEAT_LAYOUTS[P.plan.layout] + " \u00b7 " + S.count + " seats \u00b7 first row " + fmtLen(P.plan.rowD) + " from the deck" + (P.plan.taper ? " \u00b7 taper " + P.plan.taper + "\u2033 a row" : ""), (rl + rr) / 2, PY(S.backD) + 16 * pdpr, font);
+  if (P.plan.showCount) {                             // the attendee count, large, following the seating as it changes
+    const n = S.count, want = P.plan.attendees, big = "700 " + 26 * pdpr + 'px "Space Grotesk", sans-serif';
+    const txt = want > 0 ? n + " seats for " + want + (n >= want ? " \u00b7 " + (n - want) + " spare" : " \u00b7 " + (want - n) + " short") : n + " seats";
+    f.font = big; const tw = f.measureText(txt).width + 28 * pdpr, bx = pW - 24 * pdpr - tw, by = 40 * pdpr;   // top right, clear of the drawing
+    f.fillStyle = want > 0 && n < want ? "rgba(120,30,30,0.88)" : "rgba(4,6,11,0.88)"; prr(f, bx, by, tw, 42 * pdpr, 12 * pdpr); f.fill();
+    f.fillStyle = "#eceef4"; f.fillText(txt, bx + tw / 2, by + 21 * pdpr);
+  }
+  if (P.plan.avD > 0) {
+    const a = pavRect(), x = PX(a.x0), yA = PY(a.d1), w = a.w * psc, h = a.l * psc, avSel = psel && psel.kind === "av";
+    c.fillStyle = "#1A2033"; c.fillRect(x, yA, w, h); c.strokeStyle = avSel ? "#7FDFFD" : "rgba(127,223,253,0.6)"; c.lineWidth = avSel ? 2 * pdpr : pdpr; c.strokeRect(x, yA, w, h);
+    plabel("AV island" + (avSel ? " \u00b7 " + fmtLen(a.w) + " \u00d7 " + fmtLen(a.l) : ""), x + w / 2, yA + h / 2, lf);
+  }
+  // the room: its walls, with the doors from Elements set into the back wall, and its dimensions
+  const R = proom();
+  if (R) {
+    const x = PX(R.x0), y = PY(R.back), w = (R.x1 - R.x0) * psc, h = (R.back - R.front) * psc, wall = Math.max(3 * pdpr, 6 * psc);
+    c.strokeStyle = "#9AA0AC"; c.lineWidth = wall; c.strokeRect(x, y, w, h);
+    for (const dr of P.items) if (dr.type === "door") {        // a gap in the back wall and a swing arc into the room
+      const dx = PX(dr.x - dr.w / 2), dw = dr.w * psc;
+      c.fillStyle = "#0E1016"; c.fillRect(dx, y - wall, dw, wall * 2);
+      c.strokeStyle = "rgba(154,160,172,0.6)"; c.lineWidth = pdpr; c.beginPath();
+      if (dr.dbl) { c.arc(dx, y, dw / 2, Math.PI / 2, 0, true); c.moveTo(dx + dw, y); c.arc(dx + dw, y, dw / 2, Math.PI / 2, Math.PI); }
+      else c.arc(dx, y, dw, Math.PI / 2, 0, true);
+      c.stroke();
+      c.strokeStyle = "#9AA0AC";
+    }
+    plabel("Room " + fmtLen(R.x1 - R.x0) + " wide \u00d7 " + fmtLen(R.back - R.front) + " deep" + (P.bg.ceiling > 0 ? " \u00d7 " + fmtLen(P.bg.ceiling) + " high" : "") + (P.room.back ? " \u00b7 deck " + fmtLen(P.room.back) + " off the back wall" : ""), x + w / 2, y + h - 14 * pdpr, font);
+  }
+  // the 45-degree viewing cone off the front screen (the widest of the frontmost)
+  const fronts = byDepth.filter(s => pdepth(s) === pdepth(byDepth[0]));
+  const fs = fronts.length ? fronts.reduce((a, b) => pdims(b).gw > pdims(a).gw ? b : a) : null;
+  if (fs) {
+    const d = pdims(fs), dp = pdepth(fs), L = fs.x - d.gw / 2, R = fs.x + d.gw / 2, reach = dp - E.bottom;
+    f.beginPath(); f.moveTo(PX(L), PY(dp)); f.lineTo(PX(R), PY(dp)); f.lineTo(PX(R + reach), PY(dp - reach)); f.lineTo(PX(L - reach), PY(dp - reach)); f.closePath();
+    f.fillStyle = "rgba(127,223,253,0.05)"; f.fill();
+    f.setLineDash([6 * pdpr, 6 * pdpr]); f.strokeStyle = "rgba(127,223,253,0.4)"; f.lineWidth = pdpr; f.stroke(); f.setLineDash([]);
+    plabel("45\u00b0 viewing cone", PX(L - reach * 0.6), PY(dp - reach * 0.6), lf);
+  }
+  // sightline rays from seven seats along the front row past the ends of the front screens
+  const seatY = E.row, ends = psightEnds(byDepth), farD = Math.max(E.top - 36, back !== null ? back : 0);
+  for (let k = -3; k <= 3; k++) {
+    const sx = cx + k * (P.plan.rowW / 2) / 3;
+    for (const e of ends) {
+      const r = pcast(byDepth, seatY, sx, e), hit = r && r !== "out" ? r : null, dy = e.dS - seatY, dx = e.ex - sx;
+      const endD = hit ? hit.d : farD, endX = hit ? hit.x : sx + dx * (endD - seatY) / dy;
+      const col = hit ? "#B0E64B" : r === "out" ? "#6E7486" : "#FF5A5A";          // lands on a screen; sees the backdrop past the wing; sees into the gap
+      f.strokeStyle = col; f.globalAlpha = r === null ? 0.9 : 0.5; f.lineWidth = r === null ? 1.5 * pdpr : pdpr;
+      f.beginPath(); f.moveTo(PX(sx), PY(seatY)); f.lineTo(PX(endX), PY(endD)); f.stroke(); f.globalAlpha = 1;
+      f.fillStyle = col; f.beginPath(); f.arc(PX(endX), PY(endD), 3 * pdpr, 0, 7); f.fill();
+    }
+  }
+  for (const h of phandles()) {
+    const sz = 9 * pdpr;
+    f.fillStyle = "#fff"; f.strokeStyle = "#0061FF"; f.lineWidth = 2 * pdpr;
+    f.fillRect(PX(h.x) - sz / 2, PY(h.y) - sz / 2, sz, sz); f.strokeRect(PX(h.x) - sz / 2, PY(h.y) - sz / 2, sz, sz);
+  }
+  const sight = psightline();
+  plabel("Sightlines \u00b7 " + sight.text, (ins.l + pW) / 2, 20 * pdpr, font);
+  // which way is which: plans get read upside down
+  plabel("\u2191 Upstage", ins.l + 70 * pdpr, 46 * pdpr, lf);
+  plabel("\u2193 Downstage \u00b7 audience", ins.l + 100 * pdpr, pH - Math.max(ins.b, 120 * pdpr) - 10 * pdpr, lf);
+  if (Math.abs(pzoom - 1) > 0.01 || ppan.x || ppan.y) plabel("Zoom " + Math.round(pzoom * 100) + "% \u00b7 double-click the background to fit", pW - 190 * pdpr, (P.plan.showCount ? 100 : 46) * pdpr, font);
+}
+
 /* ---- zoom and pan ---- */
 // zoom by f about the canvas point (px, py): the world under the pointer stays put
 function pzoomAt(f, px, py) {
@@ -7089,10 +7437,23 @@ const pworld = (px, py) => ({ x: (px - pox) / psc, y: (pfloor - py) / psc });
 function pitemAt(w) {
   if (!P.vis.devices) return null;                  // hidden devices can't be picked
   const hit = it => { const d = pdims(it); return Math.abs(w.x - it.x) <= d.w / 2 && w.y >= it.y && w.y <= it.y + d.h; };
-  for (let i = P.items.length - 1; i >= 0; i--) if (P.items[i].type === "person" && hit(P.items[i])) return P.items[i];   // people stand in front of everything
-  for (let i = P.items.length - 1; i >= 0; i--) if (P.items[i].type !== "person" && hit(P.items[i])) return P.items[i];
+  const ord = pdrawOrder();                         // the last drawn is in front
+  for (let i = ord.length - 1; i >= 0; i--) if (ord[i].type === "person" && hit(ord[i])) return ord[i];   // people stand in front of everything
+  for (let i = ord.length - 1; i >= 0; i--) if (ord[i].type !== "person" && hit(ord[i])) return ord[i];
   return null;
 }
+// the selection: one item, plus any more picked with Shift held; they move together
+const pselItems = () => psel && psel.kind === "item" ? [psel.it, ...(psel.more || [])] : [];
+const pselHas = it => psel && psel.kind === "item" && (psel.it === it || (psel.more || []).includes(it));
+// Shift-click: an unselected item joins the selection (and may be dragged with the rest); a selected one leaves it
+function pselToggle(it) {
+  if (!psel || psel.kind !== "item") { psel = { kind: "item", it, more: [] }; return true; }
+  if (psel.it === it) { if (psel.more && psel.more.length) psel = { kind: "item", it: psel.more[0], more: psel.more.slice(1) }; else psel = null; return false; }
+  const more = psel.more || [];
+  if (more.includes(it)) { psel.more = more.filter(x => x !== it); return false; }
+  psel.more = [...more, it]; return true;
+}
+const pothers = it => pselItems().filter(x => x !== it).map(x => ({ it: x, x0: x.x, y0: x.y, d0: pdepth(x) }));
 // the picked item comes to the front: selecting is how overlaps are ordered
 function pfront(it) {
   const i = P.items.indexOf(it);
@@ -7107,6 +7468,18 @@ const pinFrame = w => w.x >= P.frame.x0 - 2 && w.x <= P.frame.x0 + P.frame.w + 2
 
 pileFg.addEventListener("pointerdown", e => {
   const { px, py } = pev(e), w = pworld(px, py), h = phandleAt(px, py);
+  if (pview === "plan") {                            // in the plan: screens move sideways and in depth, the deck's edges resize it, the island and the seating drag
+    const it = pplanAt(w);
+    if (h && psel && psel.kind === "av") pdrag = { type: "plan-av-edge", k: h.k, r0: pavRect() };
+    else if (h) pdrag = { type: "plan-stage-edge", k: h.k, w0: pstageW(), x0: P.bg.stageX || 0, d0: P.bg.stageD, a0: P.bg.apron };
+    else if (it && e.shiftKey) { if (!pselToggle(it)) { psyncSel(); return; } pdrag = { type: "plan-move", it, w0: w, x0: it.x, d0: pdepth(it), others: pothers(it) }; }
+    else if (it) { if (!pselHas(it)) psel = { kind: "item", it, more: [] }; pdrag = { type: "plan-move", it, w0: w, x0: it.x, d0: pdepth(it), others: pothers(it) }; }
+    else if (pinAvPlan(w)) { psel = { kind: "av" }; pdrag = { type: "plan-av", w0: w, x0: P.plan.avX || 0, d0: P.plan.avD }; }
+    else if (pinSeatsPlan(w)) { psel = { kind: "seating" }; pdrag = { type: "plan-seating", w0: w, d0: P.plan.rowD }; }
+    else if (pinDeckPlan(w)) { psel = { kind: "stage" }; pdrag = { type: "stage-move", w0: w, x0: P.bg.stageX || 0 }; }
+    else { psel = null; pdrag = { type: "pan", px, py, pan0: { ...ppan } }; }
+    pdrag.moved = false; pileFg.setPointerCapture(e.pointerId); psyncSel(); return;
+  }
   if (protBtn && Math.hypot(px - protBtn.x, py - protBtn.y) <= protBtn.r + 2 * pdpr) {   // the rotate button
     protBtn.it.portrait = !protBtn.it.portrait; pfront(protBtn.it); psel = { kind: "item", it: protBtn.it }; pdrag = null; pcommit(); return;
   }
@@ -7130,9 +7503,16 @@ pileFg.addEventListener("pointerdown", e => {
     else pdrag = { type: "frame-edge", k: h.k, f0: { ...P.frame } };
   } else {
     let it = pitemAt(w);
-    const copy = !!(it && e.altKey);
+    const copy = !!(it && e.altKey && !e.shiftKey);
     if (copy) { it = pmk({ ...it }); P.items.push(it); }                    // Option-drag pulls off a copy (same group)
-    if (it) { const fronted = pfront(it); psel = { kind: "item", it }; pdrag = { type: "move", it, w0: w, x0: it.x, y0: it.y, copy, fronted }; }
+    if (it && e.shiftKey) {                                                  // Shift: build up a selection
+      if (!pselToggle(it)) { pdrag = null; psyncSel(); return; }
+      pdrag = { type: "move", it, w0: w, x0: it.x, y0: it.y, copy: false, fronted: false, others: pothers(it) };
+    } else if (it) {
+      const fronted = pfront(it);
+      if (!pselHas(it) || copy) psel = { kind: "item", it, more: [] };      // a plain click on part of a selection keeps the selection and drags it all
+      pdrag = { type: "move", it, w0: w, x0: it.x, y0: it.y, copy, fronted, others: copy ? [] : pothers(it) };
+    }
     else if (pinFrame(w)) { psel = { kind: "frame" }; pdrag = { type: "frame-move", w0: w, f0: { ...P.frame } }; }
     else if (pinStage(w)) { psel = { kind: "stage" }; pdrag = { type: "stage-move", w0: w, x0: P.bg.stageX || 0 }; }
     else if (pinCeiling(py)) { psel = { kind: "ceiling" }; pdrag = { type: "ceiling" }; }
@@ -7144,6 +7524,11 @@ pileFg.addEventListener("pointerdown", e => {
 pileFg.addEventListener("pointermove", e => {
   const { px, py } = pev(e), w = pworld(px, py);
   if (!pdrag) {
+    if (pview === "plan") {
+      const hh = phandleAt(px, py); phover = hh ? null : pplanAt(w);
+      pileFg.style.cursor = hh ? PCURS[hh.k] : phover || pinAvPlan(w) || pinSeatsPlan(w) ? "grab" : pinDeckPlan(w) ? "move" : "default";
+      return;
+    }
     const h = phandleAt(px, py);
     phover = h ? null : pitemAt(w);
     const onRot = protBtn && Math.hypot(px - protBtn.x, py - protBtn.y) <= protBtn.r + 2 * pdpr;
@@ -7160,7 +7545,34 @@ pileFg.addEventListener("pointermove", e => {
   }
   pdrag.moved = true;
   const f = P.frame, g = pgrid();
-  if (pdrag.type === "move") {
+  if (pdrag.type === "plan-move") {
+    const it = pdrag.it;
+    it.x = Math.round((pdrag.x0 + (w.x - pdrag.w0.x)) * 2) / 2;
+    it.depth = Math.max(0, Math.min(600, Math.round(pdrag.d0 + (w.y - pdrag.w0.y))));
+    const dx = it.x - pdrag.x0, dd = it.depth - pdrag.d0;
+    for (const o of pdrag.others || []) { o.it.x = Math.round((o.x0 + dx) * 2) / 2; if (o.it.type === "screen") o.it.depth = Math.max(0, Math.min(600, o.d0 + dd)); }
+    pileFg.style.cursor = "grabbing";
+  } else if (pdrag.type === "plan-av") {
+    P.plan.avX = Math.round(pdrag.x0 + (w.x - pdrag.w0.x));
+    P.plan.avD = Math.max(0, Math.round(pdrag.d0 - (w.y - pdrag.w0.y)));                // dragging downstage (down the canvas) puts it further behind the row
+    pileFg.style.cursor = "grabbing";
+  } else if (pdrag.type === "plan-av-edge") {
+    const k = pdrag.k, r = pdrag.r0, row = -P.bg.apron - P.plan.rowD, cx = pstageCX();
+    let { x0, x1, d0, d1 } = r;
+    if (k === "l") x0 = Math.min(x1 - 24, Math.round(w.x)); else if (k === "r") x1 = Math.max(x0 + 24, Math.round(w.x));
+    else if (k === "t") d1 = Math.min(row, Math.max(d0 + 24, Math.round(w.y))); else d0 = Math.min(d1 - 24, Math.round(w.y));
+    P.plan.avW = x1 - x0; P.plan.avX = Math.round((x0 + x1) / 2 - cx); P.plan.avL = d1 - d0; P.plan.avD = Math.round(row - d1);
+  } else if (pdrag.type === "plan-seating") {
+    P.plan.rowD = Math.max(0, Math.min(2400, Math.round(pdrag.d0 - (w.y - pdrag.w0.y))));
+    pileFg.style.cursor = "grabbing";
+  } else if (pdrag.type === "plan-stage-edge") {
+    const k = pdrag.k, gcx = P.frame.x0 + P.frame.w / 2, l0 = gcx + pdrag.x0 - pdrag.w0 / 2, r0 = gcx + pdrag.x0 + pdrag.w0 / 2, back = pdrag.d0 - pdrag.a0;
+    if (k === "l") { const l = Math.min(r0 - 24, Math.round(w.x)); P.bg.stageW = r0 - l; P.bg.stageX = Math.round((l + r0) / 2 - gcx); }
+    else if (k === "r") { const r = Math.max(l0 + 24, Math.round(w.x)); P.bg.stageW = r - l0; P.bg.stageX = Math.round((l0 + r) / 2 - gcx); }
+    else if (k === "t") P.bg.stageD = Math.max(pdrag.a0 + 12, Math.min(1200, Math.round(w.y + pdrag.a0)));     // the back edge: depth, the front edge staying put
+    else { const apron = Math.max(0, Math.min(720, Math.round(-w.y))); P.bg.apron = apron; P.bg.stageD = Math.max(12, back + apron); }   // the front edge: apron, the back staying put
+    roomDirty = true; psyncBg();
+  } else if (pdrag.type === "move") {
     const it = pdrag.it;
     let nx = pdrag.x0 + (w.x - pdrag.w0.x), ny = Math.max(0, pdrag.y0 + (w.y - pdrag.w0.y));
     if (pui.snapX && it.type === "screen") {
@@ -7170,6 +7582,11 @@ pileFg.addEventListener("pointermove", e => {
     if (ny * psc < 10 * pdpr) ny = 0;
     if (it.type === "door") ny = -P.bg.stageH;                               // a door is part of the room: it stays on the room floor
     it.x = Math.round(nx * 2) / 2; it.y = Math.round(ny * 2) / 2;
+    const dx = it.x - pdrag.x0, dy = it.y - pdrag.y0;                        // the rest of the selection follows by the same step
+    for (const o of pdrag.others || []) {
+      o.it.x = Math.round((o.x0 + dx) * 2) / 2;
+      o.it.y = o.it.type === "door" ? -P.bg.stageH : Math.max(0, Math.round((o.y0 + dy) * 2) / 2);
+    }
     pileFg.style.cursor = "grabbing";
   } else if (pdrag.type === "resize") {
     const it = pdrag.it, k = pdrag.k, sx = k.includes("l") ? -1 : 1, sy = k.includes("t") ? 1 : -1, d0 = pdims(it);
@@ -7269,11 +7686,17 @@ function pselTitle() {
   }
   if (psel.kind === "stage") {
     const dx = P.bg.stageX || 0;
-    return ["Stage", fmtLen(pstageW()) + " wide", fmtLen(P.bg.stageH) + " high", dx ? fmtLen(Math.abs(dx)) + (dx > 0 ? " right" : " left") + " of the grid centre" : "centred on the grid"];
+    return ["Stage", fmtLen(pstageW()) + " wide", P.bg.stageH > 0 ? fmtLen(P.bg.stageH) + " high" : "", P.bg.stageD > 0 ? fmtLen(P.bg.stageD) + " deep, apron " + fmtLen(P.bg.apron) : "", dx ? fmtLen(Math.abs(dx)) + (dx > 0 ? " right" : " left") + " of the grid centre" : "centred on the grid"];
+  }
+  if (psel.kind === "av") { const dx = P.plan.avX || 0; return ["AV island", fmtLen(P.plan.avW || 144) + " \u00d7 " + fmtLen(P.plan.avL || 96), fmtLen(P.plan.avD) + " behind the first row", dx ? fmtLen(Math.abs(dx)) + (dx > 0 ? " right" : " left") + " of the stage centre" : "on the stage centre"]; }
+  if (psel.kind === "seating") { const S = pseating(); return ["Seating", SEAT_LAYOUTS[P.plan.layout], S.count + " seats", P.plan.rows + (P.plan.rows === 1 ? " row" : " rows"), fmtLen(P.plan.rowD) + " from the deck"]; }
+  if (psel.more && psel.more.length) {
+    const all = pselItems(), scr = all.filter(i => i.type === "screen");
+    return [all.length + " selected", scr.length === all.length ? pmix(scr).map(([k, n]) => n + "\u00d7 " + k).join(", ") : all.map(i => i.type === "screen" ? psize(i) : i.type).join(", "), "Shift-click to add or remove \u00b7 drag any to move all"];
   }
   const it = psel.it, d = pdims(it);
   return it.type === "screen"
-    ? [psize(it) + (pcustom(it) ? " panel" : " screen"), fmtU(d.w, true) + " \u00d7 " + fmtU(d.h) + " outside", ftHint(it.y) + " up", P.groups.length > 1 ? gname(gof(it)) : ""]
+    ? [psize(it) + (pcustom(it) ? " panel" : " screen"), fmtU(d.w, true) + " \u00d7 " + fmtU(d.h) + " outside", ftHint(it.y) + " up", pdepth(it) ? ftHint(it.depth) + " upstage" : "", P.groups.length > 1 ? gname(gof(it)) : ""]
     : it.type === "cab" ? ["Speaker cabinet", Math.round(it.w) + "″ × " + Math.round(it.h) + "″"]
     : it.type === "person" ? ["Person", fmtLen(it.ht) + " tall"]
     : it.type === "door" ? [(it.dbl ? "Double door" : "Door"), Math.round(it.w) + "\u2033 \u00d7 " + Math.round(it.h) + "\u2033", "on the room floor"]
@@ -7286,8 +7709,8 @@ function psyncSel(full = true) {
   const key = psel.kind === "item" ? String(psel.it.id) : psel.kind;
   if (!full && box.dataset.for === key) { const t = box.querySelector(".t"); if (t) barJoin(t, pselTitle()); return; }
   box.dataset.for = key;
-  if (psel.kind === "frame") {
-    box.innerHTML = '<div class="t"></div>';
+  if (psel.kind === "frame" || psel.kind === "av" || psel.kind === "seating") {
+    box.innerHTML = '<div class="t"></div>' + (psel.kind === "frame" ? "" : '<p class="note" style="margin:6px 0 0">' + (psel.kind === "av" ? "Drag the island anywhere in the house; drag its edges to size it." : "Drag the block to set the first row\u2019s distance; the Plan card sets the layout.") + "</p>");
     barJoin(box.querySelector(".t"), pselTitle());
     return;
   }
@@ -7306,6 +7729,20 @@ function psyncSel(full = true) {
     return;
   }
   const it = psel.it;
+  if (psel.more && psel.more.length) {                 // several things: what is common to all
+    const all = pselItems(), allScr = all.every(i => i.type === "screen");
+    box.innerHTML = '<div class="t"></div>'
+      + (allScr ? '<div class="row"><label for="selGroup">Group</label><select id="selGroup"><option value="">Leave as they are</option>' + P.groups.map(g => '<option value="' + g.id + '">' + gesc(gname(g)) + "</option>").join("") + "</select></div>"
+                + '<div class="row"><label for="selDepth">Depth (in)</label><input type="number" class="num wide" id="selDepth" min="0" max="600" placeholder="mixed" value="' + (all.every(i => pdepth(i) === pdepth(all[0])) ? pdepth(all[0]) : "") + '"></div>' : "")
+      + '<div class="btnrow"><button class="pill" id="selDup">Duplicate</button><button class="pill" id="selDel">Remove</button></div>';
+    if (allScr) {
+      $("selGroup").onchange = e => { if (e.target.value) { for (const i of all) i.g = +e.target.value; pcommit(); } };
+      $("selDepth").onchange = e => { const v = Math.max(0, Math.min(600, Math.round(+e.target.value) || 0)); for (const i of all) i.depth = v; pcommit(); psyncSel(true); };
+    }
+    barJoin(box.querySelector(".t"), pselTitle());
+    $("selDup").onclick = pdup; $("selDel").onclick = pdel;
+    return;
+  }
   if (it.type === "screen") {
     const cust = pcustom(it);
     const opts = PSIZES.map(s => '<option value="' + s + '"' + (!cust && s === it.diag ? " selected" : "") + ">" + s + "″</option>").join("")
@@ -7315,6 +7752,7 @@ function psyncSel(full = true) {
       + '<div class="row"><label for="selSize">Size</label><select id="selSize">' + opts + "</select></div>"
       + (cust ? '<div class="row"><label for="selCW">Width (in)</label><input type="number" class="num wide" id="selCW" min="4" max="240" value="' + it.cw + '"></div>'
               + '<div class="row"><label for="selCH">Height (in)</label><input type="number" class="num wide" id="selCH" min="4" max="240" value="' + it.ch + '"></div>' : "")
+      + '<div class="row"><label for="selDepth">Depth (in)</label><input type="number" class="num wide" id="selDepth" min="0" max="600" value="' + pdepth(it) + '" title="How far upstage the glass face sits, from the screens\u2019 front line; 0 is the front, positive is away from the audience"></div>'
       + '<div class="row"><label for="selGroup">Group</label><select id="selGroup">'
       + P.groups.map(g => '<option value="' + g.id + '"' + (gof(it) === g ? " selected" : "") + ">" + gesc(gname(g)) + "</option>").join("") + "</select></div>"
       + '<label class="check"><input type="checkbox" id="selDead"' + (it.dead ? " checked" : "") + "> Switched off (test a dead screen)</label>"
@@ -7330,6 +7768,7 @@ function psyncSel(full = true) {
       $("selCH").onchange = e => setDim("ch", e.target.value);
     }
     $("selGroup").onchange = e => { it.g = +e.target.value; pcommit(); };
+    $("selDepth").onchange = e => { it.depth = Math.max(0, Math.min(600, Math.round(+e.target.value) || 0)); pcommit(); psyncSel(true); };
     $("selDead").onchange = e => { it.dead = e.target.checked; pcommit(); };
   } else if (it.type === "camera") {
     box.innerHTML = '<div class="t"></div><div class="btnrow"><button class="pill" id="selDup">Duplicate</button><button class="pill" id="selDel">Remove</button></div>';
@@ -7365,12 +7804,12 @@ function psyncSel(full = true) {
   barJoin(box.querySelector(".t"), pselTitle());
   $("selDup").onclick = pdup; $("selDel").onclick = pdel;
 }
-function pdel() { if (!psel || psel.kind !== "item") return; P.items = P.items.filter(i => i !== psel.it); psel = null; pcommit(); }
+function pdel() { if (!psel || psel.kind !== "item") return; const gone = pselItems(); P.items = P.items.filter(i => !gone.includes(i)); psel = null; pcommit(); }
 function pdup() {
   if (!psel || psel.kind !== "item") return;
-  const src = psel.it, c = pmk({ ...src });
-  c.x = src.x + pdims(src).w + 4;
-  P.items.push(c); psel = { kind: "item", it: c }; pcommit();
+  const all = pselItems(), step = Math.max(...all.map(i => pdims(i).w)) + 4;    // the copies sit beside the originals, keeping their arrangement
+  const copies = all.map(src => { const c = pmk({ ...src }); c.x = src.x + step; P.items.push(c); return c; });
+  psel = { kind: "item", it: copies[0], more: copies.slice(1) }; pcommit();
 }
 function psyncBg() {
   $("photoOpts").hidden = P.bg.wall !== "photo";
@@ -7382,6 +7821,17 @@ function psyncBg() {
   $("ceilFt").value = P.bg.ceiling > 0 ? +(P.bg.ceiling / 12).toFixed(2) : "";
   $("stageHFt").value = P.bg.stageH > 0 ? +(P.bg.stageH / 12).toFixed(2) : "";
   $("stageWFt").value = P.bg.stageW > 0 ? +(P.bg.stageW / 12).toFixed(2) : "";
+  $("stageDFt").value = P.bg.stageD > 0 ? +(P.bg.stageD / 12).toFixed(2) : "";
+  $("apronFt").value = +(P.bg.apron / 12).toFixed(2);
+  $("rowDFt").value = +(P.plan.rowD / 12).toFixed(2); $("rowWFt").value = +(P.plan.rowW / 12).toFixed(2); $("avDFt").value = P.plan.avD > 0 ? +(P.plan.avD / 12).toFixed(2) : "";
+  $("seatLayout").value = P.plan.layout; $("seatRows").value = P.plan.rows; $("seatPitch").value = P.plan.pitch; $("seatW").value = P.plan.seat; $("seatAisles").value = P.plan.aisles; $("seatAisleW").value = P.plan.aisleW;
+  const rounds = P.plan.layout === "banquet" || P.plan.layout === "cabaret";
+  $("seatWRow").hidden = rounds; $("aisleRow").hidden = rounds; $("taperRow").hidden = rounds || P.plan.layout === "curved";
+  $("seatTaper").value = P.plan.taper || 0; $("seatShowCount").checked = !!P.plan.showCount; $("seatAttendees").value = P.plan.attendees > 0 ? P.plan.attendees : "";
+  $("seatCount").textContent = pseating().count + " seats";
+  $("roomWFt").value = P.room.w > 0 ? +(P.room.w / 12).toFixed(2) : ""; $("roomDFt").value = P.room.d > 0 ? +(P.room.d / 12).toFixed(2) : "";
+  $("roomBackFt").value = +(P.room.back / 12).toFixed(2); $("roomXFt").value = +((P.room.x || 0) / 12).toFixed(2);
+  document.querySelectorAll("#viewSeg button").forEach(b => b.classList.toggle("active", b.dataset.view === pview));
   syncWall(); syncLight();
 }
 function prefresh() { pfit(); psyncGrid(); pstats(); psyncSel(); psyncBg(); psyncUnits(); gsync(); }
@@ -7593,6 +8043,26 @@ $("overhang").addEventListener("change", e => { P.bg.overhang = Math.max(0, Math
 $("ceilFt").addEventListener("change", e => { P.bg.ceiling = Math.round(Math.max(0, Math.min(80, +e.target.value || 0)) * 12); pcommit(); });
 $("stageHFt").addEventListener("change", e => { P.bg.stageH = Math.round(Math.max(0, Math.min(20, +e.target.value || 0)) * 12); roomDirty = true; pcommit(); });
 $("stageWFt").addEventListener("change", e => { P.bg.stageW = Math.round(Math.max(0, Math.min(200, +e.target.value || 0)) * 12); pcommit(); });
+$("stageDFt").addEventListener("change", e => { P.bg.stageD = Math.round(Math.max(0, Math.min(100, +e.target.value || 0)) * 12); pcommit(); });
+$("apronFt").addEventListener("change", e => { P.bg.apron = Math.round(Math.max(0, Math.min(60, +e.target.value || 0)) * 12); pcommit(); });
+$("rowDFt").addEventListener("change", e => { P.plan.rowD = Math.round(Math.max(0, Math.min(200, +e.target.value || 0)) * 12); pcommit(); });
+$("rowWFt").addEventListener("change", e => { P.plan.rowW = Math.round(Math.max(2, Math.min(400, +e.target.value || 2)) * 12); pcommit(); });
+$("avDFt").addEventListener("change", e => { P.plan.avD = Math.round(Math.max(0, Math.min(400, +e.target.value || 0)) * 12); pcommit(); });
+$("roomWFt").addEventListener("change", e => { P.room.w = Math.round(Math.max(0, Math.min(600, +e.target.value || 0)) * 12); pcommit(); });
+$("roomDFt").addEventListener("change", e => { P.room.d = Math.round(Math.max(0, Math.min(600, +e.target.value || 0)) * 12); pcommit(); });
+$("roomBackFt").addEventListener("change", e => { P.room.back = Math.round(Math.max(0, Math.min(200, +e.target.value || 0)) * 12); pcommit(); });
+$("roomXFt").addEventListener("change", e => { P.room.x = Math.round(Math.max(-300, Math.min(300, +e.target.value || 0)) * 12); pcommit(); });
+$("seatLayout").addEventListener("change", e => {
+  P.plan.layout = SEAT_LAYOUTS[e.target.value] ? e.target.value : "theatre";
+  if (P.plan.layout === "chevron" && P.plan.aisles < 1) P.plan.aisles = 1;                       // a chevron needs a centre aisle to angle about
+  pcommit();
+});
+$("seatTaper").addEventListener("change", e => { P.plan.taper = Math.max(-120, Math.min(120, Math.round(+e.target.value) || 0)); pcommit(); });
+$("seatShowCount").addEventListener("change", e => { P.plan.showCount = e.target.checked; pcommit(); });
+$("seatAttendees").addEventListener("change", e => { P.plan.attendees = Math.max(0, Math.min(20000, Math.round(+e.target.value) || 0)); pcommit(); });
+[["seatRows", "rows", 1, 60], ["seatPitch", "pitch", 24, 240], ["seatW", "seat", 12, 48], ["seatAisles", "aisles", 0, 8], ["seatAisleW", "aisleW", 24, 120]].forEach(([id, key, min, max]) =>
+  $(id).addEventListener("change", e => { P.plan[key] = Math.max(min, Math.min(max, Math.round(+e.target.value) || min)); pcommit(); }));
+seg("viewSeg", "view", () => pview, v => { pview = v; psel = null; try { localStorage.setItem("vibe.pileView", v); } catch (e) { /* storage blocked */ } pzoomReset(); prefresh(); });
 $("photoFt").addEventListener("change", e => { P.bg.photoFt = Math.max(4, Math.min(200, +e.target.value || 20)); pcommit(); });
 function ploadImg(file, cb) {
   const img = new Image();
@@ -7621,7 +8091,7 @@ $("copySpec").addEventListener("click", () => {
   const f = P.frame, g = pgrid(), B = pbounds(), all = pscreens();
   const bdName = { none: "None", drape: "Black drape", gradient: "Printed fabric, palette gradient", tiles: "Printed fabric, palette tiles",
                    solid: "Solid colour " + P.bg.solid, image: "Printed fabric, custom artwork" }[P.bg.backdrop];
-  const portraits = all.filter(s => s.portrait).length, cams = P.items.filter(i => i.type === "camera"), doors = P.items.filter(i => i.type === "door"), rig = RIGS[f.kind] || RIGS.pipe, out = poutputs();
+  const portraits = all.filter(s => s.portrait).length, cams = P.items.filter(i => i.type === "camera"), doors = P.items.filter(i => i.type === "door"), rig = RIGS[f.kind] || RIGS.pipe, out = poutputs(), seating = pseating();
   const lines = [
     "Multi-screen installation, Conversion 2027",
     "Overall: " + fmtLen(B.w) + " wide x " + fmtLen(B.h) + " tall",
@@ -7639,15 +8109,20 @@ $("copySpec").addEventListener("click", () => {
     "Cameras: " + cams.length + (cams.length ? ", " + cams.map(cm => "x " + Math.round(cm.x - f.x0) + " / " + Math.round(cm.y) + "\" up").join("; ") : ""),
     ...(doors.length ? ["Doors in the back wall (centre x from grid left edge, on the room floor): " + doors.slice().sort((a, b) => a.x - b.x).map(d => (d.dbl ? "double " : "") + Math.round(d.w) + "\" x " + Math.round(d.h) + "\" at " + fmtLen(d.x - f.x0) + (d.exit ? ", exit sign" : "")).join("; ")] : []),
     "Backdrop: " + bdName + (P.bg.backdrop === "none" ? "" : P.bg.stageH > 0 ? ", as wide as the stage, " + P.bg.overhang + "\" past the grid top" : ", " + P.bg.overhang + "\" past the grid on sides and top"),
+    ...(P.bg.stageD > 0 ? ["Stage depth: " + fmtLen(P.bg.stageD) + " front edge to back, apron " + fmtLen(P.bg.apron) + " in front of the screens\u2019 front line; screen structures taken as " + PLAN_T + "\" deep"] : []),
+    "Seating: " + SEAT_LAYOUTS[P.plan.layout].toLowerCase() + ", " + seating.count + " seats in " + P.plan.rows + (P.plan.rows === 1 ? " row" : " rows") + " at " + P.plan.pitch + "\" spacing, " + fmtLen(P.plan.rowW) + " wide" + (P.plan.taper && P.plan.layout !== "curved" && P.plan.layout !== "banquet" && P.plan.layout !== "cabaret" ? " at the first row, fanning " + P.plan.taper + "\" a row" : "") + ", first row " + fmtLen(P.plan.rowD) + " from the deck edge, centred on the stage" + (P.plan.attendees > 0 ? "; " + P.plan.attendees + " expected, " + (seating.count >= P.plan.attendees ? (seating.count - P.plan.attendees) + " seats spare" : (P.plan.attendees - seating.count) + " seats short") : "")
+      + (P.plan.avD > 0 ? "; AV island " + fmtLen(P.plan.avW || 144) + " x " + fmtLen(P.plan.avL || 96) + ", " + fmtLen(P.plan.avD) + " behind the first row" + (P.plan.avX ? ", " + fmtLen(Math.abs(P.plan.avX)) + (P.plan.avX > 0 ? " right" : " left") + " of the stage centre" : "") : ""),
+    "Sightlines: " + psightline().text,
+    ...(P.room.w > 0 && P.room.d > 0 ? ["Room: " + fmtLen(P.room.w) + " wide x " + fmtLen(P.room.d) + " deep" + (P.bg.ceiling > 0 ? " x " + fmtLen(P.bg.ceiling) + " high" : "") + ", deck back edge " + fmtLen(P.room.back) + " off the back wall" + (P.room.x ? ", stage centre " + fmtLen(Math.abs(P.room.x)) + (P.room.x > 0 ? " left" : " right") + " of the room centre" : ", stage centred in the room")] : []),
     ...(P.bg.stageH > 0 ? ["Stage: " + fmtLen(pstageW()) + " wide x " + fmtLen(P.bg.stageH) + " high" + (P.bg.stageX ? ", centre " + fmtLen(Math.abs(P.bg.stageX)) + (P.bg.stageX > 0 ? " right" : " left") + " of the grid centre" : ", centred on the grid") + "; screen heights below are from the deck"] : []),
     ...(P.bg.ceiling > 0 ? ["Ceiling: " + fmtLen(P.bg.ceiling) + " from the room floor" + (P.bg.ceiling - P.bg.stageH >= B.maxY ? ", " + fmtLen(P.bg.ceiling - P.bg.stageH - B.maxY) + " clear above the screens" : ", screens overshoot by " + fmtLen(B.maxY + P.bg.stageH - P.bg.ceiling))] : []),
     P.play === "led"
       ? "Playback: LED panels, one machine driving one output into the LED processor; the groups are regions of one canvas"
       : "Playback: separate displays, " + out.outputs + " video outputs (" + out.own + " for the Unified and Scatter screens, one each; " + out.feeds + " splitter feed" + (out.feeds === 1 ? "" : "s") + " for the Mirror and Chaos screens, up to 3 screens per feed) on " + out.machines + " mini PC" + (out.machines === 1 ? "" : "s") + " at 3 outputs each; one shared mic and camera on the master",
     "",
-    "Screen positions (centre x from grid left edge, bottom edge height from the deck, in " + unitName() + "):",
+    "Screen positions (centre x from grid left edge, bottom edge height from the deck" + (all.some(s => pdepth(s)) ? ", depth upstage of the front line" : "") + ", in " + unitName() + "):",
     ...all.slice().sort((a, b) => a.x - b.x).map((s, i) =>
-      "  " + (i + 1) + ". " + psize(s) + (pcustom(s) ? " panel" : s.portrait ? " portrait" : "") + "  x " + fmtU(s.x - f.x0, true) + "  bottom " + fmtU(s.y, true) + "  " + gname(gof(s))),
+      "  " + (i + 1) + ". " + psize(s) + (pcustom(s) ? " panel" : s.portrait ? " portrait" : "") + "  x " + fmtU(s.x - f.x0, true) + "  bottom " + fmtU(s.y, true) + (pdepth(s) ? "  depth " + fmtU(s.depth, true) : "") + "  " + gname(gof(s))),
   ];
   pcopy(lines.join("\n"), "Spec");
 });
@@ -7889,9 +8364,8 @@ function frame(now) {
   if (fin) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     clearRingUnits();
-    drawPileBg();
-    drawPileScreens();
-    drawPileFg();
+    if (pview === "plan") { drawPlan(); drawPileScreens(); }   // the plan is 2D; drawPileScreens only clears the GL canvas
+    else { drawPileBg(); drawPileScreens(); drawPileFg(); }
   }
 
   const t = A; A = B; B = t;      // ping-pong: this frame becomes next frame's history

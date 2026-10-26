@@ -95,7 +95,9 @@ the grid's left edge but left out of the overall width), and the mounting
 grid has a **Rig** switch: Pipe, Scaffold (standards in bays, ledgers at each
 lift, braces) or Truss (12-inch box truss towers with a header). The rig
 changes the drawing, the field names and the spec line; snapping and the
-grid geometry are the same for all three.
+grid geometry are the same for all three. Screens also carry a depth, and a
+Plan card switches the view to a plan with sightline rays (0.9.71): see
+`docs/plan-view.md`.
 
 Output has a Multi-screen preview beside Full frame: screens laid out in inches,
 dragged and resized (TV diagonals, or since 0.9.58 custom panels with their
