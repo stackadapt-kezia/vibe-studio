@@ -52,9 +52,9 @@ deliberately not meant to be.
 ### Playback in the AV spec (fixed in 0.9.69)
 
 `Copy spec for AV` used to hardcode `N Raspberry Pi 5 boards (2 HDMI outputs
-each)`, wrong on both paths. Pile layout now has a **Playback** switch,
+each)`, wrong on both paths. AV layout (Pile layout until 0.9.76) has a **Playback** switch,
 Separate displays or LED panels, saved with the layout, and the spec line and
-the Pile layout figure follow it. Separate displays counts outputs by the
+the AV layout figure follow it. Separate displays counts outputs by the
 rules under Zones (a Unified or Scatter screen needs its own output; Mirror
 and Chaos screens share splitter feeds, three to a feed) and spreads them over
 mini PCs at three outputs each. LED panels reads as one machine and one

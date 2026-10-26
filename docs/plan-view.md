@@ -137,6 +137,33 @@ the house fans towards the back; and an **Attendee count** toggle puts the
 live seat count top-right of the plan, against an Expected figure when one is
 given, red when short.
 
+**The deck and the room (0.9.74).** The plan always draws the deck as a solid
+slab (`pstageD()`: the set depth, or 12′ behind the screens until one is set)
+and it moves and resizes there. The room is anchored to the grid, not the
+deck: `P.room.x` is the room centre's offset from the grid centre and
+`P.room.backD` the back wall's depth from the screens' front line, so the room
+stays put while the stage is edited (the Plan card still shows the gap from
+the deck's back edge to the wall, derived). Dragging the deck snaps to the
+room's centre within 12 px, and `pclampStage()` (run on every commit and
+during drags) keeps the deck inside the walls: no wider than the room, sides
+within it, back edge short of the back wall, front edge short of the front
+wall. Screens dragged in the plan snap first to another screen's depth plane,
+then on that plane edge to edge, edge aligned or centre to centre, keeping a
+snapped position to the tenth of an inch so touching screens truly touch.
+
+**Everything inside the room (0.9.75).** `pclampAll()` runs on every commit
+and at the end of every drag: each item's span within the side walls in both
+views (centred when wider than the room), a screen's depth short of the back
+wall by its structure, the mounting grid within the walls, the AV island by
+its centre, the seating no wider than the room and its first row short of the
+front wall. Rows are never trimmed; if they would not fit, the plan label and
+the spec say how far the seating runs past the front wall.
+
+A new room's back wall starts 4′ behind the deck's back edge (0.9.76); it
+used to start on the screens' front line, which pinned the screens against
+it. The elevation draws the room's side walls too, and both views say "Held
+at the room wall" while a drag is being stopped.
+
 **Sightline rays** run from seven seats along the front row past each end of
 a front screen that has a screen behind it. A ray lands on a screen behind
 (green), passes outside the wing's outer end to the backdrop (grey, harmless),
