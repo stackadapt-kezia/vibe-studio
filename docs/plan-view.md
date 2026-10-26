@@ -3,6 +3,11 @@
 Feature spec. Multi-screen draws one projection today, an elevation. This adds
 a depth value per screen and a second projection, a plan.
 
+The plan serves **two kinds of scene**, not one: a stage with a house in front
+of it, and a free-standing installation people walk past or through. Most of
+this document describes the first. "Scenes without a house" below describes
+the second, and the assumption that has to come out for it to work.
+
 ## Why
 
 The main stage is not three coplanar screens with gaps between them. It is one
@@ -207,6 +212,19 @@ the ceiling from the floor, `pdeckFront`/`pdeckBack` collapsing to the
 screens so the seating measures from them, no stage lines in the spec. The
 fields keep their values for when it opens again.
 
+**More rigs, symbols, a free backdrop (0.9.81).** Extra rigs are items
+(`type: "rig"`, with kind, size, spacing and depth) drawn with the same
+`drawRig` as the mounting grid, hit-tested last so screens on them win, and
+shown in the plan as a bar at their depth; only the mounting grid snaps
+screens to uprights. SVG symbols are items (`type: "svg"`) whose file lives in
+the media store flagged `svg` (so it is not restored as a picture source),
+drawn only in the plan inside a footprint with edge handles; deleting the
+last user of a file forgets it. The backdrop has its own size and place
+(`bdW`, `bdH`, `bdX`; 0 means the grid plus the overhang), selectable on the
+stage or from the Background card, with side and top handles. Option-drag
+copies the grabbed item and whatever is selected with it, in both views, and
+a copy that is not dragged is discarded. The attendee count is always on.
+
 **Sightline rays** run from seven seats along the front row past each end of
 a front screen that has a screen behind it. A ray lands on a screen behind
 (green), passes outside the wing's outer end to the backdrop (grey, harmless),
@@ -220,6 +238,55 @@ depth shifted by (e − s) × 96 / 324, which exceeds the 24″ overlap once the
 seat is more than 81″ outside the screen's end, so a half-width of 177″, a
 30′ row. The plan says 30′.
 
+## Scenes without a house
+
+The entrance installation in Sparkle West is a wall people approach and walk
+through. There is no stage, no audience, no single viewing direction — and the
+plan is currently wrong for it in one specific way.
+
+### What hard-codes the house
+
+`P.vis` carries `devices`, `bg` and `stage`. There is no flag for the seating,
+so in `drawPlan()` the house block draws unconditionally: rows, tables, seats,
+the taper label, "first row N from the screens", and the attendee counter in
+the top right reading "N seats for 700 · X short".
+
+In a lobby that is not merely unhelpful, it is wrong on screen while someone
+is being shown the drawing.
+
+### The fix
+
+Add **`house`** to `P.vis` beside `devices`, `bg` and `stage`, and guard the
+seating block, the AV island and the attendee readout with it. One flag, one
+toggle, about twenty lines.
+
+Built in 0.9.82 as an eye on the Plan card (`P.vis.house`, `phouseOn()`).
+It guards the seating block, the AV island and the attendee readout as asked,
+and also the sightline rays and the Sightlines line, since those start from
+the front row; the spec then says "House: none; a free-standing
+installation", and the downstage label reads "approach" instead of
+"audience". The seating settings keep their values.
+
+Everything else in the plan is already correct for a free-standing
+installation: room walls, doors, screens at their depths, rigs, SVG symbols,
+and the walk-through gaps.
+
+**The walk-through gap measurement transfers unchanged.** The red under 48″,
+amber under 72″, green above check was built for the stage screens and is
+exactly the check a threshold piece needs. Reuse it; do not write a second one.
+
+### The next increment, if it earns it
+
+A `scene` property on the layout, `"house"` or `"circulation"`, doing two more
+things:
+
+- **Relabel depth.** Upstage and downstage are meaningless in a corridor. Plain
+  depth, or depth from the approach.
+- **Approach arrows.** One or two arrows showing which way people arrive, so
+  the drawing reads to someone who was not in the conversation.
+
+Both are small. Neither is needed before the `house` flag.
+
 ## Out of scope
 
 - **Perspective, of any kind.** No camera, no tilt, no vanishing point, no 3D.
@@ -231,6 +298,12 @@ seat is more than 81″ outside the screen's end, so a half-width of 177″, a
   and works; screenshot it and use it as the scaled photo backdrop instead.
 - **A section view.** Worth having eventually for ceiling clearance and screen
   trim heights, but not before the plan.
+- **Circulation analysis.** Dwell zones, flow density, egress width
+  calculations. The venue and the fire marshal specify those from a code book;
+  building a simulator to answer them is work with no reader. For a
+  circulation scene the plan's job is four facts — this is the footprint, this
+  is the opening, this is how deep it sits, this is which way people arrive —
+  and three of them are already drawn.
 
 ## Terminology
 
