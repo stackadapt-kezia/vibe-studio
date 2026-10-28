@@ -225,6 +225,13 @@ stage or from the Background card, with side and top handles. Option-drag
 copies the grabbed item and whatever is selected with it, in both views, and
 a copy that is not dragged is discarded. The attendee count is always on.
 
+**Rig structure depth (0.9.83).** The mounting grid and every rig item carry
+`thick`, a structural depth snapped to the standard sections for the type
+(`RIG_DEPTHS`: pipe 2/4/6/8″, scaffold frame widths 24–60″, box truss
+12–36″; `RIG_DEPTH_DEF` picks the usual one when the type changes). The plan
+draws each rig as a bar of that depth at its plane, the elevation's truss
+takes its chord spacing from it, and the spec names the section.
+
 **Sightline rays** run from seven seats along the front row past each end of
 a front screen that has a screen behind it. A ray lands on a screen behind
 (green), passes outside the wing's outer end to the backdrop (grey, harmless),

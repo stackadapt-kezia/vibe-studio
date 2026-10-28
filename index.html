@@ -1139,6 +1139,7 @@
             <button data-rig="truss" title="12-inch box truss towers with a header and rails of truss">Truss</button>
           </div>
         </div>
+        <div class="row" style="margin-top:8px"><label for="gD">Structure</label><select id="gD" aria-label="Structure depth" title="How deep the structure is, from the standard sections for this rig type; drawn in the plan"></select><span class="unit">deep</span></div>
         <div class="gfields" style="margin-top:10px">
           <label><span>Width in</span><input type="number" class="num" id="gW" min="24" max="720"><output id="gWft"></output></label>
           <label><span>Height in</span><input type="number" class="num" id="gH" min="24" max="240"><output id="gHft"></output></label>
@@ -1287,12 +1288,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.82";  // the Plan card has an eye for the house: a free-standing installation draws no seating
+const APP_VERSION = "0.9.83";  // rigs have a structural depth snapped to standard sections per type
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.83", "Multi-screen: the mounting grid and every extra rig have a Structure depth, chosen from the standard sections for the type: a single pipe (2\u2033, or doubled to 4, 6 or 8), scaffold frame widths (2\u2032, 2\u2032 6\u2033, 3\u2032, 3\u2032 6\u2033, 4\u2032, 5\u2032) or box truss (12, 15, 18, 20.5, 24, 30 or 36\u2033). The plan draws each rig as a bar of that depth at its plane, the elevation\u2019s truss takes its chord spacing from it, and the spec names the section. Switching the rig type picks that type\u2019s usual size (pipe 2\u2033, scaffold 3\u2032, truss 12\u2033)."],
   ["0.9.82", "Multi-screen: the Plan card has an eye for the house. Close it for a free-standing installation that people walk past or through, and the plan draws no seating, no AV island, no attendee count and no sightline rays, and the spec leaves those lines out; the room, doors, screens at their depths, rigs, symbols and the walk-through gaps stay. The seating settings keep their values for when it opens again."],
   ["0.9.81", "Multi-screen: Elements can add more rigs beside the mounting grid: a Pipe grid, Scaffold or Truss build with its own width, height, spacing and depth, dragged and resized like a screen, listed in the spec, and shown in the plan as a bar at its depth. Elements also adds a Double door in one go. Option-drag copies anything in either view, the whole selection if several are selected. The backdrop stands on its own again: click it in the elevation to select it, drag it sideways, and drag its sides and top to size it; until you do it spans the grid plus the Overhang, Select backdrop in the Background card picks it even where screens cover it, and Fit to grid in its box puts it back. The Plan card takes SVG symbols: load one or more SVG files (kept in this browser) and each becomes a plan element you place, size and name, for lecterns, tables, risers and the like. The attendee count is always on the plan now; the checkbox is gone."],
   ["0.9.80", "Multi-screen: the Stage card has an eye like the other cards. Close it and there is no stage: the deck disappears from both views, the screens, grid, people and cabinets stand on the room floor, the doors come down to it, the ceiling and the first row measure from the floor and the screens, the backdrop spans the grid again, and the spec leaves the stage lines out. Open the eye and the stage comes back as it was."],
@@ -6229,7 +6231,7 @@ const PLAN_DEF = { rowD: 180, rowW: 480, layout: "theatre", rows: 10, pitch: 36,
 const ROOM_DEF = { w: 0, d: 0, backD: 0, cx: null };  // the room in plan: width and depth (0 = not drawn), the back wall's depth from the screens' front line, and the room centre's x in layout inches (fixed: the build moves within it)
 const SEAT_LAYOUTS = { theatre: "Theatre", chevron: "Chevron", curved: "Curved", classroom: "Classroom", banquet: "Banquet rounds", cabaret: "Cabaret rounds" };
 const P = {
-  frame: { x0: 0, w: 240, h: 108, pitch: 30, rail: 48, show: true, kind: "pipe" },   // kind: pipe, scaffold or truss
+  frame: { x0: 0, w: 240, h: 108, pitch: 30, rail: 48, show: true, kind: "pipe", thick: 2 },   // kind: pipe, scaffold or truss; thick: its structure's depth, a standard section
   items: [],
   bg: { wall: "plain", backdrop: "drape", solid: "#0061FF", overhang: 12, light: "dim", photoFt: 20, ceiling: 0, stageH: 0, stageW: 0, stageD: 0, apron: 72, backClear: 48, bdW: 0, bdH: 0, bdX: 0 },   // bdW/bdH 0 = the grid plus the overhang; bdX = centre off the grid centre   // inches; 0 = none (stageW 0 = as wide as the grid); apron is derived (papronSync), backClear is the deck behind the deepest screen
   plan: { ...PLAN_DEF },                           // the plan view: seating and the AV island, see PLAN_DEF
@@ -6356,9 +6358,15 @@ try { if (localStorage.getItem("vibe.pileView") === "plan") pview = "plan"; } ca
 const pr1 = v => Math.round(v * 10) / 10;
 // the rig the screens hang on, and what its parts are called
 const RIGS = { pipe: ["Pipe grid", "Uprights", "Rails", "upright", "rail"], scaffold: ["Scaffold", "Bays", "Lifts", "standard", "ledger"], truss: ["Truss", "Towers", "Rails", "tower", "truss run"] };
-const TRUSS_W = 12;                                   // box truss, inches across
+const TRUSS_W = 12;                                   // box truss, inches across, when a rig has no section of its own
+// the standard sections a rig's structure comes in, inches deep: a single pipe (or doubled), scaffold frame widths, box truss
+const RIG_DEPTHS = { pipe: [2, 4, 6, 8], scaffold: [24, 30, 36, 42, 48, 60], truss: [12, 15, 18, 20.5, 24, 30, 36] };
+const RIG_DEPTH_DEF = { pipe: 2, scaffold: 36, truss: 12 };
+const rigSnap = (kind, v) => (RIG_DEPTHS[kind] || RIG_DEPTHS.pipe).reduce((a, b) => Math.abs(b - v) < Math.abs(a - v) ? b : a);   // the nearest standard size
+const rigThick = f => f.thick > 0 ? f.thick : RIG_DEPTH_DEF[f.kind] || 2;
+const rigSizeName = v => v >= 24 && v % 6 === 0 ? ftHint(v) : v + "\u2033";   // 36 reads 3′ 0″, 20.5 reads 20.5″
 // the horizontal runs the rig actually draws: a truss has none down at the floor, it stands on base plates
-const prigRails = g => P.frame.kind === "truss" ? g.rails.filter(y => y >= TRUSS_W) : g.rails;
+const prigRails = (g, f = P.frame) => f.kind === "truss" ? g.rails.filter(y => y >= rigThick(f)) : g.rails;
 function pgrid(f = P.frame) {
   const n = Math.max(1, Math.round(f.w / f.pitch)), sp = f.w / n;
   const rails = [f.h];
@@ -6400,7 +6408,7 @@ function pserialize() {
     groups: P.groups.map(g => ({ id: g.id, name: g.name, mapping: g.mapping, direct: !!g.direct, source: g.source, presets: g.presets })),   // source ids are per session
     maps: P.maps, pitch: P.pitch, play: P.play, plan: P.plan, room: P.room,
     items: P.items.map(it => it.type === "camera" ? { type: "camera", x: pr1(it.x), y: pr1(it.y) } : it.type === "person" ? { type: "person", x: pr1(it.x), y: 0, ht: it.ht, col: it.col || PERSON_COL } : it.type === "door" ? { type: "door", x: pr1(it.x), y: 0, w: pr1(it.w), h: pr1(it.h), dbl: !!it.dbl, exit: !!it.exit }
-      : it.type === "rig" ? { type: "rig", kind: it.kind, x: pr1(it.x), y: 0, w: pr1(it.w), h: pr1(it.h), pitch: it.pitch, rail: it.rail, depth: it.depth ? Math.round(it.depth) : undefined }
+      : it.type === "rig" ? { type: "rig", kind: it.kind, x: pr1(it.x), y: 0, w: pr1(it.w), h: pr1(it.h), pitch: it.pitch, rail: it.rail, thick: rigThick(it), depth: it.depth ? Math.round(it.depth) : undefined }
       : it.type === "svg" ? { type: "svg", media: it.media, name: it.name, x: pr1(it.x), y: 0, depth: Math.round(it.depth || 0), w: pr1(it.w), l: pr1(it.l) } : it.type === "cab"
       ? { type: "cab", x: pr1(it.x), y: pr1(it.y), w: pr1(it.w), h: pr1(it.h), wood: !!it.wood }
       : { type: "screen", diag: it.diag, portrait: !!it.portrait, x: pr1(it.x), y: pr1(it.y), dead: !!it.dead, g: it.g, cw: it.cw || undefined, ch: it.ch || undefined, depth: it.depth ? Math.round(it.depth) : undefined }),
@@ -6410,6 +6418,7 @@ function papply(d, keepSources) {
   if (!d || !d.frame || !Array.isArray(d.items)) throw new Error("not a pile layout");
   Object.assign(P.frame, d.frame);
   if (!RIGS[P.frame.kind]) P.frame.kind = "pipe";
+  P.frame.thick = P.frame.thick > 0 ? rigSnap(P.frame.kind, +P.frame.thick) : RIG_DEPTH_DEF[P.frame.kind];
   if (d.bg) Object.assign(P.bg, d.bg);
   P.vis = { devices: true, bg: true, stage: true, house: true }; if (d.vis) Object.assign(P.vis, d.vis);
   if (P.bg.wall !== "photo") P.bg.wall = "plain";
@@ -6444,7 +6453,7 @@ function papply(d, keepSources) {
   psettle();
   P.maps = Array.isArray(d.maps) ? d.maps.filter(m => m && typeof m.name === "string" && Array.isArray(m.groups) && Array.isArray(m.screens)).slice(0, 16) : [];
   P.items = d.items.filter(o => o && (o.type === "screen" || o.type === "cab" || o.type === "camera" || (o.type === "person" && o.ht > 0) || (o.type === "door" && o.w > 0 && o.h > 0) || (o.type === "rig" && o.w > 0 && o.h > 0) || (o.type === "svg" && o.w > 0 && o.l > 0))).map(pmk);
-  for (const it of P.items) if (it.type === "rig") { if (!RIGS[it.kind]) it.kind = "pipe"; it.pitch = it.pitch >= 12 ? +it.pitch : 30; it.rail = it.rail >= 12 ? +it.rail : 48; it.depth = isFinite(+it.depth) ? Math.round(+it.depth) : 0; }
+  for (const it of P.items) if (it.type === "rig") { if (!RIGS[it.kind]) it.kind = "pipe"; it.pitch = it.pitch >= 12 ? +it.pitch : 30; it.rail = it.rail >= 12 ? +it.rail : 48; it.depth = isFinite(+it.depth) ? Math.round(+it.depth) : 0; it.thick = it.thick > 0 ? rigSnap(it.kind, +it.thick) : RIG_DEPTH_DEF[it.kind]; }
   psettle();
   for (const it of P.items) if (it.type === "screen") { if (!P.groups.some(g => g.id === it.g)) it.g = P.groups[0].id; it.depth = isFinite(+it.depth) ? Math.round(+it.depth) : 0; }
   if (gpaint !== null && !P.groups.some(g => g.id === gpaint)) gpaint = null;
@@ -6452,7 +6461,11 @@ function papply(d, keepSources) {
 }
 const phist = [];
 // doors stand on the room floor, which is the deck's height below the layout floor
-function psettle() { for (const it of P.items) if (it.type === "door") it.y = -pstageH(); papronSync(); if (typeof pclampAll === "function") pclampAll(); }
+function psettle() {
+  for (const it of P.items) if (it.type === "door") it.y = -pstageH();
+  P.frame.thick = rigSnap(P.frame.kind, rigThick(P.frame));                      // a rig's structure is always a standard section
+  for (const it of P.items) if (it.type === "rig") it.thick = rigSnap(it.kind, rigThick(it));
+  papronSync(); if (typeof pclampAll === "function") pclampAll(); }
 function psave() { try { localStorage.setItem(PSTORE, pserialize()); } catch (e) { /* storage blocked */ } }
 function pcommit() {
   psettle();
@@ -6512,7 +6525,7 @@ function paddDoor(dbl) {
 }
 function paddRig(kind) {
   const n = P.items.filter(i => i.type === "rig").length;
-  const it = pmk({ type: "rig", kind: RIGS[kind] ? kind : "pipe", w: 120, h: 108, pitch: 30, rail: 48, x: P.frame.x0 + P.frame.w + 72 + n * 132 + 60, y: 0, depth: 0 });
+  const it = pmk({ type: "rig", kind: RIGS[kind] ? kind : "pipe", thick: RIG_DEPTH_DEF[RIGS[kind] ? kind : "pipe"], w: 120, h: 108, pitch: 30, rail: 48, x: P.frame.x0 + P.frame.w + 72 + n * 132 + 60, y: 0, depth: 0 });
   P.items.push(it); psel = { kind: "item", it }; pcommit();
 }
 function paddCab() {
@@ -6700,10 +6713,10 @@ function drawPileBg() {
 }
 
 // the rig: a pipe grid of uprights and rails, a modular scaffold, or box truss
-const prigF = it => ({ x0: it.x - it.w / 2, w: it.w, h: it.h, pitch: it.pitch, rail: it.rail, kind: it.kind });   // a rig item as a frame
+const prigF = it => ({ x0: it.x - it.w / 2, w: it.w, h: it.h, pitch: it.pitch, rail: it.rail, kind: it.kind, thick: rigThick(it) });   // a rig item as a frame
 function drawRig(c, dim, f = P.frame) {
-  const g = pgrid(f), rails = f.kind === "truss" ? g.rails.filter(y => y >= TRUSS_W) : g.rails, x0 = PX(f.x0), x1 = PX(f.x0 + f.w), yT = PY(f.h);
-  const pw = Math.max(1.5 * pdpr, PIPE * psc);
+  const g = pgrid(f), rails = prigRails(g, f), x0 = PX(f.x0), x1 = PX(f.x0 + f.w), yT = PY(f.h), TW = rigThick(f);
+  const pw = Math.max(1.5 * pdpr, (f.kind === "pipe" ? Math.max(PIPE, TW) : PIPE) * psc);   // a doubled pipe reads heavier
   if (f.kind === "scaffold") {                          // galvanised tube: standards, ledgers, a brace across every bay, base jacks
     const tube = dim ? "#5A6070" : "#8B909C", tubeHi = "rgba(255,255,255,0.18)", coupler = dim ? "#2E3340" : "#4A4F5C";
     c.fillStyle = tube;
@@ -6726,7 +6739,7 @@ function drawRig(c, dim, f = P.frame) {
     return;
   }
   if (f.kind === "truss") {                             // aluminium box truss: two chords with zigzag lacing, towers and header
-    const tw = Math.max(4 * pdpr, TRUSS_W * psc), cw = Math.max(pdpr, 1.6 * psc), lace = Math.max(pdpr, 0.9 * psc);
+    const tw = Math.max(4 * pdpr, TW * psc), cw = Math.max(pdpr, 1.6 * psc), lace = Math.max(pdpr, 0.9 * psc);
     const chord = dim ? "#7C8290" : "#B4B9C4", lacing = dim ? "rgba(160,166,180,0.6)" : "rgba(150,156,170,0.8)", plate = dim ? "#2E3340" : "#4A4F5C";
     const run = (ax, ay, bx, by) => {                     // a straight truss from a to b (canvas px), tw across
       const L = Math.hypot(bx - ax, by - ay), ang = Math.atan2(by - ay, bx - ax);
@@ -6744,7 +6757,7 @@ function drawRig(c, dim, f = P.frame) {
       run(x, pfloor, x, yT);
       c.fillStyle = plate; c.fillRect(x - tw * 1.1, pfloor - Math.max(pdpr, 1.2 * psc), tw * 2.2, Math.max(pdpr, 1.2 * psc));
     }
-    for (const y of rails) { const yc = y >= f.h - TRUSS_W / 2 ? f.h - TRUSS_W / 2 : y; run(x0 - tw / 2, PY(yc), x1 + tw / 2, PY(yc)); }   // the header sits under the top
+    for (const y of rails) { const yc = y >= f.h - TW / 2 ? f.h - TW / 2 : y; run(x0 - tw / 2, PY(yc), x1 + tw / 2, PY(yc)); }   // the header sits under the top
     return;
   }
   // pipe: the plain grid
@@ -7353,7 +7366,7 @@ function pplanAt(w) {
   const scr = pscreens().sort((a, b) => pdepth(a) - pdepth(b));
   const hit = scr.find(s => Math.abs(w.x - s.x) <= pdims(s).w / 2 && w.y >= pdepth(s) && w.y <= pdepth(s) + PLAN_T);
   if (hit) return hit;
-  return P.items.find(r => r.type === "rig" && Math.abs(w.x - r.x) <= r.w / 2 && w.y >= pdepth(r) - 6 && w.y <= pdepth(r) + 10) || null;
+  return P.items.find(r => r.type === "rig" && Math.abs(w.x - r.x) <= r.w / 2 && w.y >= pdepth(r) - 6 && w.y <= pdepth(r) + rigThick(r) + 6) || null;
 }
 // the SVG symbols' pictures, by media id; fetched from this browser's store the first time
 const svgImgs = new Map();
@@ -7422,9 +7435,15 @@ function drawPlan() {
   f.textAlign = "center"; f.textBaseline = "middle";
   const font = "500 " + 12 * pdpr + 'px "Space Grotesk", sans-serif', lf = "600 " + 11 * pdpr + 'px "Space Grotesk", sans-serif';
   const E = planExtents(), cx = pstageCX(), hw = pstageW() / 2, front = pdeckFront(), back = pdeckBack(), R = proom();
-  // the screens' front line, faint
+  // the screens' front line, faint, and the mounting grid's structure as a bar of its depth behind it
   c.setLineDash([4 * pdpr, 6 * pdpr]); c.strokeStyle = "rgba(236,238,244,0.22)"; c.lineWidth = pdpr;
   c.beginPath(); c.moveTo(PX(P.frame.x0), PY(0)); c.lineTo(PX(P.frame.x0 + P.frame.w), PY(0)); c.stroke(); c.setLineDash([]);
+  if (P.frame.show) {
+    const gt = rigThick(P.frame), gx = PX(P.frame.x0), gw = P.frame.w * psc, gy = PY(gt), gh = Math.max(2 * pdpr, gt * psc);
+    c.fillStyle = P.frame.kind === "truss" ? "rgba(180,185,196,0.55)" : P.frame.kind === "scaffold" ? "rgba(139,144,156,0.5)" : "rgba(90,96,112,0.7)"; c.fillRect(gx, gy, gw, gh);
+    if (psel && psel.kind === "frame") { f.strokeStyle = "#7FDFFD"; f.lineWidth = 1.5 * pdpr; f.setLineDash([6 * pdpr, 5 * pdpr]); f.strokeRect(gx, gy, gw, gh); f.setLineDash([]); }
+    plabel((RIGS[P.frame.kind] || RIGS.pipe)[0] + " \u00b7 " + rigSizeName(gt) + " deep", gx + Math.min(gw * 0.5, 90 * pdpr), gy - 12 * pdpr, lf);
+  }
   if (pstageOn()) {                                   // the stage: a solid slab with a lit front edge, and the backdrop line at the back
     const x = PX(cx - hw), y = PY(back), w = 2 * hw * psc, h = (back - front) * psc, stSel = psel && psel.kind === "stage";
     const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, "#1C1E25"); g.addColorStop(1, "#262932");
@@ -7454,10 +7473,10 @@ function drawPlan() {
     if (pui.labels || isSel || isHov) plabel(psize(s) + (dp ? " \u00b7 " + ftHint(Math.abs(dp)) + (dp > 0 ? " upstage" : " downstage") : " \u00b7 on the grid plane"), x + w / 2, y - 12 * pdpr, lf);
   }
   if (P.vis.devices) for (const r of P.items) if (r.type === "rig") {     // another rig: a bar at its depth
-    const x = PX(r.x - r.w / 2), w = r.w * psc, y = PY(pdepth(r) + 4), h = Math.max(2 * pdpr, 4 * psc), isSel = pselHas(r), isHov = phover === r;
+    const rt = rigThick(r), x = PX(r.x - r.w / 2), w = r.w * psc, y = PY(pdepth(r) + rt), h = Math.max(2 * pdpr, rt * psc), isSel = pselHas(r), isHov = phover === r;
     c.fillStyle = r.kind === "truss" ? "#B4B9C4" : r.kind === "scaffold" ? "#8B909C" : "#3A3F4C"; c.fillRect(x, y, w, h);
     if (isSel || isHov) { f.strokeStyle = isSel ? "#7FDFFD" : "rgba(127,223,253,0.55)"; f.lineWidth = 2 * pdpr; f.strokeRect(x - 2 * pdpr, y - 2 * pdpr, w + 4 * pdpr, h + 4 * pdpr); }
-    if (pui.labels || isSel || isHov) plabel((RIGS[r.kind] || RIGS.pipe)[0] + " \u00b7 " + fmtLen(r.w), x + w / 2, y - 12 * pdpr, lf);
+    if (pui.labels || isSel || isHov) plabel((RIGS[r.kind] || RIGS.pipe)[0] + " \u00b7 " + fmtLen(r.w) + " \u00b7 " + rigSizeName(rt) + " deep", x + w / 2, y - 12 * pdpr, lf);
   }
   if (P.vis.devices) for (const o of P.items) if (o.type === "svg") {      // plan symbols: the SVG fitted inside its footprint
     const x = PX(o.x - o.w / 2), w = o.w * psc, y = PY(pdepth(o) + o.l), h = o.l * psc, isSel = pselHas(o), isHov = phover === o, im = svgImgFor(o);
@@ -7889,6 +7908,9 @@ function psyncGrid() {
   $("gWft").textContent = ftHint(f.w); $("gHft").textContent = ftHint(f.h); $("gPn").textContent = (g.n + 1) + " up";
   const R = RIGS[f.kind] || RIGS.pipe;
   $("gPLab").textContent = R[1] + " in"; $("gRLab").textContent = R[2] + " in";
+  const gd = $("gD"), want = (RIG_DEPTHS[f.kind] || RIG_DEPTHS.pipe).map(v => '<option value="' + v + '">' + rigSizeName(v) + "</option>").join("");
+  if (gd.innerHTML !== want) gd.innerHTML = want;
+  gd.value = String(rigThick(f));
   document.querySelectorAll("#rigSeg button").forEach(b => b.classList.toggle("active", b.dataset.rig === f.kind));
   syncEyes();
 }
@@ -7936,7 +7958,7 @@ function pselTitle() {
     : it.type === "cab" ? ["Speaker cabinet", Math.round(it.w) + "″ × " + Math.round(it.h) + "″"]
     : it.type === "person" ? ["Person", fmtLen(it.ht) + " tall"]
     : it.type === "door" ? [(it.dbl ? "Double door" : "Door"), Math.round(it.w) + "\u2033 \u00d7 " + Math.round(it.h) + "\u2033", "on the room floor"]
-    : it.type === "rig" ? [(RIGS[it.kind] || RIGS.pipe)[0], fmtLen(it.w) + " wide", fmtLen(it.h) + " tall", pdepth(it) ? ftHint(Math.abs(it.depth)) + (it.depth > 0 ? " upstage" : " downstage") : ""]
+    : it.type === "rig" ? [(RIGS[it.kind] || RIGS.pipe)[0], fmtLen(it.w) + " wide", fmtLen(it.h) + " tall", rigSizeName(rigThick(it)) + " deep", pdepth(it) ? ftHint(Math.abs(it.depth)) + (it.depth > 0 ? " upstage" : " downstage") : ""]
     : it.type === "svg" ? [it.name || "Symbol", fmtLen(it.w) + " \u00d7 " + fmtLen(it.l), "plan symbol"]
     : ["Camera", ftHint(it.y) + " up"];
 }
@@ -8029,9 +8051,11 @@ function psyncSel(full = true) {
       + '<div class="row"><label for="selH">Height (in)</label><input type="number" class="num wide" id="selH" min="24" max="240" value="' + Math.round(it.h) + '"></div>'
       + '<div class="row"><label for="selPitch">' + (RIGS[it.kind] || RIGS.pipe)[1] + ' (in)</label><input type="number" class="num wide" id="selPitch" min="12" max="96" value="' + it.pitch + '"></div>'
       + '<div class="row"><label for="selRail">' + (RIGS[it.kind] || RIGS.pipe)[2] + ' (in)</label><input type="number" class="num wide" id="selRail" min="12" max="120" value="' + it.rail + '"></div>'
+      + '<div class="row"><label for="selThick">Structure</label><select id="selThick">' + (RIG_DEPTHS[it.kind] || RIG_DEPTHS.pipe).map(v => '<option value="' + v + '"' + (rigThick(it) === v ? " selected" : "") + ">" + rigSizeName(v) + "</option>").join("") + "</select></div>"
       + '<div class="row"><label for="selDepth">Depth (in)</label><input type="number" class="num wide" id="selDepth" min="-600" max="600" value="' + pdepth(it) + '"></div>'
       + '<div class="btnrow"><button class="pill" id="selDup">Duplicate</button><button class="pill" id="selDel">Remove</button></div>';
-    $("selRig").onchange = e => { it.kind = e.target.value; pcommit(); psyncSel(true); };
+    $("selRig").onchange = e => { it.kind = e.target.value; it.thick = RIG_DEPTH_DEF[it.kind]; pcommit(); psyncSel(true); };
+    $("selThick").onchange = e => { it.thick = rigSnap(it.kind, +e.target.value); pcommit(); psyncSel(true); };
     $("selW").onchange = e => { it.w = Math.max(24, Math.min(720, Math.round(+e.target.value) || it.w)); pcommit(); };
     $("selH").onchange = e => { it.h = Math.max(24, Math.min(240, Math.round(+e.target.value) || it.h)); pcommit(); };
     $("selPitch").onchange = e => { it.pitch = Math.max(12, Math.min(96, Math.round(+e.target.value) || it.pitch)); pcommit(); };
@@ -8148,7 +8172,8 @@ $("addDoor2").addEventListener("click", () => paddDoor(true));
 $("addRigPipe").addEventListener("click", () => paddRig("pipe"));
 $("addRigScaffold").addEventListener("click", () => paddRig("scaffold"));
 $("addRigTruss").addEventListener("click", () => paddRig("truss"));
-seg("rigSeg", "rig", () => P.frame.kind, v => { P.frame.kind = v; roomDirty = true; pcommit(); });
+seg("rigSeg", "rig", () => P.frame.kind, v => { P.frame.kind = v; P.frame.thick = RIG_DEPTH_DEF[v]; roomDirty = true; pcommit(); });   // a new type brings its usual section
+$("gD").addEventListener("change", e => { P.frame.thick = rigSnap(P.frame.kind, +e.target.value); roomDirty = true; pcommit(); });
 seg("playSeg", "play", () => P.play, v => { P.play = v; pcommit(); });
 $("snapX").addEventListener("change", e => { pui.snapX = e.target.checked; });
 $("snapSize").addEventListener("change", e => { pui.snapSize = e.target.checked; });
@@ -8391,7 +8416,7 @@ $("copySpec").addEventListener("click", () => {
   const lines = [
     "Multi-screen installation, Conversion 2027",
     "Overall: " + fmtLen(B.w) + " wide x " + fmtLen(B.h) + " tall",
-    "Mounting grid (" + rig[0].toLowerCase() + "): " + fmtLen(f.w) + " wide x " + fmtLen(f.h) + " tall, " + (g.n + 1) + " " + rig[3] + "s at " + g.sp.toFixed(1) + "\" centres, " + prigRails(g).length + " horizontal " + rig[4] + "s" + (f.kind === "truss" ? " (" + TRUSS_W + "\" box truss)" : ""),
+    "Mounting grid (" + rig[0].toLowerCase() + "): " + fmtLen(f.w) + " wide x " + fmtLen(f.h) + " tall, " + (g.n + 1) + " " + rig[3] + "s at " + g.sp.toFixed(1) + "\" centres, " + prigRails(g).length + " horizontal " + rig[4] + "s, " + (f.kind === "truss" ? rigSizeName(rigThick(f)) + " box truss" : f.kind === "scaffold" ? rigSizeName(rigThick(f)) + " deep frames" : rigThick(f) > 2 ? rigThick(f) + "\" doubled pipe" : "1.9\" pipe"),
     "Screens (" + all.length + "): " + pmix(all).map(([k, n]) => n + " x " + k).join(", ") + (portraits ? " (" + portraits + " portrait)" : "") + "  [sizes in " + unitName() + "]",
     ...(pui.units === "px" ? ["Pixel pitch: " + P.pitch + " mm"] : []),
     "Groups: " + P.groups.map(g => gname(g) + " (" + MAP_NAMES[g.mapping] + (g.direct ? ", direct feed" : "") + ", " + gscreens(g).length + " screens)").join("; "),
@@ -8403,7 +8428,7 @@ $("copySpec").addEventListener("click", () => {
     }),
     "Speaker cabinets (props): " + P.items.filter(i => i.type === "cab").length,
     "Cameras: " + cams.length + (cams.length ? ", " + cams.map(cm => "x " + Math.round(cm.x - f.x0) + " / " + Math.round(cm.y) + "\" up").join("; ") : ""),
-    ...(P.items.some(i => i.type === "rig") ? ["Further rigs (centre x from grid left edge): " + P.items.filter(i => i.type === "rig").map(r => (RIGS[r.kind] || RIGS.pipe)[0].toLowerCase() + " " + fmtLen(r.w) + " x " + fmtLen(r.h) + " at " + fmtLen(r.x - f.x0) + (pdepth(r) ? ", " + fmtLen(Math.abs(r.depth)) + (r.depth > 0 ? " upstage" : " downstage") : "")).join("; ")] : []),
+    ...(P.items.some(i => i.type === "rig") ? ["Further rigs (centre x from grid left edge): " + P.items.filter(i => i.type === "rig").map(r => (RIGS[r.kind] || RIGS.pipe)[0].toLowerCase() + " " + fmtLen(r.w) + " x " + fmtLen(r.h) + ", " + rigSizeName(rigThick(r)) + " deep, at " + fmtLen(r.x - f.x0) + (pdepth(r) ? ", " + fmtLen(Math.abs(r.depth)) + (r.depth > 0 ? " upstage" : " downstage") : "")).join("; ")] : []),
     ...(P.items.some(i => i.type === "svg") ? ["Plan symbols: " + P.items.filter(i => i.type === "svg").map(o => (o.name || "symbol") + " " + fmtLen(o.w) + " x " + fmtLen(o.l) + " at x " + fmtLen(o.x - f.x0) + ", " + fmtLen(Math.abs(o.depth || 0)) + ((o.depth || 0) >= 0 ? " upstage" : " downstage")).join("; ")] : []),
     ...(doors.length ? ["Doors in the back wall (centre x from grid left edge, on the room floor): " + doors.slice().sort((a, b) => a.x - b.x).map(d => (d.dbl ? "double " : "") + Math.round(d.w) + "\" x " + Math.round(d.h) + "\" at " + fmtLen(d.x - f.x0) + (d.exit ? ", exit sign" : "")).join("; ")] : []),
     "Backdrop: " + bdName + (P.bg.backdrop === "none" ? "" : P.bg.bdW > 0 || P.bg.bdH > 0 ? ", " + fmtLen(pbdX().r - pbdX().l) + " wide x " + fmtLen(pbdH()) + " tall" + (P.bg.bdX ? ", centre " + fmtLen(Math.abs(P.bg.bdX)) + (P.bg.bdX > 0 ? " right" : " left") + " of the grid centre" : "") : ", " + P.bg.overhang + "\" past the grid on sides and top"),
