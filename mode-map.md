@@ -48,6 +48,11 @@ Sobel helper went with them), Thermal was renamed Ink Smear, and Mirror and
 Grid left Distort for a Geometry layer that runs before it, alongside a new
 Kaleidoscope. Family 1 is now split across those two layers.
 
+0.9.84 added Depth under Image reactive: family 2 again, but the value run
+through the palette is distance rather than brightness, read from a loaded
+depth map (white near) rather than the stage source, with a depth of field, a
+light sweep and parallax on top. It has its own texture and never feeds back.
+
 Since 0.5.4 the layers have grown: Distort gained Bleed and Glass (Frosted,
 Flute and five glass-block faces, with Seam controls); Screen gained Echo (a
 16-frame ring of past captures) and Slit-scan (0.9.26, the first "needs more

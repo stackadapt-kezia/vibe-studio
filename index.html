@@ -904,6 +904,7 @@
           <button data-style="17">Mesh</button>
           <button data-style="18">Beads</button>
           <button data-style="19">Textile</button>
+          <button data-style="22" title="A depth map, white near and black far, coloured through the palette by distance">Depth</button>
         </div>
       </div>
       <div id="lookBlock" style="margin-top:12px">
@@ -964,6 +965,16 @@
         <div class="shapegrid" id="shapeGrid" aria-label="Shapes, lightest to heaviest"></div>
         <input type="file" id="shapeFiles" accept=".svg,image/svg+xml" multiple hidden>
         <input type="file" id="shapeReplace" accept=".svg,image/svg+xml" hidden>
+      </div>
+      <div id="depthRow" hidden>
+        <div class="row">
+          <label title="A black-and-white picture or video where white is near and black is far">Depth map</label>
+          <button class="mini" id="depthLoad" type="button" title="A picture or video the browser can show, an EXR, HDR, TIFF, TGA, PFM, PGM or NumPy depth file, or an OBJ model to turn on a turntable">Load depth image or video</button>
+          <button class="mini" id="depthClear" type="button" title="Back to the demo scene" hidden>Clear</button>
+        </div>
+        <label class="check"><input type="checkbox" id="depthInvert"> Near is dark (invert the map)</label>
+        <p class="note" id="depthNote"></p>
+        <input type="file" id="depthFile" accept="image/*,video/*,.exr,.hdr,.pic,.rgbe,.tif,.tiff,.tga,.pfm,.pgm,.ppm,.npy,.obj" hidden>
       </div>
       <div id="lookRows"></div>
       </div>
@@ -1288,12 +1299,14 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.83";  // rigs have a structural depth snapped to standard sections per type
+const APP_VERSION = "0.9.85";  // Depth reads EXR, HDR, TIFF, TGA, PFM, PGM, NumPy and OBJ files too
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.85", "Depth takes the files depth tools actually write, not just pictures a browser can show: OpenEXR (Blender\u2019s render output, including multilayer files with a Depth or Mist pass), Radiance HDR, TIFF (8, 16 and 32-bit, uncompressed, LZW, Deflate or PackBits), Targa, PFM and PGM, NumPy .npy arrays from MiDaS or Depth Anything, and OBJ models, which Vibe renders itself: the model turns slowly on a turntable (Speed sets the turn) and its distance from the camera is the depth. A model usually comes with material and texture files beside it; only the .obj is needed, since a depth pass is geometry alone. A Z or Depth channel is measured in scene units, so it is scaled to the scene\u2019s own nearest and farthest points (the empty background counts as far) and flipped so near is white; a Mist pass is flipped the same way, so the invert box can stay off. The note under the loader says what was read and what range it covered."],
+  ["0.9.84", "A new pattern, Depth, under Image reactive. Load a black-and-white depth image or video (white near, black far) and every pixel is coloured through the palette by its distance, so with Horizon the far background reads blue and near objects orange. Focus and Lens blur put a depth of field on the scene, Colour range sets how much of the palette the depth runs through, Colour flow drifts it (faster on the mids), Light sweep sends a band of light from the back of the scene to the front (faster on the bass), and Parallax sways near things more than far ones. Bands posterises the depth into contour lines instead of blurring. Picking Depth brings two reactivity routes along: Bass \u2192 Push shoves the colours up the palette, Beat \u2192 Focus pulls focus toward the back. Trails stay off in Depth (a depth pass fed back into itself ghosts), and the beat flash is gentler so the colours hold. Before a map is loaded a demo scene runs: a floor and three drifting spheres. The map is kept in this browser and comes back next time; the panel\u2019s note says where depth maps come from (Photoshop\u2019s Depth Blur, Resolve\u2019s Depth Map, Video Depth Anything, Blender\u2019s Mist pass, Spline)."],
   ["0.9.83", "Multi-screen: the mounting grid and every extra rig have a Structure depth, chosen from the standard sections for the type: a single pipe (2\u2033, or doubled to 4, 6 or 8), scaffold frame widths (2\u2032, 2\u2032 6\u2033, 3\u2032, 3\u2032 6\u2033, 4\u2032, 5\u2032) or box truss (12, 15, 18, 20.5, 24, 30 or 36\u2033). The plan draws each rig as a bar of that depth at its plane, the elevation\u2019s truss takes its chord spacing from it, and the spec names the section. Switching the rig type picks that type\u2019s usual size (pipe 2\u2033, scaffold 3\u2032, truss 12\u2033)."],
   ["0.9.82", "Multi-screen: the Plan card has an eye for the house. Close it for a free-standing installation that people walk past or through, and the plan draws no seating, no AV island, no attendee count and no sightline rays, and the spec leaves those lines out; the room, doors, screens at their depths, rigs, symbols and the walk-through gaps stay. The seating settings keep their values for when it opens again."],
   ["0.9.81", "Multi-screen: Elements can add more rigs beside the mounting grid: a Pipe grid, Scaffold or Truss build with its own width, height, spacing and depth, dragged and resized like a screen, listed in the spec, and shown in the plan as a bar at its depth. Elements also adds a Double door in one go. Option-drag copies anything in either view, the whole selection if several are selected. The backdrop stands on its own again: click it in the elevation to select it, drag it sideways, and drag its sides and top to size it; until you do it spans the grid plus the Overhang, Select backdrop in the Background card picks it even where screens cover it, and Fit to grid in its box puts it back. The Plan card takes SVG symbols: load one or more SVG files (kept in this browser) and each becomes a plan element you place, size and name, for lecterns, tables, risers and the like. The attendee count is always on the plan now; the checkbox is gone."],
@@ -1491,6 +1504,7 @@ const state = {
   colors: [...PRESETS["core-horizon"]],
   weights: [...PRESET_WEIGHTS["core-horizon"]],
   scale: 1, speed: 1, warp: 0.4, blobs: 5,
+  dFocus: 0.7, dLens: 0.35, dRange: 0.5, dFlow: 0.15, dSweep: 0.45, dPar: 0.3, dInvert: 0,   // Depth
   trails: 0.45, fbZoom: 0.004, fbSpin: 0.002,
   grain: 0.08, bands: 0, blur: 0,
   dist: 0, distort: 0.5,
@@ -1510,6 +1524,12 @@ function touch() { if (activeId !== null) { activeId = null; renderActive(); } }
 const LOOK = [
   ["scale", "Scale", 0.2, 2, 0.01, v => v.toFixed(2)],
   ["speed", "Speed", 0, 3, 0.01, v => v.toFixed(2)],
+  ["dFocus", "Focus", 0, 1, 0.01, v => v.toFixed(2)],
+  ["dLens", "Lens blur", 0, 1, 0.01, v => v.toFixed(2)],
+  ["dRange", "Colour range", 0.1, 2, 0.01, v => v.toFixed(2)],
+  ["dFlow", "Colour flow", 0, 1, 0.01, v => v.toFixed(2)],
+  ["dSweep", "Light sweep", 0, 1, 0.01, v => v.toFixed(2)],
+  ["dPar", "Parallax", 0, 1, 0.01, v => v.toFixed(2)],
   ["warp", "Warp", 0, 1, 0.01, v => v.toFixed(2)],
   ["blobs", "Blobs", 2, 8, 1, v => String(v)],
   ["trails", "Trails", 0, 0.97, 0.01, v => v.toFixed(2)],
@@ -1526,7 +1546,7 @@ const SOURCES = { bass: "Bass", mid: "Mids", high: "Highs", beat: "Beat", presen
 const TARGETS = {
   size: "Size", motion: "Motion", colour: "Colour", grain: "Grain", flash: "Flash",
   distort: "Distort", warp: "Warp", trails: "Trails", push: "Push", spin: "Spin", echo: "Echo",
-  zoom: "Zoom", fringe: "Fringe", screen: "Screen", texture: "Texture", blur: "Blur", geo: "Geometry", weight: "Weight",
+  zoom: "Zoom", fringe: "Fringe", screen: "Screen", texture: "Texture", blur: "Blur", geo: "Geometry", weight: "Weight", focus: "Focus",
 };
 // Size and Warp say what they mean for the pattern on stage (Bead size, Shine, Yarn...)
 function targetLabels() {
@@ -1569,7 +1589,7 @@ const TEX_ROWS = [
 ];
 // what Scale and Warp mean in each pattern, so the Look rows say so
 const SCALE_LABELS = { 0: "Blob size", 1: "Zoom", 2: "Zoom", 3: "Zoom", 4: "Amplitude", 5: "Contrast", 6: "Block size",
-  7: "Dot pitch", 8: "Offset", 9: "Detail", 10: "Detail", 11: "Line pitch", 12: "Line pitch", 13: "Cell size", 14: "Grain", 15: "Cell size", 16: "Dot pitch", 17: "Grid", 18: "Bead size", 19: "Stitch size" };
+  7: "Dot pitch", 8: "Offset", 9: "Detail", 10: "Detail", 11: "Line pitch", 12: "Line pitch", 13: "Cell size", 14: "Grain", 15: "Cell size", 16: "Dot pitch", 17: "Grid", 18: "Bead size", 19: "Stitch size", 22: "Zoom" };
 const WARP_LABELS = { 3: "Growth", 1: "Warp", 2: "Warp", 4: "Trace", 5: "Cycle", 6: "Dither", 7: "Angle", 8: "Direction", 10: "Light", 11: "Lift", 12: "Angle", 14: "Smear", 15: "Dither", 16: "Dot size", 17: "Depth", 18: "Shine", 19: "Thread" };
 const FABRIC_WARP = ["Thread", "Gap", "Yarn"];
 const AUDIO_ROWS = [
@@ -2105,17 +2125,21 @@ function seg(id, attr, get, set) {
   sync();
   return sync;
 }
-const segStyle = seg("styleSeg", "style", () => state.style, v => { state.style = +v; syncControls(); renderRoutes(); touch(); });
+const segStyle = seg("styleSeg", "style", () => state.style, v => { state.style = +v; depthRoutes(); syncControls(); renderRoutes(); touch(); });
 
 /* ================= which controls matter for the current mode ================= */
 // Read from the shader: Blobs only counts on Blobs; Warp is unused by Blobs,
 // Fractal, Edges, Contour, ASCII and Microtext; the Distort and Screen amounts
 // (and Beat -> Distort) only matter once a kind is chosen.
-const NO_WARP = [0, 13];
+const NO_WARP = [0, 13, 22];
 function syncControls() {
   const s = state.style;
   const show = (key, on) => document.querySelectorAll('.row[data-key="' + key + '"]').forEach(r => { r.hidden = !on; });
   show("blobs", s === 0);
+  ["dFocus", "dLens", "dRange", "dFlow", "dSweep", "dPar"].forEach(k => show(k, s === 22));
+  ["trails", "fbZoom", "fbSpin"].forEach(k => show(k, s !== 22));   // Depth never feeds back: ghosts of the last map pile up
+  $("depthRow").hidden = s !== 22;
+  $("depthInvert").checked = !!state.dInvert;
   show("lineW", s === 11 || s === 17);
   show("fracSeed", s === 3);
   show("geoN", state.geo >= 3);
@@ -2304,6 +2328,10 @@ uniform float u_bass, u_mid, u_high, u_beat;
 uniform float u_scale, u_warp, u_grain, u_bands, u_blobs;
 uniform float u_palEnd;      // where the palette's wrap-around segment starts
 uniform float u_shift;       // palette rotation from the Colour route
+uniform sampler2D u_dtex;    // Depth: the loaded depth map, white near and black far
+uniform float u_hasDepth, u_dAspect, u_invert, u_dscale;
+uniform float u_focus, u_lens, u_spread, u_flowOff, u_push, u_sweepPos, u_sweep;
+uniform vec2 u_wobble;
 
 float hash(float n) { return fract(sin(n * 78.233) * 43758.5453123); }
 float hash2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -2751,6 +2779,50 @@ vec3 pal(float t) {
   return texture2D(u_pal, vec2(t, 0.5)).rgb;
 }
 
+/* ---- Depth ----------------------------------------------------------
+   A depth pass: every pixel is coloured by how far away it is, through the
+   palette. Depth 0 is the far background, 1 the nearest point. */
+// demo scene, so the pattern is never blank before a map is loaded: a floor
+// running toward the viewer and three soft spheres drifting over it
+float demoDepth(vec2 uv) {
+  vec2 p = (uv - 0.5) * vec2(u_res.x / u_res.y, 1.0);
+  float d = clamp((-0.12 - p.y) * 1.35, 0.0, 1.0);
+  for (int i = 0; i < 3; i++) {
+    float fi = float(i);
+    vec2 c = vec2(0.42 * sin(u_time * 0.21 + fi * 2.1), -0.02 + 0.06 * sin(u_time * 0.33 + fi * 1.4));
+    float r = 0.17 + 0.05 * fi;
+    float zc = 0.35 + 0.16 * fi;
+    float q = dot(p - c, p - c);
+    if (q < r * r) d = max(d, zc + 0.32 * sqrt(1.0 - q / (r * r)));
+  }
+  return clamp(d, 0.0, 1.0);
+}
+// the loaded map, fitted inside the frame. Beyond its edges the edge pixels
+// carry on (the texture clamps), so a floor or backdrop extends instead of
+// stopping at a seam.
+float depthAt(vec2 uv) {
+  if (u_hasDepth < 0.5) return demoDepth(uv);
+  vec2 q = (uv - 0.5) / u_dscale;
+  float r = u_res.x / u_res.y;
+  if (r > u_dAspect) q.x *= r / u_dAspect; else q.y *= u_dAspect / r;
+  q += 0.5;
+  float d = dot(texture2D(u_dtex, q).rgb, vec3(0.299, 0.587, 0.114));
+  return mix(d, 1.0 - d, u_invert);
+}
+// parallax: near pixels move further than far ones, so the scene reads as
+// having volume when it sways
+float depthPar(vec2 uv) {
+  float d0 = depthAt(uv);
+  return depthAt(uv - u_wobble * (d0 - 0.5));
+}
+vec3 depthColor(float d) {
+  vec3 c = texture2D(u_pal, vec2(fract(d * u_spread + u_flowOff + u_push + u_shift), 0.5)).rgb;
+  // a band of light travelling from the back of the scene to the front; the
+  // far background (depth under 0.02) is left alone so it doesn't flash
+  float band = exp(-pow((d - u_sweepPos) / 0.045, 2.0)) * step(0.02, d);
+  return mix(c, vec3(1.0), band * u_sweep);
+}
+
 void main() {
   vec2 uv0 = gl_FragCoord.xy / u_res;          // untouched, for the feedback tap
   float T = u_time;
@@ -2788,6 +2860,30 @@ void main() {
     // about mid-grey, Warp cycles the palette over time; the ramp loops, so fract.
     float l = field(uv, p, T);
     v = fract((l - 0.5) * u_scale + 0.5 + T * 0.08 * u_warp);
+  } else if (u_style == 22) {
+    // depth: colour by distance, with a depth of field whose blur grows with
+    // the distance from the focus depth: a gather over a golden-angle disc,
+    // in units of the frame height. Bands posterises the depth into contour
+    // lines instead.
+    float d0 = depthPar(uv);
+    if (u_bands >= 2.0) {
+      colv = pal(fract(d0 * u_spread + u_flowOff + u_push));
+    } else {
+      float coc = u_lens * abs(d0 - u_focus) * 0.05;
+      vec3 acc = depthColor(d0);
+      float wsum = 1.0;
+      if (coc > 0.0008) {
+        for (int i = 0; i < 16; i++) {
+          float fi = float(i);
+          float rr = coc * sqrt((fi + 0.5) / 16.0);
+          float a = fi * 2.39996323;
+          vec2 o = vec2(cos(a), sin(a)) * rr * vec2(u_res.y / u_res.x, 1.0);
+          acc += depthColor(depthPar(uv + o));
+          wsum += 1.0;
+        }
+      }
+      colv = acc / wsum;
+    }
   } else if (u_style == 6) {
     // mosaic: square pixel blocks, posterised to a few levels with an ordered
     // (Bayer) dither at block resolution. Scale sets the block size, Warp the
@@ -3267,7 +3363,8 @@ void main() {
 
   float g = hash2(gl_FragCoord.xy + fract(T) * 421.0) - 0.5;
   col += g * u_grain * 0.4;
-  col *= 1.0 + u_beat * 0.6;
+  if (u_style == 22) col = mix(col, vec3(1.0), u_beat * 0.25);   // gentler: the subject's colour is the point, and a multiply blows orange to white
+  else col *= 1.0 + u_beat * 0.6;
   col *= gMask;
   col = textureFx(col, uv0, T);
   col = screenFx(col, uv0, T);
@@ -4129,6 +4226,534 @@ function useImage(file, opts = {}) {
   im.onerror = () => { URL.revokeObjectURL(url); imgError("Couldn\u2019t read " + name + " as an image."); };
   im.src = url;
 }
+/* ================= depth map (the Depth pattern's source) ================= */
+// A black-and-white picture or video, white near and black far, held apart
+// from the stage sources: one map at a time, kept in IndexedDB (flagged
+// depth) so it comes back next time. Images upload once; a video uploads
+// every frame while Depth is on stage.
+const depthTex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, depthTex);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+let depthEl = null, depthVideo = null, depthMesh = null, depthAspect = 1, depthDirty = false, depthMedia = null;
+const depth = { flow: 0, sweep: 0 };                 // the drifts the shader reads, advanced each frame
+const DEPTH_WHERE = "Depth maps: Photoshop’s Neural Filters → Depth Blur with “Output depth map only”; DaVinci Resolve Studio’s Depth Map effect for video; Video Depth Anything (free online demos) for video without flicker; Blender’s Mist pass rendered through the Compositor (near is dark there, so tick the invert box); or a depth pass from Spline or another 3D tool.";
+function depthNote(msg, warn) {
+  const n = $("depthNote");
+  n.className = warn ? "note warn" : "note";
+  n.textContent = (msg ? msg + " " : "") + DEPTH_WHERE;
+  $("depthClear").hidden = !depthEl;
+}
+depthNote("Demo scene: load a map to replace it.");
+function setDepthEl(el, w, h, name, video) {
+  if (depthVideo && depthVideo !== el) { depthVideo.pause(); depthVideo.removeAttribute("src"); depthVideo.load(); }
+  if (depthMesh && depthMesh !== el) { gl.deleteBuffer(depthMesh.vbo); depthMesh = null; }
+  depthEl = el; depthVideo = video ? el : null; depthMesh = el && el.tris ? el : null; depthAspect = w / h; depthDirty = true;
+  depthNote(name + " (" + (video ? "video" : depthMesh ? "3-D model" : "image") + ") is the depth map.");
+}
+function useDepth(file, opts = {}) {
+  const url = URL.createObjectURL(file), name = opts.name || file.name || "Depth map";
+  const keep = () => {
+    if (opts.id) { depthMedia = opts.id; return; }
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6), old = depthMedia;
+    depthMedia = id;
+    mediaPut({ id, name, type: file.type, blob: file, added: Date.now(), depth: true })
+      .then(() => { if (old) return mediaDel(old); })
+      .catch(() => depthNote(name + " is the depth map but couldn’t be kept for next time.", true));
+  };
+  const ext = (name.match(/\.([a-z0-9]+)$/i) || [, ""])[1].toLowerCase();
+  if (ext === "obj") {
+    URL.revokeObjectURL(url);
+    file.text().then(txt => {
+      const mesh = parseOBJ(txt);
+      setDepthEl(mesh, MESH_W, MESH_H, name, false); keep();
+      depthNote(name + " (3-D model) is the depth map: " + mesh.tris.toLocaleString() + " triangles, turning; Speed sets the turn and the camera\u2019s distance is the depth.");
+    }).catch(err => { if (!opts.quiet) depthNote("Couldn\u2019t read " + name + ": " + err.message, true); });
+    return;
+  }
+  if (DEPTH_DECODERS[ext]) {
+    URL.revokeObjectURL(url);
+    file.arrayBuffer().then(buf => DEPTH_DECODERS[ext](buf)).then(img => {
+      const r = depthRange(img);
+      const c = document.createElement("canvas");
+      c.width = img.w; c.height = img.h;
+      const id = c.getContext("2d").createImageData(img.w, img.h), d = id.data;
+      for (let i = 0; i < img.data.length; i++) {
+        let v = (img.data[i] - r.lo) / (r.hi - r.lo);
+        if (!(v > 0)) v = 0; else if (v > 1) v = 1;             // NaN, infinities and the empty background all land far
+        if (r.flip) v = 1 - v;
+        d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = Math.round(v * 255); d[i * 4 + 3] = 255;
+      }
+      c.getContext("2d").putImageData(id, 0, 0);
+      let el = c;
+      const sc = Math.min(1, IMG_MAX / Math.max(c.width, c.height));
+      if (sc < 1) { el = document.createElement("canvas"); el.width = Math.round(c.width * sc); el.height = Math.round(c.height * sc); el.getContext("2d").drawImage(c, 0, 0, el.width, el.height); }
+      setDepthEl(el, img.w, img.h, name, false); keep();
+      depthNote(name + " (image) is the depth map: " + img.what + ", " + r.text + ".");
+    }).catch(err => { if (!opts.quiet) depthNote("Couldn\u2019t read " + name + ": " + err.message, true); });
+    return;
+  }
+  if ((file.type || "").startsWith("video/")) {
+    const v = document.createElement("video");
+    v.src = url; v.muted = true; v.loop = true; v.playsInline = true;
+    v.addEventListener("loadeddata", () => { setDepthEl(v, v.videoWidth, v.videoHeight, name, true); keep(); }, { once: true });
+    v.addEventListener("error", () => { if (!opts.quiet) depthNote("Couldn’t read " + name + " as a video.", true); }, { once: true });
+    v.play().catch(err => { if (!opts.quiet) depthNote("Couldn’t play " + name + ": " + err.message, true); });
+    return;
+  }
+  const im = new Image();
+  im.onload = () => {
+    URL.revokeObjectURL(url);
+    const s = Math.min(1, IMG_MAX / Math.max(im.width, im.height));
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(im.width * s));
+    c.height = Math.max(1, Math.round(im.height * s));
+    c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+    setDepthEl(c, im.width, im.height, name, false); keep();
+  };
+  im.onerror = () => { URL.revokeObjectURL(url); if (!opts.quiet) depthNote("Couldn’t read " + name + " as an image.", true); };
+  im.src = url;
+}
+function clearDepth() {
+  if (depthVideo) { depthVideo.pause(); depthVideo.removeAttribute("src"); depthVideo.load(); }
+  if (depthMesh) gl.deleteBuffer(depthMesh.vbo);
+  depthEl = null; depthVideo = null; depthMesh = null; depthAspect = 1;
+  if (depthMedia) mediaDel(depthMedia).catch(() => {});
+  depthMedia = null;
+  depthNote("Demo scene: load a map to replace it.");
+}
+// upload a new image once, a playing video every frame it has a picture
+function uploadDepth() {
+  if (depthMesh) return;                              // a model is drawn into the texture at the top of the frame
+  if (!depthEl || !(depthDirty || depthVideo)) return;
+  if (depthVideo && depthVideo.readyState < 2) return;
+  gl.bindTexture(gl.TEXTURE_2D, depthTex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, depthEl);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  depthDirty = false;
+}
+// picking Depth brings its two routes along, unless the operator already has them
+function depthRoutes() {
+  if (state.style !== 22) return;
+  const add = (src, dst, amt) => { if (!state.routes.some(r => r.dst === dst) && state.routes.length < ROUTE_MAX) state.routes.push({ src, dst, amt }); };
+  add("bass", "push", 0.6); add("beat", "focus", 0.4);
+  saveRoutes();
+}
+$("depthLoad").addEventListener("click", () => $("depthFile").click());
+$("depthFile").addEventListener("change", e => { const f = e.target.files[0]; if (f) useDepth(f); e.target.value = ""; });
+$("depthClear").addEventListener("click", clearDepth);
+$("depthInvert").addEventListener("change", e => { state.dInvert = e.target.checked ? 1 : 0; touch(); });
+
+/* ================= depth file decoders ================= */
+// The files depth tools write are mostly ones a browser can't show: Blender
+// renders to OpenEXR (float, with Z and Mist passes), Radiance HDR, TIFF or
+// Targa; MiDaS and Depth Anything save PFM or NumPy arrays. Each decoder
+// returns { w, h, data: Float32Array, what, kind } with one value per pixel,
+// rows top to bottom; depthRange() then decides how it maps to 0..1.
+//   kind "z"    a distance (Z or Depth channel): scaled to the scene's own
+//               range and flipped, so near is white and the background far
+//   kind "mist" Blender's mist pass, 0 near 1 far: flipped
+//   kind "gray" brightness as stored; scaled only if it leaves 0..1
+function depthRange(img) {
+  const d = img.data, n = d.length, step = Math.max(1, Math.floor(n / 200000)), vals = [];
+  for (let i = 0; i < n; i += step) { const v = d[i]; if (v === v && v < 1e9 && v > -1e9) vals.push(v); }   // finite, and not Blender's 1e10 "nothing here"
+  if (!vals.length) return { lo: 0, hi: 1, flip: false, text: "empty" };
+  vals.sort((a, b) => a - b);
+  const q = k => vals[Math.min(vals.length - 1, Math.floor(k * (vals.length - 1)))];
+  let lo = q(0.005), hi = q(0.995);
+  if (img.kind === "gray" && lo >= 0 && hi <= 1) { lo = 0; hi = 1; }
+  if (hi <= lo) hi = lo + 1;
+  const flip = img.kind !== "gray";
+  const fmt = v => Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 1 ? v.toFixed(1) : v.toFixed(3);
+  const text = img.kind === "z" ? fmt(lo) + " to " + fmt(hi) + " units, flipped so near is white"
+    : img.kind === "mist" ? "flipped so near is white"
+    : lo === 0 && hi === 1 ? "0 to 1 as stored" : fmt(lo) + " to " + fmt(hi) + " scaled to 0 to 1";
+  return { lo, hi, flip, text };
+}
+const lum = (r, g, b) => r * 0.299 + g * 0.587 + b * 0.114;
+function halfToFloat(h) {
+  const s = h & 0x8000 ? -1 : 1, e = (h >> 10) & 0x1f, m = h & 0x3ff;
+  if (e === 0) return s * Math.pow(2, -14) * (m / 1024);
+  if (e === 31) return m ? NaN : s * Infinity;
+  return s * Math.pow(2, e - 15) * (1 + m / 1024);
+}
+async function inflate(bytes) {
+  const ds = new DecompressionStream("deflate");
+  const w = ds.writable.getWriter(); w.write(bytes); w.close();
+  return new Uint8Array(await new Response(ds.readable).arrayBuffer());
+}
+// OpenEXR: single-part scanline files, uncompressed, RLE, ZIPS or ZIP (Blender's
+// default). PIZ, PXR24, B44 and DWA need their own codecs and are refused.
+async function decodeEXR(buf) {
+  const u = new Uint8Array(buf), dv = new DataView(buf);
+  if (dv.getUint32(0, true) !== 20000630) throw new Error("not an OpenEXR file");
+  const ver = dv.getUint32(4, true);
+  if (ver & 0x1000) throw new Error("multi-part EXR files aren’t supported; save a single-part file");
+  if (ver & 0x800) throw new Error("deep EXR files aren’t supported");
+  let p = 8;
+  const str = () => { let s = ""; while (u[p]) s += String.fromCharCode(u[p++]); p++; return s; };
+  const chans = []; let comp = 0, win = null, lineOrder = 0;
+  for (;;) {
+    const name = str(); if (!name) break;
+    const type = str(), size = dv.getInt32(p, true); p += 4;
+    const end = p + size;
+    if (name === "channels") {
+      while (u[p]) {
+        const cn = str(), pt = dv.getInt32(p, true); p += 4;
+        p += 4;                                                        // pLinear + reserved
+        const xs = dv.getInt32(p, true), ys = dv.getInt32(p + 4, true); p += 8;
+        if (xs !== 1 || ys !== 1) throw new Error("subsampled channels aren’t supported");
+        chans.push({ name: cn, type: pt, size: pt === 1 ? 2 : 4 });
+      }
+    } else if (name === "compression") comp = u[p];
+    else if (name === "dataWindow") win = { x0: dv.getInt32(p, true), y0: dv.getInt32(p + 4, true), x1: dv.getInt32(p + 8, true), y1: dv.getInt32(p + 12, true) };
+    else if (name === "lineOrder") lineOrder = u[p];
+    p = end;
+  }
+  if (!win || !chans.length) throw new Error("the EXR header has no channels");
+  const lines = { 0: 1, 1: 1, 2: 1, 3: 16 }[comp];
+  if (!lines) throw new Error("this EXR uses " + ({ 4: "PIZ", 5: "PXR24", 6: "B44", 7: "B44A", 8: "DWAA", 9: "DWAB" }[comp] || "an unknown") + " compression; save it as ZIP or uncompressed");
+  const w = win.x1 - win.x0 + 1, h = win.y1 - win.y0 + 1;
+  if (w <= 0 || h <= 0 || w * h > 64e6) throw new Error("the EXR is " + w + "×" + h);
+  // which channel is the depth: Z or Depth first, then Mist, then a grey Y, then RGB brightness, then whatever is first
+  const pick = (re) => chans.find(c => re.test(c.name));
+  let kind = "gray", what, use;
+  const z = pick(/(^|\.)Z$/) && !pick(/mist/i) ? pick(/(^|\.)Z$/) : pick(/(^|\.)depth\.Z$/i) || pick(/depth/i);
+  const mist = pick(/mist/i);
+  if (z) { use = [z]; kind = "z"; what = "channel " + z.name; }
+  else if (mist) { use = [mist]; kind = "mist"; what = "channel " + mist.name; }
+  else if (pick(/(^|\.)Y$/)) { use = [pick(/(^|\.)Y$/)]; what = "channel " + use[0].name; }
+  else {
+    const r = pick(/(^|\.)R$/), pre = r ? r.name.slice(0, -1) : "";
+    const g = chans.find(c => c.name === pre + "G"), b = chans.find(c => c.name === pre + "B");
+    if (r && g && b) { use = [r, g, b]; what = "brightness of " + (pre ? pre.slice(0, -1) : "RGB"); }
+    else { use = [chans[0]]; what = "channel " + chans[0].name; }
+  }
+  const lineBytes = chans.reduce((n, c) => n + c.size * w, 0);
+  const nChunks = Math.ceil(h / lines);
+  const out = new Float32Array(w * h);
+  const offs = []; for (let i = 0; i < nChunks; i++) offs.push(Number(dv.getBigUint64(p + i * 8, true)));
+  // undo the ZIP/RLE byte shuffle: a running delta, then the two halves interleaved
+  const unshuffle = (d) => {
+    const n = d.length;
+    for (let i = 1; i < n; i++) d[i] = (d[i - 1] + d[i] - 128) & 255;
+    const o = new Uint8Array(n); let a = 0, b = (n + 1) >> 1, k = 0;
+    while (k < n) { o[k++] = d[a++]; if (k < n) o[k++] = d[b++]; }
+    return o;
+  };
+  const rle = (src, n) => {
+    const o = new Uint8Array(n); let i = 0, k = 0;
+    while (i < src.length && k < n) {
+      let c = src[i++]; if (c > 127) c -= 256;
+      if (c < 0) { c = -c; while (c-- && k < n) o[k++] = src[i++]; }
+      else { const v = src[i++]; c++; while (c-- && k < n) o[k++] = v; }
+    }
+    return o;
+  };
+  for (const off of offs) {
+    const y = dv.getInt32(off, true) - win.y0, size = dv.getInt32(off + 4, true);
+    const rows = Math.min(lines, h - y), raw = u.subarray(off + 8, off + 8 + size), want = rows * lineBytes;
+    let d;
+    if (comp === 0 || size === want) d = raw;
+    else if (comp === 1) d = unshuffle(rle(raw, want));
+    else d = unshuffle(await inflate(raw));
+    const bv = new DataView(d.buffer, d.byteOffset, d.byteLength);
+    for (let r = 0; r < rows; r++) {
+      const yy = lineOrder === 1 ? h - 1 - (y + r) : y + r;
+      let base = r * lineBytes; const at = {};
+      for (const c of chans) { at[c.name] = base; base += c.size * w; }
+      const read = (c, x) => { const q = at[c.name] + x * c.size; return c.type === 1 ? halfToFloat(bv.getUint16(q, true)) : c.type === 2 ? bv.getFloat32(q, true) : bv.getUint32(q, true); };
+      for (let x = 0; x < w; x++) out[yy * w + x] = use.length === 3 ? lum(read(use[0], x), read(use[1], x), read(use[2], x)) : read(use[0], x);
+    }
+  }
+  return { w, h, data: out, kind, what: "OpenEXR " + what };
+}
+// Radiance HDR (RGBE), flat or new-style run-length scanlines
+function decodeHDR(buf) {
+  const u = new Uint8Array(buf); let p = 0;
+  const line = () => { let s = ""; while (p < u.length && u[p] !== 10) s += String.fromCharCode(u[p++]); p++; return s; };
+  if (!/^#\?/.test(line())) throw new Error("not a Radiance HDR file");
+  let l; while ((l = line()) !== "") { if (/^FORMAT=/.test(l) && !/32-bit_rle_rgbe/.test(l)) throw new Error("only RGBE HDR files are supported"); }
+  const m = /^-Y\s+(\d+)\s+\+X\s+(\d+)/.exec(line());
+  if (!m) throw new Error("this HDR file’s orientation isn’t supported");
+  const h = +m[1], w = +m[2], data = new Float32Array(w * h), rgbe = new Uint8Array(w * 4);
+  for (let y = 0; y < h; y++) {
+    if (w >= 8 && w < 32768 && u[p] === 2 && u[p + 1] === 2 && !(u[p + 2] & 0x80)) {
+      p += 4;
+      for (let c = 0; c < 4; c++) {
+        let x = 0;
+        while (x < w) {
+          let n = u[p++];
+          if (n > 128) { n -= 128; const v = u[p++]; while (n--) rgbe[(x++) * 4 + c] = v; }
+          else while (n--) rgbe[(x++) * 4 + c] = u[p++];
+        }
+      }
+    } else { rgbe.set(u.subarray(p, p + w * 4)); p += w * 4; }
+    for (let x = 0; x < w; x++) { const e = rgbe[x * 4 + 3], f = e ? Math.pow(2, e - 136) : 0; data[y * w + x] = lum(rgbe[x * 4], rgbe[x * 4 + 1], rgbe[x * 4 + 2]) * f; }
+  }
+  return { w, h, data, kind: "gray", what: "Radiance HDR brightness" };
+}
+// TIFF: stripped, chunky, 8/16/32-bit integer or 32-bit float, uncompressed,
+// PackBits, LZW or Deflate, with the horizontal predictor. Tiles and BigTIFF are refused.
+async function decodeTIFF(buf) {
+  const dv = new DataView(buf), u = new Uint8Array(buf);
+  const le = u[0] === 0x49;
+  if (!((u[0] === 0x49 && u[1] === 0x49) || (u[0] === 0x4d && u[1] === 0x4d))) throw new Error("not a TIFF file");
+  if (dv.getUint16(2, le) !== 42) throw new Error("BigTIFF isn’t supported");
+  let p = dv.getUint32(4, le);
+  const n = dv.getUint16(p, le), tags = {}; p += 2;
+  const SZ = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 6: 1, 7: 1, 8: 2, 9: 4, 10: 8, 11: 4, 12: 8 };
+  for (let i = 0; i < n; i++, p += 12) {
+    const tag = dv.getUint16(p, le), type = dv.getUint16(p + 2, le), cnt = dv.getUint32(p + 4, le), sz = SZ[type] || 1;
+    let q = cnt * sz > 4 ? dv.getUint32(p + 8, le) : p + 8;
+    const vals = [];
+    for (let k = 0; k < cnt && k < 1e6; k++, q += sz) vals.push(type === 3 ? dv.getUint16(q, le) : type === 4 ? dv.getUint32(q, le) : type === 11 ? dv.getFloat32(q, le) : u[q]);
+    tags[tag] = vals;
+  }
+  const one = (t, d) => tags[t] ? tags[t][0] : d;
+  const w = one(256), h = one(257), bps = one(258, 8), comp = one(259, 1), photo = one(262, 1), spp = one(277, 1), rps = one(278, h), pred = one(317, 1), fmt = one(339, 1);
+  if (tags[322] || tags[324]) throw new Error("tiled TIFF files aren’t supported; save with strips");
+  if (one(284, 1) !== 1) throw new Error("planar TIFF files aren’t supported");
+  if (![8, 16, 32].includes(bps)) throw new Error(bps + "-bit TIFF samples aren’t supported");
+  if (pred === 3) throw new Error("the floating-point predictor isn’t supported");
+  if (!tags[273]) throw new Error("the TIFF has no image strips");
+  const bpp = bps / 8 * spp, rowBytes = w * bpp, data = new Float32Array(w * h), px = new Uint8Array(rowBytes * h);
+  const packbits = (src, want) => {
+    const o = new Uint8Array(want); let i = 0, k = 0;
+    while (i < src.length && k < want) { let c = src[i++]; if (c > 127) c -= 256; if (c === -128) continue; if (c < 0) { const v = src[i++]; c = 1 - c; while (c-- && k < want) o[k++] = v; } else { c++; while (c-- && k < want) o[k++] = src[i++]; } }
+    return o;
+  };
+  const lzw = (src, want) => {                       // MSB-first codes with the TIFF early change
+    const o = new Uint8Array(want), prefix = new Int32Array(4096), suffix = new Uint8Array(4096), len = new Int32Array(4096);
+    for (let i = 0; i < 256; i++) { prefix[i] = -1; suffix[i] = i; len[i] = 1; }
+    let next = 258, width = 9, prev = -1, bits = 0, cnt = 0, i = 0, k = 0;
+    const emit = (code, at) => { let c = code; for (let j = len[code] - 1; j >= 0; j--) { if (at + j < want) o[at + j] = suffix[c]; c = prefix[c]; } return len[code]; };
+    const first = code => { let c = code; while (prefix[c] >= 0) c = prefix[c]; return suffix[c]; };
+    while (k < want) {
+      while (cnt < width && i < src.length) { bits = ((bits << 8) | src[i++]) >>> 0; cnt += 8; }
+      if (cnt < width) break;
+      const code = (bits >>> (cnt - width)) & ((1 << width) - 1); cnt -= width; bits &= (1 << cnt) - 1;
+      if (code === 257) break;
+      if (code === 256) { next = 258; width = 9; prev = -1; continue; }
+      if (code < next) { k += emit(code, k); if (prev >= 0) { prefix[next] = prev; suffix[next] = first(code); len[next] = len[prev] + 1; next++; } }
+      else if (prev >= 0) { prefix[next] = prev; suffix[next] = first(prev); len[next] = len[prev] + 1; next++; k += emit(code, k); }
+      else break;
+      prev = code;
+      if (next + 1 >= (1 << width) && width < 12) width++;
+    }
+    return o;
+  };
+  const counts = tags[279] || [];
+  let y = 0;
+  for (let s = 0; s < tags[273].length && y < h; s++) {
+    const rows = Math.min(rps, h - y), want = rows * rowBytes, off = tags[273][s], raw = u.subarray(off, off + (counts[s] || want));
+    let d;
+    if (comp === 1) d = raw.subarray(0, want);
+    else if (comp === 32773) d = packbits(raw, want);
+    else if (comp === 5) d = lzw(raw, want);
+    else if (comp === 8 || comp === 32946) d = await inflate(raw);
+    else throw new Error("TIFF compression " + comp + " isn’t supported (uncompressed, LZW, Deflate and PackBits are)");
+    px.set(d.subarray(0, want), y * rowBytes); y += rows;
+  }
+  const pv = new DataView(px.buffer), bytes = bps / 8;
+  const get = q => bps === 8 ? px[q] : bps === 16 ? pv.getUint16(q, le) : fmt === 3 ? pv.getFloat32(q, le) : fmt === 2 ? pv.getInt32(q, le) : pv.getUint32(q, le);
+  if (pred === 2 && fmt !== 3) {                     // horizontal differencing, per channel along each row
+    for (let r = 0; r < h; r++) for (let x = 1; x < w; x++) for (let c = 0; c < spp; c++) {
+      const q = r * rowBytes + (x * spp + c) * bytes, prevQ = q - spp * bytes;
+      if (bps === 8) px[q] = (px[q] + px[prevQ]) & 255;
+      else if (bps === 16) pv.setUint16(q, (pv.getUint16(q, le) + pv.getUint16(prevQ, le)) & 65535, le);
+      else pv.setUint32(q, (pv.getUint32(q, le) + pv.getUint32(prevQ, le)) >>> 0, le);
+    }
+  }
+  const full = fmt === 3 ? 1 : bps === 8 ? 255 : bps === 16 ? 65535 : 4294967295;
+  for (let i = 0; i < w * h; i++) {
+    const q = i * bpp;
+    let v = spp >= 3 ? lum(get(q), get(q + bytes), get(q + 2 * bytes)) : get(q);
+    v /= full;
+    if (photo === 0) v = 1 - v;
+    data[i] = v;
+  }
+  return { w, h, data, kind: fmt === 3 ? "gray" : "gray", what: "TIFF " + bps + "-bit " + (spp >= 3 ? "brightness" : "grey") };
+}
+// Targa: uncompressed or RLE, greyscale or 16/24/32-bit colour
+function decodeTGA(buf) {
+  const u = new Uint8Array(buf), dv = new DataView(buf);
+  const idLen = u[0], cmap = u[1], type = u[2], w = dv.getUint16(12, true), h = dv.getUint16(14, true), bpp = u[16], desc = u[17];
+  if (cmap !== 0 || ![2, 3, 10, 11].includes(type)) throw new Error("only true-colour and greyscale Targa files are supported");
+  if (![8, 16, 24, 32].includes(bpp)) throw new Error(bpp + "-bit Targa isn’t supported");
+  const B = bpp / 8, px = new Uint8Array(w * h * B); let p = 18 + idLen;
+  if (type >= 10) {
+    let k = 0;
+    while (k < px.length && p < u.length) {
+      const c = u[p++], n = (c & 127) + 1;
+      if (c & 128) { for (let i = 0; i < n && k < px.length; i++) { px.set(u.subarray(p, p + B), k); k += B; } p += B; }
+      else { px.set(u.subarray(p, p + n * B), k); k += n * B; p += n * B; }
+    }
+  } else px.set(u.subarray(p, p + px.length));
+  const topLeft = !!(desc & 32), data = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const q = (y * w + x) * B, yy = topLeft ? y : h - 1 - y;
+    let v;
+    if (B === 1) v = px[q] / 255;
+    else if (B === 2) { const s = px[q] | (px[q + 1] << 8); v = lum((s >> 10) & 31, (s >> 5) & 31, s & 31) / 31; }
+    else v = lum(px[q + 2], px[q + 1], px[q]) / 255;
+    data[yy * w + x] = v;
+  }
+  return { w, h, data, kind: "gray", what: "Targa " + bpp + "-bit" };
+}
+// PFM (float, bottom row first) and binary PGM/PPM (8 or 16-bit)
+function decodePNM(buf) {
+  const u = new Uint8Array(buf); let p = 0;
+  const tok = () => { let s = ""; while (p < u.length && /\s/.test(String.fromCharCode(u[p]))) p++; if (u[p] === 35) { while (u[p] !== 10) p++; return tok(); } while (p < u.length && !/\s/.test(String.fromCharCode(u[p]))) s += String.fromCharCode(u[p++]); return s; };
+  const magic = tok(), w = +tok(), h = +tok();
+  if (!(w > 0 && h > 0)) throw new Error("the file’s size could not be read");
+  const data = new Float32Array(w * h);
+  if (magic === "Pf" || magic === "PF") {
+    const scale = +tok(); p++;
+    const le = scale < 0, ch = magic === "PF" ? 3 : 1, dv = new DataView(buf);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const q = p + ((y * w + x) * ch) * 4, yy = h - 1 - y;
+      data[yy * w + x] = ch === 3 ? lum(dv.getFloat32(q, le), dv.getFloat32(q + 4, le), dv.getFloat32(q + 8, le)) : dv.getFloat32(q, le);
+    }
+    return { w, h, data, kind: "gray", what: "PFM float" };
+  }
+  if (magic !== "P5" && magic !== "P6") throw new Error("only binary PGM and PPM (P5, P6) and PFM are supported");
+  const max = +tok(); p++;
+  const ch = magic === "P6" ? 3 : 1, wide = max > 255, B = wide ? 2 : 1;
+  const get = q => wide ? (u[q] << 8) | u[q + 1] : u[q];
+  for (let i = 0; i < w * h; i++) {
+    const q = p + i * ch * B;
+    data[i] = (ch === 3 ? lum(get(q), get(q + B), get(q + 2 * B)) : get(q)) / max;
+  }
+  return { w, h, data, kind: "gray", what: (ch === 3 ? "PPM " : "PGM ") + (wide ? "16-bit" : "8-bit") };
+}
+// NumPy .npy: a 2-D array (or H×W×1), any float or integer type, C or Fortran order
+function decodeNPY(buf) {
+  const u = new Uint8Array(buf);
+  if (!(u[0] === 0x93 && String.fromCharCode(...u.subarray(1, 6)) === "NUMPY")) throw new Error("not a NumPy .npy file");
+  const major = u[6], dv = new DataView(buf);
+  const hl = major === 1 ? dv.getUint16(8, true) : dv.getUint32(8, true), start = (major === 1 ? 10 : 12);
+  const head = String.fromCharCode(...u.subarray(start, start + hl));
+  const descr = (/'descr':\s*'([^']+)'/.exec(head) || [])[1] || "", fortran = /'fortran_order':\s*True/.test(head);
+  const shape = ((/'shape':\s*\(([^)]*)\)/.exec(head) || [])[1] || "").split(",").map(s => +s.trim()).filter(n => n > 0);
+  const dims = shape.filter(n => n > 1);
+  if (dims.length !== 2) throw new Error("the array is " + (shape.join("×") || "empty") + "; a depth map is height × width");
+  const [h, w] = fortran ? [dims[1], dims[0]] : dims;
+  const le = descr[0] !== ">", t = descr.slice(1);
+  const size = +t.slice(1);
+  const get = { f: { 2: q => halfToFloat(dv.getUint16(q, le)), 4: q => dv.getFloat32(q, le), 8: q => dv.getFloat64(q, le) },
+                u: { 1: q => u[q], 2: q => dv.getUint16(q, le), 4: q => dv.getUint32(q, le) },
+                i: { 1: q => dv.getInt8(q), 2: q => dv.getInt16(q, le), 4: q => dv.getInt32(q, le) },
+                b: { 1: q => u[q] } }[t[0]];
+  if (!get || !get[size]) throw new Error("array type " + descr + " isn’t supported");
+  const rd = get[size], data = new Float32Array(w * h), base = start + hl;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) data[y * w + x] = rd(base + (fortran ? x * h + y : y * w + x) * size);
+  const full = t[0] === "u" || t[0] === "i" ? (size === 1 ? 255 : size === 2 ? 65535 : 0) : 0;
+  if (full) for (let i = 0; i < data.length; i++) data[i] /= full;
+  return { w, h, data, kind: "gray", what: "NumPy " + descr + " array" };
+}
+/* ================= OBJ models as depth ================= */
+// A mesh has no pixels, so Vibe renders its own depth pass: the model is
+// centred and scaled to a unit sphere, turned slowly about its axis (Speed
+// sets the turn, through T) and drawn into the depth texture with the
+// distance from the camera as brightness, near white, the empty background
+// black. Only positions and faces are read; normals, textures and materials
+// are ignored.
+const MESH_W = 1280, MESH_H = 720;
+function parseOBJ(text) {
+  const v = [], idx = [];
+  let lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+  for (const ln of text.split(/\r?\n/)) {
+    const c0 = ln.charCodeAt(0), c1 = ln.charCodeAt(1);
+    if (c0 === 118 && (c1 === 32 || c1 === 9)) {                        // "v x y z"
+      const p = ln.trim().split(/\s+/), x = +p[1], y = +p[2], z = +p[3];
+      v.push(x, y, z);
+      if (x < lo[0]) lo[0] = x; if (x > hi[0]) hi[0] = x;
+      if (y < lo[1]) lo[1] = y; if (y > hi[1]) hi[1] = y;
+      if (z < lo[2]) lo[2] = z; if (z > hi[2]) hi[2] = z;
+    } else if (c0 === 102 && (c1 === 32 || c1 === 9)) {                 // "f a/b/c ...", any polygon, fanned
+      const p = ln.trim().split(/\s+/).slice(1).map(t => { const i = parseInt(t, 10); return i < 0 ? v.length / 3 + i : i - 1; });
+      for (let k = 1; k + 1 < p.length; k++) idx.push(p[0], p[k], p[k + 1]);
+    }
+  }
+  if (!v.length) throw new Error("the OBJ has no vertices");
+  if (!idx.length) throw new Error("the OBJ has no faces (a point cloud can’t make a depth map)");
+  if (idx.length > 6e6) throw new Error("the OBJ has " + (idx.length / 3).toLocaleString() + " triangles; keep it under two million");
+  const center = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2];
+  const radius = Math.max(1e-6, Math.hypot(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]) / 2);
+  const pos = new Float32Array(idx.length * 3);
+  for (let i = 0; i < idx.length; i++) {
+    const j = idx[i] * 3;
+    if (j < 0 || j + 2 >= v.length) throw new Error("a face refers to a vertex the file doesn’t have");
+    pos[i * 3] = (v[j] - center[0]) / radius; pos[i * 3 + 1] = (v[j + 1] - center[1]) / radius; pos[i * 3 + 2] = (v[j + 2] - center[2]) / radius;
+  }
+  const vbo = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+  gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
+  return { vbo, tris: idx.length / 3, count: idx.length };
+}
+const MESH_VERT = `
+attribute vec3 a_pos;
+uniform mat4 u_mvp, u_mv;
+varying float v_d;
+void main() { vec4 e = u_mv * vec4(a_pos, 1.0); v_d = -e.z; gl_Position = u_mvp * vec4(a_pos, 1.0); }`;
+const MESH_FRAG = `
+precision mediump float;
+varying float v_d;
+uniform float u_near, u_far;
+void main() { float d = clamp((u_far - v_d) / (u_far - u_near), 0.0, 1.0); gl_FragColor = vec4(d, d, d, 1.0); }`;
+let meshProg = null, meshFB = null, meshRB = null;
+// column-major 4x4 helpers, just enough for a turntable camera
+const m4mul = (a, b) => { const o = new Float32Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; } return o; };
+const m4persp = (fovy, ar, n, f) => { const t = 1 / Math.tan(fovy / 2); return new Float32Array([t / ar, 0, 0, 0, 0, t, 0, 0, 0, 0, (f + n) / (n - f), -1, 0, 0, 2 * f * n / (n - f), 0]); };
+const m4rotY = a => new Float32Array([Math.cos(a), 0, -Math.sin(a), 0, 0, 1, 0, 0, Math.sin(a), 0, Math.cos(a), 0, 0, 0, 0, 1]);
+const m4rotX = a => new Float32Array([1, 0, 0, 0, 0, Math.cos(a), Math.sin(a), 0, 0, -Math.sin(a), Math.cos(a), 0, 0, 0, 0, 1]);
+const m4trans = (x, y, z) => new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1]);
+function renderMeshDepth() {
+  if (!meshProg) {
+    meshProg = program(MESH_FRAG, MESH_VERT);
+    meshFB = gl.createFramebuffer(); meshRB = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, meshRB);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, MESH_W, MESH_H);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  }
+  if (depthDirty) {                                   // (re)size the texture for the model's first frame
+    gl.bindTexture(gl.TEXTURE_2D, depthTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, MESH_W, MESH_H, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, meshFB);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, depthTex, 0);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, meshRB);
+    depthDirty = false;
+  }
+  const D = 2.7, tilt = 0.28, yaw = T * 0.3;          // camera distance for a unit sphere, a slight look down, the turn
+  const model = m4mul(m4rotX(tilt), m4rotY(yaw));
+  const mv = m4mul(m4trans(0, 0, -D), model);
+  const mvp = m4mul(m4persp(0.72, MESH_W / MESH_H, 0.5, 10), mv);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, meshFB);
+  gl.viewport(0, 0, MESH_W, MESH_H);
+  gl.useProgram(meshProg);
+  gl.clearColor(0, 0, 0, 1);
+  gl.enable(gl.DEPTH_TEST);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  const loc = gl.getAttribLocation(meshProg, "a_pos");
+  gl.bindBuffer(gl.ARRAY_BUFFER, depthMesh.vbo);
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0);
+  gl.uniformMatrix4fv(gl.getUniformLocation(meshProg, "u_mvp"), false, mvp);
+  gl.uniformMatrix4fv(gl.getUniformLocation(meshProg, "u_mv"), false, mv);
+  gl.uniform1f(gl.getUniformLocation(meshProg, "u_near"), D - 1);
+  gl.uniform1f(gl.getUniformLocation(meshProg, "u_far"), D + 1);
+  gl.drawArrays(gl.TRIANGLES, 0, depthMesh.count);
+  gl.disable(gl.DEPTH_TEST);
+  if (loc !== 0) gl.disableVertexAttribArray(loc);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+
+const DEPTH_DECODERS = { exr: decodeEXR, hdr: decodeHDR, pic: decodeHDR, rgbe: decodeHDR, tif: decodeTIFF, tiff: decodeTIFF, tga: decodeTGA, pfm: decodePNM, pgm: decodePNM, ppm: decodePNM, npy: decodeNPY };
+
 /* ================= text in ================= */
 // Type on the stage as a source. Each text source owns its copy, size, tracking
 // and font ({ copy, fill, track, font } under sc.text) and its own canvas; the
@@ -5021,7 +5646,10 @@ fontsAll().then(async rows => {
 });
 setTimeout(restoreTexts, 0);                       // after the whole script has run, before anyone can type
 // the pictures from last time come back as held sources, nothing on the stage until it is picked
-mediaAll().then(rows => rows.sort((a, b) => a.added - b.added).forEach(r => { if (r && r.blob && !r.svg) useImage(r.blob, { id: r.id, name: r.name, quiet: true }); })).catch(() => { /* no storage */ });
+mediaAll().then(rows => rows.sort((a, b) => a.added - b.added).forEach(r => {
+  if (!r || !r.blob || r.svg) return;
+  if (r.depth) useDepth(r.blob, { id: r.id, name: r.name, quiet: true }); else useImage(r.blob, { id: r.id, name: r.name, quiet: true });
+})).catch(() => { /* no storage */ });
 
 const fmtClock = s => isFinite(s) ? Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0") : "0:00";
 const niceName = n => n.replace(/\.[^.]+$/, "").replace(/_+/g, " ").trim();
@@ -5221,7 +5849,8 @@ const segSrc = seg("srcSeg", "src", () => srcMode, v => {
 const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom", "fbSpin", "grain", "bands", "blur",
                    "dist", "distort", "screen", "screenAmt", "tex", "texAmt", "distSize", "screenSize", "texSize",
                    "glass", "glassAngle", "glassSeam", "glassSeamW", "gsAngle", "gsRand", "echoSpread", "echoDecay", "echoAngle", "echoDrift", "slitAngle", "sortMode",
-                   "geo", "geoN", "geoSpin", "geoGap", "geoTile", "lineW", "fracSeed", "fracKind", "dotKind", "beadBoard", "fabric", "asciiKind"];
+                   "geo", "geoN", "geoSpin", "geoGap", "geoTile", "lineW", "fracSeed", "fracKind", "dotKind", "beadBoard", "fabric", "asciiKind",
+                   "dFocus", "dLens", "dRange", "dFlow", "dSweep", "dPar", "dInvert"];
 const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
 // Groups (the library's categories), in display order. presets/library.json
 // may ship its own list; renames, additions and deletions made here are kept
@@ -5346,7 +5975,7 @@ function setLook(L, m, w, h, pEnd, time = T, stops = state.colors) {
   gl.uniform1i(U("u_fabric"), L.fabric);
   gl.uniform1i(U("u_asciiKind"), L.asciiKind);
   gl.uniform1f(U("u_lineW"), Math.max(0.5, L.lineW * h / 1080));   // thickness is set for 1080 lines, so thumbnails match
-  gl.uniform1f(U("u_trails"), Math.min(0.97, L.trails + m("trails") * 0.5));
+  gl.uniform1f(U("u_trails"), L.style === 22 ? 0 : Math.min(0.97, L.trails + m("trails") * 0.5));   // no feedback in Depth
   gl.uniform1f(U("u_fbZoom"), L.fbZoom + m("push") * 0.02);
   gl.uniform1f(U("u_fbSpin"), L.fbSpin + m("spin") * 0.02);
   gl.uniform1f(U("u_bass"), band.bass);
@@ -5375,6 +6004,19 @@ function setLook(L, m, w, h, pEnd, time = T, stops = state.colors) {
   gl.uniform1f(U("u_gsAngle"), L.gsAngle * 3.14159265 / 180);
   gl.uniform1f(U("u_gsRand"), L.gsRand);
   gl.uniform1f(U("u_distort"), Math.min(1.5, L.distort + m("distort")));
+  // Depth: the map, its fit, and the per-frame drifts (flow, sweep, sway)
+  gl.uniform1f(U("u_hasDepth"), depthEl ? 1 : 0);
+  gl.uniform1f(U("u_dAspect"), depthAspect);
+  gl.uniform1f(U("u_invert"), L.dInvert ? 1 : 0);
+  gl.uniform1f(U("u_dscale"), L.scale * (1 + m("size") * 0.3));          // a third of the usual Size push: a full zoom lurches
+  gl.uniform1f(U("u_focus"), Math.max(0, L.dFocus - m("focus") * 0.6));   // Beat -> Focus pulls focus toward the back
+  gl.uniform1f(U("u_lens"), L.dLens);
+  gl.uniform1f(U("u_spread"), L.dRange);
+  gl.uniform1f(U("u_flowOff"), depth.flow);
+  gl.uniform1f(U("u_push"), m("push") * 0.3);                              // Bass -> Push shoves the colours up the palette
+  gl.uniform1f(U("u_sweepPos"), depth.sweep - 0.15);
+  gl.uniform1f(U("u_sweep"), L.dSweep);
+  gl.uniform2f(U("u_wobble"), Math.sin(time * 0.45) * L.dPar * 0.04, Math.sin(time * 0.31) * L.dPar * 0.016);
 }
 
 // Thumbnails: every preset rendered once through its look, at a fixed moment
@@ -8557,6 +9199,7 @@ function frame(now) {
   textWeightTick(m);
   T += dt * state.speed * (1 + m("motion") * 4);   // Motion: up to four times the speed
 
+  if (depthMesh && (state.style === 22 || (fade && fade.look.style === 22))) renderMeshDepth();   // the OBJ's depth pass, into the depth texture
   gl.useProgram(scene);
   gl.bindBuffer(gl.ARRAY_BUFFER, quad);
   gl.vertexAttribPointer(gl.getAttribLocation(scene, "a"), 2, gl.FLOAT, false, 0, 0);
@@ -8585,6 +9228,12 @@ function frame(now) {
   gl.bindTexture(gl.TEXTURE_2D, stampTex);
   updateStamp();
   gl.uniform1i(U("u_stamp"), 6);
+  gl.activeTexture(gl.TEXTURE7);
+  gl.bindTexture(gl.TEXTURE_2D, depthTex);
+  if (state.style === 22 || (fade && fade.look.style === 22)) uploadDepth();
+  gl.uniform1i(U("u_dtex"), 7);
+  depth.flow = (depth.flow + dt * state.dFlow * 0.06 * (1 + band.mid * 3)) % 1;     // Colour flow, hurried by the mids
+  depth.sweep = (depth.sweep + dt * (0.2 + band.bass * 0.8)) % 1.4;                // the light band, far to near, hurried by the bass
   gl.uniform1i(U("u_pal"), 0);
   gl.uniform1i(U("u_prev"), 1);
 

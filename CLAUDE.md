@@ -57,6 +57,26 @@ rendering it: serve the folder (`python3 -m http.server 8000`) and check in a
 browser, or drive headless Chrome. Mic input needs `http://localhost` or the
 deployed https address; a `file://` copy cannot ask for permission.
 
+## Depth pattern
+
+- **Depth** (style 22) is a depth pass. A black-and-white depth image or video
+  (white = near) is coloured through the palette by distance, with Focus and
+  Lens blur as a depth of field, a light sweep from far to near, parallax, and
+  the Bass → Push and Beat → Focus routes. Trails stay off in this style: a
+  depth pass fed back into itself ghosts, and with beat flashes it piles up to
+  white. The map is one texture on unit 7, kept in IndexedDB flagged `depth`,
+  apart from the stage sources.
+- Depth files a browser can't show are decoded in the page, no library:
+  OpenEXR (scanline, uncompressed/RLE/ZIPS/ZIP; a Z or Depth channel is
+  scaled to the scene's range and flipped so near is white, Mist is flipped),
+  Radiance HDR, TIFF (strips, 8/16/32-bit, none/LZW/Deflate/PackBits),
+  Targa, PFM/PGM/PPM and NumPy `.npy`. An OBJ has no pixels, so its depth is
+  rendered by a small WebGL pass on a turntable (Speed sets the turn) into
+  the same texture. Models usually ship with `.mtl` materials and textures
+  beside them; the loader takes only the `.obj`, since a depth pass needs
+  nothing but geometry.
+- Headless Chromium can't decode H.264, so test depth video with WebM.
+
 ## Constraints
 
 - Runs unattended for hours on a projector. Multi-hour stability beats any
