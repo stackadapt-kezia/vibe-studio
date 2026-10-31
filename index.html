@@ -105,6 +105,9 @@
   }
   canvas { display: block; width: 100%; height: 100%; }
   body.hide-ui .panel, body.hide-ui .resizer, body.hide-ui header { display: none; }
+  /* playback (?playback): a dedicated machine on a projector, nothing but the picture */
+  body.playback, body.playback * { cursor: none !important; }
+  body.playback .setlist-overlay, body.playback .dock { display: none !important; }
   /* show controls: a dock pinned bottom-left that appears when the pointer
      reaches that corner (or a button in it has focus) */
   .dock {
@@ -1299,12 +1302,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.85";  // Depth reads EXR, HDR, TIFF, TGA, PFM, PGM, NumPy and OBJ files too
+const APP_VERSION = "0.9.86";  // ?render= caps the render height, ?playback runs a dedicated projector machine
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.86", "Two address options for running Vibe studio on its own machine, such as a Raspberry Pi on a projector. Add ?render=720 to draw at 720 pixels tall and let the screen stretch it, which keeps small computers smooth. Add ?playback for a show machine: the panel, dock and cursor stay hidden, the mic starts on its own, and it skips a per-frame copy that only exports need. Add ?look= with a preset id to open on that look, for example ?playback&render=720&look=newsprint."],
   ["0.9.85", "Depth takes the files depth tools actually write, not just pictures a browser can show: OpenEXR (Blender\u2019s render output, including multilayer files with a Depth or Mist pass), Radiance HDR, TIFF (8, 16 and 32-bit, uncompressed, LZW, Deflate or PackBits), Targa, PFM and PGM, NumPy .npy arrays from MiDaS or Depth Anything, and OBJ models, which Vibe renders itself: the model turns slowly on a turntable (Speed sets the turn) and its distance from the camera is the depth. A model usually comes with material and texture files beside it; only the .obj is needed, since a depth pass is geometry alone. A Z or Depth channel is measured in scene units, so it is scaled to the scene\u2019s own nearest and farthest points (the empty background counts as far) and flipped so near is white; a Mist pass is flipped the same way, so the invert box can stay off. The note under the loader says what was read and what range it covered."],
   ["0.9.84", "A new pattern, Depth, under Image reactive. Load a black-and-white depth image or video (white near, black far) and every pixel is coloured through the palette by its distance, so with Horizon the far background reads blue and near objects orange. Focus and Lens blur put a depth of field on the scene, Colour range sets how much of the palette the depth runs through, Colour flow drifts it (faster on the mids), Light sweep sends a band of light from the back of the scene to the front (faster on the bass), and Parallax sways near things more than far ones. Bands posterises the depth into contour lines instead of blurring. Picking Depth brings two reactivity routes along: Bass \u2192 Push shoves the colours up the palette, Beat \u2192 Focus pulls focus toward the back. Trails stay off in Depth (a depth pass fed back into itself ghosts), and the beat flash is gentler so the colours hold. Before a map is loaded a demo scene runs: a floor and three drifting spheres. The map is kept in this browser and comes back next time; the panel\u2019s note says where depth maps come from (Photoshop\u2019s Depth Blur, Resolve\u2019s Depth Map, Video Depth Anything, Blender\u2019s Mist pass, Spline)."],
   ["0.9.83", "Multi-screen: the mounting grid and every extra rig have a Structure depth, chosen from the standard sections for the type: a single pipe (2\u2033, or doubled to 4, 6 or 8), scaffold frame widths (2\u2032, 2\u2032 6\u2033, 3\u2032, 3\u2032 6\u2033, 4\u2032, 5\u2032) or box truss (12, 15, 18, 20.5, 24, 30 or 36\u2033). The plan draws each rig as a bar of that depth at its plane, the elevation\u2019s truss takes its chord spacing from it, and the spec names the section. Switching the rig type picks that type\u2019s usual size (pipe 2\u2033, scaffold 3\u2032, truss 12\u2033)."],
@@ -2273,8 +2277,19 @@ syncControls();
 
 /* ================= WebGL ================= */
 const canvas = $("gl");
-const gl = canvas.getContext("webgl2", { antialias: false, preserveDrawingBuffer: true })
-        || canvas.getContext("webgl", { antialias: false, preserveDrawingBuffer: true });
+// Address options for a dedicated machine (a Pi on a projector). All optional.
+//   ?render=720   cap the render height; CSS stretches the canvas to the screen
+//   ?playback     picture only, mic on at start, no preserved drawing buffer
+//   ?look=<id>    open on this library preset
+// preserveDrawingBuffer makes tile-based GPUs (the Pi's included) copy the
+// whole frame every frame. Recording uses captureStream and thumbnails read
+// their own framebuffer, so neither needs it; playback turns it off.
+const QS = new URLSearchParams(location.search);
+const RENDER_H = Math.max(0, parseInt(QS.get("render"), 10) || 0);
+const PLAYBACK = QS.has("playback");
+const START_LOOK = QS.get("look") || "";
+const glOpts = { antialias: false, preserveDrawingBuffer: !PLAYBACK };
+const gl = canvas.getContext("webgl2", glOpts) || canvas.getContext("webgl", glOpts);
 if (!gl) {
   document.body.innerHTML = '<p style="padding:40px;font:16px sans-serif;color:#eceef4">' +
     'This browser has WebGL disabled. Vibe studio needs it \u2014 try Chrome.</p>';
@@ -3992,6 +4007,7 @@ function resize() {
   let h = Math.max(2, Math.round(canvas.clientHeight * dpr));
   const cap = 2600000;                       // keep the pixel budget sane on 4K panels
   if (w * h > cap) { const s = Math.sqrt(cap / (w * h)); w = Math.round(w * s); h = Math.round(h * s); }
+  if (RENDER_H && h > RENDER_H) { w = Math.max(2, Math.round(w * RENDER_H / h)); h = RENDER_H; }
   if (canvas.width !== w || canvas.height !== h) {
     canvas.width = w; canvas.height = h;
     pileResize(w, h);
@@ -6725,7 +6741,12 @@ async function loadLibrary() {
   loadOverrides(); loadLibraryEdits(); loadUserPresets(); loadSetlist(); rebuildLibrary();
 }
 let libraryFrom = "";
-loadLibrary();
+loadLibrary().then(() => {
+  if (!START_LOOK) return;
+  const P = findPreset(START_LOOK);
+  if (P) applyPreset(P);
+  else console.warn("Vibe studio: no preset with id \u201c" + START_LOOK + "\u201d; staying on the default look.");
+});
 
 /* ================= crossfades ================= */
 // A crossfade keeps rendering the outgoing look for its duration, with its own
@@ -9386,6 +9407,11 @@ function togglePanel(force) {
   $("hideBtn").innerHTML = (document.body.classList.contains("hide-ui") ? "Show panel" : "Hide panel") + '<span class="key">P</span>';
 }
 $("hideBtn").addEventListener("click", () => togglePanel());
+if (PLAYBACK) {
+  document.body.classList.add("playback");
+  togglePanel(true);
+  srcMode = "mic"; segSrc(); useMic();
+}
 addEventListener("keydown", e => {
   if (e.target.matches("input, select, textarea")) return;
   if (e.key === "f") $("fsBtn").click();
