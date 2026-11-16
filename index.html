@@ -1299,12 +1299,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.86";  // Dev mode: ?dev in the address, D drops a note flag on any control
+const APP_VERSION = "0.9.87";  // Dev mode syncs flags to a Google Sheet and shows replies
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.87", "Dev mode can sync its flags to a Google Sheet, so notes reach Claude without copying and pasting. Press Sync in the flag list and paste the Apps Script web app address (tools/flags-endpoint.gs in the repo says how to set it up); every new flag, edit, tick and delete is sent a moment later, and the button shows \u2713 when it went through. Replies written in the Sheet\u2019s claude reply column appear in green under the flag they answer, checked every 30 seconds and whenever the window comes back into focus. Leave the address empty to stop syncing. Show mode, without ?dev, still sends nothing."],
   ["0.9.86", "Dev mode, for reviewing the app rather than running a show. Add ?dev to the address and a DEV badge appears by the version, with a Dev flags list in the bottom-right corner. Press D (or the Flag button), click any control, card or spot on the stage, and type a note: a numbered pink flag stays pinned to that control as the panel scrolls and tabs change, and hides while its control is out of sight. Click a flag or its row to edit it, tick it when it\u2019s done, and Copy all puts every open note on the clipboard as a list naming each control. Flags are kept in this browser only. Without ?dev nothing changes; in dev mode D drops a flag instead of duplicating a screen in the multi-screen layout."],
   ["0.9.85", "Depth takes the files depth tools actually write, not just pictures a browser can show: OpenEXR (Blender\u2019s render output, including multilayer files with a Depth or Mist pass), Radiance HDR, TIFF (8, 16 and 32-bit, uncompressed, LZW, Deflate or PackBits), Targa, PFM and PGM, NumPy .npy arrays from MiDaS or Depth Anything, and OBJ models, which Vibe renders itself: the model turns slowly on a turntable (Speed sets the turn) and its distance from the camera is the depth. A model usually comes with material and texture files beside it; only the .obj is needed, since a depth pass is geometry alone. A Z or Depth channel is measured in scene units, so it is scaled to the scene\u2019s own nearest and farthest points (the empty background counts as far) and flipped so near is white; a Mist pass is flipped the same way, so the invert box can stay off. The note under the loader says what was read and what range it covered."],
   ["0.9.84", "A new pattern, Depth, under Image reactive. Load a black-and-white depth image or video (white near, black far) and every pixel is coloured through the palette by its distance, so with Horizon the far background reads blue and near objects orange. Focus and Lens blur put a depth of field on the scene, Colour range sets how much of the palette the depth runs through, Colour flow drifts it (faster on the mids), Light sweep sends a band of light from the back of the scene to the front (faster on the bass), and Parallax sways near things more than far ones. Bands posterises the depth into contour lines instead of blurring. Picking Depth brings two reactivity routes along: Bass \u2192 Push shoves the colours up the palette, Beat \u2192 Focus pulls focus toward the back. Trails stay off in Depth (a depth pass fed back into itself ghosts), and the beat flash is gentler so the colours hold. Before a map is loaded a demo scene runs: a floor and three drifting spheres. The map is kept in this browser and comes back next time; the panel\u2019s note says where depth maps come from (Photoshop\u2019s Depth Blur, Resolve\u2019s Depth Map, Video Depth Anything, Blender\u2019s Mist pass, Spline)."],
@@ -9481,7 +9482,34 @@ if (new URLSearchParams(location.search).has("dev")) (() => {
   const KEY = "vibe-dev-flags";
   let flags = [];
   try { flags = JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { flags = []; }
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(flags)); } catch (e) { /* storage full or blocked */ } };
+  const plain = () => flags.map(({ _el, _t, reply, ...f }) => f);
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(plain())); } catch (e) { /* storage full or blocked */ } push(); };
+
+  // optional sync to the Apps Script web app in tools/flags-endpoint.gs: the
+  // list goes to a Google Sheet, and replies written there come back here
+  const SYNC = "vibe-dev-sync";
+  let syncUrl = ""; try { syncUrl = localStorage.getItem(SYNC) || ""; } catch (e) { /* no storage */ }
+  let pushTimer = 0, syncState = "";
+  function setSync(st) { syncState = st; syncBtn.textContent = syncUrl ? "Sync " + st : "Sync"; syncBtn.classList.toggle("on", !!syncUrl && st === "✓"); }
+  function push() {
+    if (!syncUrl) return;
+    clearTimeout(pushTimer); setSync("…");
+    pushTimer = setTimeout(() => {
+      fetch(syncUrl, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ flags: plain() }) })
+        .then(() => setSync("✓"), () => setSync("✕"));
+    }, 700);
+  }
+  async function pull() {
+    if (!syncUrl || document.hidden) return;
+    try {
+      const { replies = {} } = await (await fetch(syncUrl)).json();
+      let changed = false;
+      flags.forEach(f => { const r = replies[f.id] || ""; if ((f.reply || "") !== r) { f.reply = r; changed = true; } });
+      if (changed) render();
+      if (syncState !== "…") setSync("✓");
+    } catch (e) { setSync("✕"); }
+  }
+  setInterval(pull, 30000); addEventListener("focus", pull);
 
   const css = document.createElement("style");
   css.textContent = `
@@ -9497,7 +9525,7 @@ if (new URLSearchParams(location.search).has("dev")) (() => {
     .dv-pop textarea { width: 100%; box-sizing: border-box; min-height: 64px; background: var(--panel-2); color: var(--text);
       border: 1px solid var(--line); border-radius: 6px; font: inherit; font-size: 13px; padding: 6px; resize: vertical; }
     .dv-pop .dv-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
-    .dv-list { position: fixed; right: 12px; bottom: 12px; z-index: 1001; width: 330px; max-height: 50vh; display: flex; flex-direction: column;
+    .dv-list { position: fixed; right: 12px; bottom: 12px; z-index: 1001; width: 372px; max-height: 50vh; display: flex; flex-direction: column;
       background: rgba(11,11,13,.95); border: 1px solid #ff3d7f; border-radius: 10px; font-size: 12px; color: var(--text); }
     .dv-list header { display: flex; gap: 6px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line); }
     .dv-list header b { color: #ff3d7f; font-family: "Space Grotesk", sans-serif; margin-right: auto; white-space: nowrap; }
@@ -9513,6 +9541,7 @@ if (new URLSearchParams(location.search).has("dev")) (() => {
     .dv-list li .dv-txt i { display: block; font-style: normal; color: var(--muted); font-size: 11px; }
     .dv-list li .dv-act { display: flex; gap: 2px; align-items: flex-start; }
     .dv-list li .dv-act button { padding: 1px 6px; }
+    .dv-list li .dv-txt em { display: block; font-style: normal; color: #7fd1a8; font-size: 11px; margin-top: 3px; white-space: pre-wrap; }
     .dv-list.min ol { display: none; }
     .dv-empty { padding: 10px; color: var(--muted); }
     .dv-badge { margin-left: 6px; background: #ff3d7f; color: #fff; border-radius: 999px; padding: 2px 7px; font-size: 10px; letter-spacing: .05em; }`;
@@ -9621,12 +9650,19 @@ if (new URLSearchParams(location.search).has("dev")) (() => {
   }
 
   // the list
-  list.innerHTML = `<header><b>Dev flags</b><button data-a="flag" title="Drop a flag (D)">Flag · D</button><button data-a="copy">Copy all</button><button data-a="clear" title="Delete resolved flags">Clear ✓</button><button data-a="min" title="Collapse">–</button></header><ol></ol>`;
-  const flagBtn = list.querySelector('[data-a="flag"]'), ol = list.querySelector("ol");
+  list.innerHTML = `<header><b>Dev flags</b><button data-a="flag" title="Drop a flag (D)">Flag · D</button><button data-a="sync" title="Sync flags to the Google Sheet">Sync</button><button data-a="copy">Copy all</button><button data-a="clear" title="Delete resolved flags">Clear ✓</button><button data-a="min" title="Collapse">–</button></header><ol></ol>`;
+  const flagBtn = list.querySelector('[data-a="flag"]'), syncBtn = list.querySelector('[data-a="sync"]'), ol = list.querySelector("ol");
   list.querySelector("header").addEventListener("click", e => {
     const a = e.target.dataset?.a;
     if (a === "flag") setPlacing(!placing);
     if (a === "copy") copyAll(e.target);
+    if (a === "sync") {
+      const u = prompt("Apps Script web app URL (ends in /exec). Leave empty to stop syncing.", syncUrl);
+      if (u === null) return;
+      syncUrl = u.trim();
+      try { syncUrl ? localStorage.setItem(SYNC, syncUrl) : localStorage.removeItem(SYNC); } catch (x) { /* no storage */ }
+      setSync(""); if (syncUrl) { push(); pull(); }
+    }
     if (a === "clear") { flags = flags.filter(f => !f.done); save(); render(); }
     if (a === "min") list.classList.toggle("min");
   });
@@ -9639,6 +9675,7 @@ if (new URLSearchParams(location.search).has("dev")) (() => {
       li.querySelector(".dv-n").textContent = f.n;
       li.querySelector(".dv-txt i").textContent = f.name;
       li.querySelector(".dv-txt").append(f.note);
+      if (f.reply) { const em = document.createElement("em"); em.textContent = "↳ " + f.reply; li.querySelector(".dv-txt").append(em); }
       li.querySelector('[data-a="ok"]').textContent = f.done ? "↺" : "✓";
       li.addEventListener("mouseenter", () => f._el?.classList.add("hot"));
       li.addEventListener("mouseleave", () => f._el?.classList.remove("hot"));
@@ -9695,7 +9732,7 @@ if (new URLSearchParams(location.search).has("dev")) (() => {
     try { document.execCommand("copy"); ok(); } catch (e) { prompt("Copy the flags:", md); }
     ta.remove();
   }
-  render();
+  render(); setSync(""); pull();
 })();
 </script>
 </body>

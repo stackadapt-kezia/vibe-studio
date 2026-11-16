@@ -9,7 +9,10 @@ project and shares its conventions.
 One file, no build step, no dependencies, no test suite: `index.html` holds
 the whole app with inline CSS and JS. Keep it that way. No bundler, no
 framework, no npm, no CDN script tags; Google Fonts are the only remote
-resource. Frontend code is modern ES (`const`/`let`, arrow functions,
+resource. One exception: dev mode (`?dev`) may sync its flags with a single
+Apps Script web app (`tools/flags-endpoint.gs`, plain `fetch`, no library),
+and only when the operator has pasted its URL. Show mode, without `?dev`,
+makes no network calls. Frontend code is modern ES (`const`/`let`, arrow functions,
 `async`/`await`, template literals).
 
 ## Docs to read first
@@ -37,6 +40,11 @@ resource. Frontend code is modern ES (`const`/`let`, arrow functions,
   stage overlaps in depth rather than sitting on one plane, the deck depth
   budget, the build order, and the sightline rays that decide how wide the
   seating can be. Read before touching screen geometry or adding a projection.
+- `tools/flags-endpoint.gs` — the dev flag sync. Flags land in the Google
+  Sheet "Vibe studio · dev flags" (id `1P4KCPvp9lTNJa29VPm1uEY2yPu2i9_9a_Wf2UJ_4dP4`).
+  When asked to check flags, read that Sheet, work the `open` rows, and write
+  what changed into each row's `claude reply` column; dev mode shows it under
+  the flag. Never edit the other columns: the browser overwrites them.
 - `presets/library.json` — the canonical preset library. The short
   `BUILTIN_PRESETS` list in `index.html` is only a fallback for copies opened
   from disk; edit the JSON, not the fallback.
