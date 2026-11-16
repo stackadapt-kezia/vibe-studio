@@ -1299,12 +1299,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.85";  // Depth reads EXR, HDR, TIFF, TGA, PFM, PGM, NumPy and OBJ files too
+const APP_VERSION = "0.9.86";  // Dev mode: ?dev in the address, D drops a note flag on any control
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.86", "Dev mode, for reviewing the app rather than running a show. Add ?dev to the address and a DEV badge appears by the version, with a Dev flags list in the bottom-right corner. Press D (or the Flag button), click any control, card or spot on the stage, and type a note: a numbered pink flag stays pinned to that control as the panel scrolls and tabs change, and hides while its control is out of sight. Click a flag or its row to edit it, tick it when it\u2019s done, and Copy all puts every open note on the clipboard as a list naming each control. Flags are kept in this browser only. Without ?dev nothing changes; in dev mode D drops a flag instead of duplicating a screen in the multi-screen layout."],
   ["0.9.85", "Depth takes the files depth tools actually write, not just pictures a browser can show: OpenEXR (Blender\u2019s render output, including multilayer files with a Depth or Mist pass), Radiance HDR, TIFF (8, 16 and 32-bit, uncompressed, LZW, Deflate or PackBits), Targa, PFM and PGM, NumPy .npy arrays from MiDaS or Depth Anything, and OBJ models, which Vibe renders itself: the model turns slowly on a turntable (Speed sets the turn) and its distance from the camera is the depth. A model usually comes with material and texture files beside it; only the .obj is needed, since a depth pass is geometry alone. A Z or Depth channel is measured in scene units, so it is scaled to the scene\u2019s own nearest and farthest points (the empty background counts as far) and flipped so near is white; a Mist pass is flipped the same way, so the invert box can stay off. The note under the loader says what was read and what range it covered."],
   ["0.9.84", "A new pattern, Depth, under Image reactive. Load a black-and-white depth image or video (white near, black far) and every pixel is coloured through the palette by its distance, so with Horizon the far background reads blue and near objects orange. Focus and Lens blur put a depth of field on the scene, Colour range sets how much of the palette the depth runs through, Colour flow drifts it (faster on the mids), Light sweep sends a band of light from the back of the scene to the front (faster on the bass), and Parallax sways near things more than far ones. Bands posterises the depth into contour lines instead of blurring. Picking Depth brings two reactivity routes along: Bass \u2192 Push shoves the colours up the palette, Beat \u2192 Focus pulls focus toward the back. Trails stay off in Depth (a depth pass fed back into itself ghosts), and the beat flash is gentler so the colours hold. Before a map is loaded a demo scene runs: a floor and three drifting spheres. The map is kept in this browser and comes back next time; the panel\u2019s note says where depth maps come from (Photoshop\u2019s Depth Blur, Resolve\u2019s Depth Map, Video Depth Anything, Blender\u2019s Mist pass, Spline)."],
   ["0.9.83", "Multi-screen: the mounting grid and every extra rig have a Structure depth, chosen from the standard sections for the type: a single pipe (2\u2033, or doubled to 4, 6 or 8), scaffold frame widths (2\u2032, 2\u2032 6\u2033, 3\u2032, 3\u2032 6\u2033, 4\u2032, 5\u2032) or box truss (12, 15, 18, 20.5, 24, 30 or 36\u2033). The plan draws each rig as a bar of that depth at its plane, the elevation\u2019s truss takes its chord spacing from it, and the spec names the section. Switching the rig type picks that type\u2019s usual size (pipe 2\u2033, scaffold 3\u2032, truss 12\u2033)."],
@@ -9470,6 +9471,231 @@ $("recBtn").addEventListener("click", () => {
     el.style.setProperty("--fill", pct.toFixed(2) + "%");
   });
   requestAnimationFrame(barLoop);
+})();
+
+/* Dev mode (?dev in the address): press D, click anything, and leave a
+   numbered flag with a note. Flags stay pinned to the control they were
+   dropped on and live in this browser's localStorage; Copy all puts them on
+   the clipboard as Markdown to paste into a chat. Off for everyone else. */
+if (new URLSearchParams(location.search).has("dev")) (() => {
+  const KEY = "vibe-dev-flags";
+  let flags = [];
+  try { flags = JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { flags = []; }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(flags)); } catch (e) { /* storage full or blocked */ } };
+
+  const css = document.createElement("style");
+  css.textContent = `
+    .dv-flag { position: fixed; z-index: 1000; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50% 50% 50% 0;
+      background: #ff3d7f; color: #fff; font: 600 11px/22px "Space Grotesk", sans-serif; text-align: center; cursor: pointer;
+      box-shadow: 0 0 0 2px #000, 0 2px 8px rgba(0,0,0,.6); user-select: none; }
+    .dv-flag.done { background: #4a4d58; }
+    .dv-flag.hot { transform: scale(1.5); }
+    .dv-hl { position: fixed; z-index: 999; pointer-events: none; outline: 2px dashed #ff3d7f; outline-offset: 1px; display: none; }
+    body.dv-placing, body.dv-placing * { cursor: crosshair !important; }
+    .dv-pop { position: fixed; z-index: 1002; width: 260px; background: var(--panel); border: 1px solid #ff3d7f; border-radius: 10px; padding: 8px; }
+    .dv-pop .dv-where { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .dv-pop textarea { width: 100%; box-sizing: border-box; min-height: 64px; background: var(--panel-2); color: var(--text);
+      border: 1px solid var(--line); border-radius: 6px; font: inherit; font-size: 13px; padding: 6px; resize: vertical; }
+    .dv-pop .dv-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .dv-list { position: fixed; right: 12px; bottom: 12px; z-index: 1001; width: 330px; max-height: 50vh; display: flex; flex-direction: column;
+      background: rgba(11,11,13,.95); border: 1px solid #ff3d7f; border-radius: 10px; font-size: 12px; color: var(--text); }
+    .dv-list header { display: flex; gap: 6px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+    .dv-list header b { color: #ff3d7f; font-family: "Space Grotesk", sans-serif; margin-right: auto; white-space: nowrap; }
+    .dv-list button { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 999px;
+      font: inherit; font-size: 11px; padding: 3px 8px; cursor: pointer; white-space: nowrap; }
+    .dv-list button:hover { border-color: #ff3d7f; }
+    .dv-list button.on { background: #ff3d7f; border-color: #ff3d7f; color: #fff; }
+    .dv-list ol { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
+    .dv-list li { display: flex; gap: 8px; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+    .dv-list li.done .dv-txt { opacity: .45; text-decoration: line-through; }
+    .dv-list li .dv-n { color: #ff3d7f; font-weight: 600; min-width: 18px; }
+    .dv-list li .dv-txt { flex: 1; min-width: 0; overflow-wrap: anywhere; cursor: pointer; }
+    .dv-list li .dv-txt i { display: block; font-style: normal; color: var(--muted); font-size: 11px; }
+    .dv-list li .dv-act { display: flex; gap: 2px; align-items: flex-start; }
+    .dv-list li .dv-act button { padding: 1px 6px; }
+    .dv-list.min ol { display: none; }
+    .dv-empty { padding: 10px; color: var(--muted); }
+    .dv-badge { margin-left: 6px; background: #ff3d7f; color: #fff; border-radius: 999px; padding: 2px 7px; font-size: 10px; letter-spacing: .05em; }`;
+  document.head.append(css);
+
+  const hl = document.createElement("div"); hl.className = "dv-hl";
+  const layer = document.createElement("div");
+  const list = document.createElement("div"); list.className = "dv-list";
+  document.body.append(hl, layer, list);
+  const badge = document.createElement("span"); badge.className = "dv-badge"; badge.textContent = "DEV";
+  $("ver").after(badge);
+  const ours = el => el && el.closest && el.closest(".dv-list, .dv-pop, .dv-flag");
+
+  // where a flag sits: a selector from the nearest id, plus a readable name
+  function selectorFor(el) {
+    const parts = [];
+    while (el && el !== document.body && el.nodeType === 1) {
+      if (el.id) { parts.unshift("#" + CSS.escape(el.id)); break; }
+      const p = el.parentElement; if (!p) break;
+      parts.unshift(el.localName + ":nth-child(" + (Array.prototype.indexOf.call(p.children, el) + 1) + ")");
+      el = p;
+    }
+    return parts.join(" > ") || "body";
+  }
+  const clean = s => (s || "").replace(/\s+/g, " ").trim().slice(0, 48);
+  function nameFor(el) {
+    const bits = [];
+    const tab = document.querySelector(".rail button.active");
+    const legend = el.closest("fieldset")?.querySelector(":scope > legend");
+    if (legend) bits.push(clean([...legend.childNodes].filter(n => !(n.nodeType === 1 && n.matches(".headctl"))).map(n => n.textContent).join(" ")));
+    const row = el.closest(".row, .fader");
+    const ctl = el.closest("button, label, select, input, textarea, [title], [aria-label]");
+    let own = "";
+    if (row) own = clean(row.querySelector("label")?.textContent);
+    else if (ctl) own = clean(ctl.getAttribute("aria-label") || (ctl.matches("button, label") ? [...ctl.childNodes].filter(n => !(n.nodeType === 1 && n.matches(".key"))).map(n => n.textContent).join("") : "") || ctl.title);
+    if (!own && el.closest("#stage")) own = el.localName === "canvas" ? "Stage canvas" : "Stage";
+    if (!own && el.id) own = "#" + el.id;
+    if (own && own !== bits[bits.length - 1]) bits.push(own);
+    if (!bits.length) bits.push(clean(el.textContent) || el.localName);
+    if (tab && el.closest("#panel")) bits.unshift(tab.textContent.trim());
+    return bits.filter(Boolean).join(" › ");
+  }
+
+  // placing: D arms it, the next click drops a flag, Escape cancels
+  let placing = false, hoverEl = null;
+  function setPlacing(on) {
+    placing = on; document.body.classList.toggle("dv-placing", on);
+    if (!on) { hl.style.display = "none"; hoverEl = null; }
+    flagBtn.classList.toggle("on", on);
+  }
+  addEventListener("keydown", e => {
+    if (e.target.matches("input, select, textarea") || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === "d" || e.key === "D") { e.preventDefault(); e.stopImmediatePropagation(); setPlacing(!placing); }
+    else if (e.key === "Escape" && placing) { e.stopImmediatePropagation(); setPlacing(false); }
+  }, true);
+  addEventListener("pointermove", e => {
+    if (!placing) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el || ours(el)) { hl.style.display = "none"; hoverEl = null; return; }
+    if (el === hoverEl) return;
+    hoverEl = el; const r = el.getBoundingClientRect();
+    Object.assign(hl.style, { display: "block", left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px" });
+  }, true);
+  const swallow = e => { if (placing && !ours(e.target)) { e.preventDefault(); e.stopImmediatePropagation(); } };
+  ["mousedown", "mouseup", "click", "dblclick", "pointerup", "touchstart"].forEach(t => addEventListener(t, swallow, true));
+  addEventListener("pointerdown", e => {
+    if (!placing || ours(e.target)) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const el = document.elementFromPoint(e.clientX, e.clientY) || e.target;
+    const r = el.getBoundingClientRect();
+    const f = {
+      id: Date.now().toString(36), n: flags.reduce((m, x) => Math.max(m, x.n), 0) + 1,
+      sel: selectorFor(el), name: nameFor(el),
+      fx: r.width ? +((e.clientX - r.left) / r.width).toFixed(3) : 0.5,
+      fy: r.height ? +((e.clientY - r.top) / r.height).toFixed(3) : 0.5,
+      view: typeof preview === "string" ? preview : "", ver: APP_VERSION, note: "", done: false, at: new Date().toISOString()
+    };
+    setPlacing(false);
+    edit(f, e.clientX, e.clientY, true);
+  }, true);
+
+  // the note box, for new flags and edits
+  let pop = null;
+  function edit(f, x, y, isNew) {
+    pop?.remove();
+    pop = document.createElement("div"); pop.className = "dv-pop";
+    pop.innerHTML = `<div class="dv-where"></div><textarea placeholder="What should change?"></textarea><div class="dv-hint">Enter saves · Shift+Enter new line · Esc cancels</div>`;
+    pop.querySelector(".dv-where").textContent = "#" + f.n + " · " + f.name;
+    const ta = pop.querySelector("textarea"); ta.value = f.note;
+    pop.style.left = Math.min(x + 14, innerWidth - 276) + "px";
+    pop.style.top = Math.min(y + 14, innerHeight - 150) + "px";
+    document.body.append(pop); ta.focus();
+    const me = pop;
+    const done = keep => {
+      if (pop !== me) return;                      // this box already closed, or another replaced it
+      const note = ta.value.trim();
+      if (keep && note) { f.note = note; if (isNew) flags.push(f); save(); render(); }
+      pop.remove(); pop = null;
+    };
+    ta.addEventListener("keydown", e => {
+      e.stopPropagation();
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); done(true); }
+      else if (e.key === "Escape") { e.preventDefault(); done(false); }
+    });
+    ta.addEventListener("blur", () => setTimeout(() => done(true), 120));
+  }
+
+  // the list
+  list.innerHTML = `<header><b>Dev flags</b><button data-a="flag" title="Drop a flag (D)">Flag · D</button><button data-a="copy">Copy all</button><button data-a="clear" title="Delete resolved flags">Clear ✓</button><button data-a="min" title="Collapse">–</button></header><ol></ol>`;
+  const flagBtn = list.querySelector('[data-a="flag"]'), ol = list.querySelector("ol");
+  list.querySelector("header").addEventListener("click", e => {
+    const a = e.target.dataset?.a;
+    if (a === "flag") setPlacing(!placing);
+    if (a === "copy") copyAll(e.target);
+    if (a === "clear") { flags = flags.filter(f => !f.done); save(); render(); }
+    if (a === "min") list.classList.toggle("min");
+  });
+  function render() {
+    ol.innerHTML = "";
+    if (!flags.length) { ol.innerHTML = `<li class="dv-empty">Press D, then click anything to leave a note.</li>`; }
+    flags.slice().sort((a, b) => a.done - b.done || a.n - b.n).forEach(f => {
+      const li = document.createElement("li"); if (f.done) li.className = "done";
+      li.innerHTML = `<span class="dv-n"></span><span class="dv-txt"><i></i></span><span class="dv-act"><button data-a="ok" title="Resolve"></button><button data-a="ed" title="Edit">✎</button><button data-a="rm" title="Delete">✕</button></span>`;
+      li.querySelector(".dv-n").textContent = f.n;
+      li.querySelector(".dv-txt i").textContent = f.name;
+      li.querySelector(".dv-txt").append(f.note);
+      li.querySelector('[data-a="ok"]').textContent = f.done ? "↺" : "✓";
+      li.addEventListener("mouseenter", () => f._el?.classList.add("hot"));
+      li.addEventListener("mouseleave", () => f._el?.classList.remove("hot"));
+      li.addEventListener("click", e => {
+        const a = e.target.dataset?.a;
+        if (a === "ok") { f.done = !f.done; save(); render(); }
+        else if (a === "rm") { flags = flags.filter(x => x !== f); save(); render(); }
+        else if (a === "ed") { const r = li.getBoundingClientRect(); edit(f, r.left - 290, r.top - 20, false); }
+        else { const t = target(f); t?.scrollIntoView({ block: "center", behavior: "smooth" }); }
+      });
+      ol.append(li);
+    });
+    layer.replaceChildren(...flags.map(f => {
+      if (!f._el) {
+        f._el = document.createElement("div");
+        f._el.addEventListener("click", e => { e.stopPropagation(); edit(f, e.clientX, e.clientY, false); });
+      }
+      f._el.className = "dv-flag" + (f.done ? " done" : ""); f._el.textContent = f.n; f._el.title = f.note;
+      return f._el;
+    }));
+    list.querySelector("b").textContent = `Flags (${flags.filter(f => !f.done).length})`;
+  }
+  const target = f => {
+    if (f._t && f._t.isConnected) return f._t;
+    try { f._t = document.querySelector(f.sel); } catch (e) { f._t = null; }
+    return f._t;
+  };
+  // keep each flag on its control as the layout moves
+  (function track() {
+    for (const f of flags) {
+      if (!f._el) continue;
+      const t = target(f), r = t?.getBoundingClientRect();
+      const shown = r && r.width > 0 && r.height > 0 && (!t.checkVisibility || t.checkVisibility());
+      f._el.style.display = shown ? "" : "none";
+      if (shown) { f._el.style.left = (r.left + f.fx * r.width) + "px"; f._el.style.top = (r.top + f.fy * r.height) + "px"; }
+    }
+    requestAnimationFrame(track);
+  })();
+
+  function copyAll(btn) {
+    const open = flags.filter(f => !f.done).sort((a, b) => a.n - b.n), shut = flags.filter(f => f.done).sort((a, b) => a.n - b.n);
+    const line = f => {
+      const spot = f.name.includes("Stage") ? ` · at ${Math.round(f.fx * 100)}% × ${Math.round(f.fy * 100)}%` : "";
+      const view = f.view && f.view !== "full" ? ` · ${f.view} view` : "";
+      return `${f.n}. **${f.name}** — ${f.note.replace(/\n/g, "\n   ")}\n   \`${f.sel}\`${spot}${view} · v${f.ver}`;
+    };
+    let md = `## Vibe dev flags · v${APP_VERSION} · ${open.length} open\n\n` + (open.map(line).join("\n") || "_None open._");
+    if (shut.length) md += `\n\n### Resolved\n` + shut.map(f => `- ~~${f.n}. ${f.name} — ${f.note.split("\n")[0]}~~`).join("\n");
+    const ok = () => { btn.textContent = "Copied"; setTimeout(() => btn.textContent = "Copy all", 1200); };
+    navigator.clipboard?.writeText(md).then(ok, () => fallback(md, ok)) ?? fallback(md, ok);
+  }
+  function fallback(md, ok) {
+    const ta = document.createElement("textarea"); ta.value = md; document.body.append(ta); ta.select();
+    try { document.execCommand("copy"); ok(); } catch (e) { prompt("Copy the flags:", md); }
+    ta.remove();
+  }
+  render();
 })();
 </script>
 </body>
