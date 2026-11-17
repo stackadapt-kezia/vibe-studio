@@ -274,6 +274,12 @@ the front row; the spec then says "House: none; a free-standing
 installation", and the downstage label reads "approach" instead of
 "audience". The seating settings keep their values.
 
+Since 0.9.88 the eye is gone: Output has a Stage and an Installation mode
+(`P.scene`, `"stage"` or `"install"`), and the house is the Room card's
+Seating choice, which starts on No seating. `phouseOn()` is Stage mode with a
+seating layout chosen; `pstageOn()` is also false in Installation, which hides
+the Stage card. A layout saved with the eye closed loads as No seating.
+
 Everything else in the plan is already correct for a free-standing
 installation: room walls, doors, screens at their depths, rigs, SVG symbols,
 and the walk-through gaps.

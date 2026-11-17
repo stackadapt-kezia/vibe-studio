@@ -597,7 +597,7 @@
   .gfields span { font: 500 10px/1.3 "Space Grotesk", sans-serif; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
   .gfields .num { width: 100%; flex: none; text-align: left; }
   .gfields output { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  input[type=number].num { cursor: ew-resize; }
+  input[type=number].num, input.len.num { cursor: ew-resize; }
   /* dividers are thin bars at half strength; a shortcut key in the dock sits past one at the same strength */
   .bar { display: inline-block; width: 1px; height: .85em; background: currentColor; opacity: .5; margin: 0 7px; vertical-align: -1px; }
   .key { opacity: .5; }
@@ -716,6 +716,23 @@
     <div class="pubrow"><span class="ovsp"></span><button class="ovbtn" id="editSave" type="button">Save</button></div>
   </div>
 </dialog>
+<dialog id="settingsDlg" class="changelog pubdlg">
+  <div class="clhead">
+    <span class="title">Settings</span>
+    <button class="ovclose" id="settingsClose" type="button" aria-label="Close">×</button>
+  </div>
+  <div class="pubbody">
+        <div class="row"><label>Units</label>
+          <div class="seg mini-seg" id="unitSeg" aria-label="Measurement unit">
+            <button data-unit="in" title="Inches">in</button><button data-unit="ft" title="Feet and inches">ft</button>
+            <button data-unit="cm" title="Centimetres">cm</button><button data-unit="px" title="Pixels, at the pixel pitch below">px</button>
+          </div>
+        </div>
+        <div class="row" id="pitchRow" hidden><label for="pitchMm">Pixel pitch</label><input type="number" class="num wide" id="pitchMm" min="0.5" max="50" step="0.1" title="The LED product\u2019s pixel pitch; sizes in px are physical size divided by this"><span class="unit">mm</span></div>
+    <p class="note">Sizes on the stage, the selection box and the AV spec read in this unit. Any length field also takes a unit as you type it: 200 cm, 2.5 m, 6′ 2″ or 6 ft 2 in become the field’s own unit.</p>
+    <p class="note"><b>Shortcuts</b> · F fullscreen · H hide panel · P presets · S settings · R record · 1–8 set list · Space play or pause · Esc show the panel</p>
+  </div>
+</dialog>
 <dialog id="changelog" class="changelog">
   <div class="clhead">
     <span class="title">What’s new</span>
@@ -728,8 +745,8 @@
     <nav class="rail" id="tabs" aria-label="Panel sections">
       <button data-tab="in" title="Input: audio and picture sources">IN</button>
       <button data-tab="clr" title="Colour: the palette">CLR</button>
-      <button data-tab="vis" title="Visualization: pattern and layers">VIS</button>
-      <button data-tab="out" title="Output: reactivity and the stage">OUT</button>
+      <button data-tab="vis" title="Visualization: pattern, layers and reactivity">VIS</button>
+      <button data-tab="out" title="Output: full frame, stage or installation">OUT</button>
     </nav>
     <div class="scrolls" data-tab="in">
     <fieldset class="fixed">
@@ -1079,8 +1096,6 @@
       <div id="texRows" style="margin-top:10px"></div>
     </fieldset>
 
-    </div>
-    <div class="scrolls" data-tab="out" id="tabStage">
     <fieldset>
       <legend>Reactivity</legend>
       <div class="meters">
@@ -1095,11 +1110,21 @@
       </div>
     </fieldset>
 
+    </div>
+    <div class="scrolls" data-tab="out" id="tabStage">
+
     <fieldset>
       <legend>Output</legend>
       <div class="seg" id="previewSeg">
-        <button data-preview="full">Full frame</button>
-        <button data-preview="pile">Multi-screen</button>
+        <button data-preview="full" title="The show: one picture, full frame">Full frame</button>
+        <button data-preview="stage" title="Plan a stage: screens on a deck, a room and the seating">Stage</button>
+        <button data-preview="install" title="Plan an installation people walk past or through: no stage, no seating">Installation</button>
+      </div>
+      <div class="row" id="viewRow" hidden style="margin-top:10px"><label>View</label>
+        <div class="seg mini-seg" id="viewSeg" aria-label="Projection">
+          <button data-view="elev" title="The wall from the front: heights and widths">Elevation</button>
+          <button data-view="plan" title="From above: widths and depths, the room, seating and sightlines">Plan</button>
+        </div>
       </div>
       <p class="note warn" id="outNote" hidden></p>
     </fieldset>
@@ -1131,13 +1156,11 @@
         <label class="check"><input type="checkbox" id="snapX" checked> Snap to uprights</label>
         <label class="check"><input type="checkbox" id="snapSize" checked> Snap to real TV sizes</label>
         <label class="check"><input type="checkbox" id="pLabels"> Show sizes on screens</label>
-        <div class="row" style="margin-top:8px"><label>Units</label>
-          <div class="seg mini-seg" id="unitSeg" aria-label="Measurement unit">
-            <button data-unit="in" title="Inches">in</button><button data-unit="ft" title="Feet and inches">ft</button>
-            <button data-unit="cm" title="Centimetres">cm</button><button data-unit="px" title="Pixels, at the pixel pitch below">px</button>
-          </div>
-        </div>
-        <div class="row" id="pitchRow" hidden><label for="pitchMm">Pixel pitch</label><input type="number" class="num wide" id="pitchMm" min="0.5" max="50" step="0.1" title="The LED product\u2019s pixel pitch; sizes in px are physical size divided by this"><span class="unit">mm</span></div>
+        <div class="row" style="margin-top:8px"><label for="gridUnder">Grid underlay</label><select id="gridUnder" aria-label="Grid underlay" title="A measuring grid behind the drawing, in both views">
+          <option value="0">Off</option><option value="6">6 in</option><option value="12">1 ft</option><option value="24">2 ft</option><option value="60">5 ft</option>
+          <option value="3.937">10 cm</option><option value="19.685">50 cm</option><option value="39.37">1 m</option></select></div>
+        <label class="pill" style="margin-top:12px">Add SVG symbol<input type="file" id="svgFile" accept=".svg,image/svg+xml" multiple hidden></label>
+        <p class="note">Lecterns, tables, risers: each SVG becomes a plan element you place, size and name. Kept in this browser.</p>
         <div class="selbox" id="pSel" hidden></div>
       </fieldset>
 
@@ -1188,7 +1211,7 @@
         </div>
       </fieldset>
 
-      <fieldset>
+      <fieldset id="stageCard">
         <legend>Stage<button class="eye" type="button" data-vis="stage" aria-pressed="true" aria-label="Show or hide the stage" title="Show or hide the stage; hidden, everything stands on the room floor"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
         <div class="row"><label for="stageHFt">Stage height</label><input type="number" class="num wide" id="stageHFt" min="0" max="20" step="0.25" placeholder="none" title="A raised stage the screens stand on, in feet; blank or 0 for none"><span class="unit">ft</span></div>
         <div class="row"><label for="stageWFt">Stage width</label><input type="number" class="num wide" id="stageWFt" min="0" max="200" step="0.5" placeholder="grid" title="Stage width in feet; blank for the grid's width"><span class="unit">ft</span></div>
@@ -1198,18 +1221,16 @@
         <div class="row"><label for="stageXFt">Offset</label><input type="number" class="num wide" id="stageXFt" min="-50" max="50" step="0.25" title="How far the stage\u2019s centre sits right of the grid\u2019s centre, in feet; negative is left. Dragging the stage moves the grid and everything on it; this moves the stage alone."><span class="unit">ft</span></div>
       </fieldset>
 
-      <fieldset>
-        <legend>Plan<button class="eye" type="button" data-vis="house" aria-pressed="true" aria-label="Show or hide the house" title="Show or hide the house: seating, AV island, attendee count and sightlines. Close it for an installation people walk past or through"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
-        <div class="row"><label>View</label>
-          <div class="seg mini-seg" id="viewSeg" aria-label="Projection">
-            <button data-view="elev" title="The wall from the audience: heights and widths">Elevation</button>
-            <button data-view="plan" title="The stage from above: widths and depths, seating, sightlines">Plan</button>
-          </div>
-        </div>
-        <p class="note">The plan draws the stage from above, with each screen at its depth, the walk-through gaps measured, and sightline rays from the front row past the ends of the front screens: green where they land on a screen behind, red where they see into the gap. Drag the stage’s edges to set its depth, apron and width; drag the seating or the AV island to place them.</p>
-        <div class="row" style="margin-top:10px"><label for="seatLayout">Seating</label><select id="seatLayout" aria-label="Seating layout" title="How the house is laid out; the block is centred on the stage">
-          <option value="theatre">Theatre rows</option><option value="chevron">Chevron (angled sections)</option><option value="curved">Curved rows</option>
+      <fieldset id="roomCard">
+        <legend>Room</legend>
+        <div class="row"><label for="roomWFt">Room width</label><input type="number" class="num wide" id="roomWFt" min="0" max="600" step="1" placeholder="none" title="The room, wall to wall across, in feet; with a depth it is drawn around the plan"><span class="unit">ft</span></div>
+        <div class="row" style="margin-top:8px"><label for="roomDFt">Room depth</label><input type="number" class="num wide" id="roomDFt" min="0" max="600" step="1" placeholder="none" title="The room front to back, in feet"><span class="unit">ft</span></div>
+        <div class="row" style="margin-top:8px"><label for="roomXFt">Room offset</label><input type="number" class="num wide" id="roomXFt" min="-300" max="300" step="0.5" title="How far the room's centre sits right of the grid's centre as it stands, in feet; negative is left. The room then stays put while the build moves inside it and snaps to its centre."><span class="unit">ft</span></div>
+        <div id="seatBlock">
+        <div class="row" style="margin-top:14px"><label for="seatLayout">Seating</label><select id="seatLayout" aria-label="Seating layout" title="How the house is laid out; the block is centred on the stage">
+          <option value="none">No seating</option><option value="theatre">Theatre rows</option><option value="chevron">Chevron (angled sections)</option><option value="curved">Curved rows</option>
           <option value="classroom">Classroom (tables)</option><option value="banquet">Banquet rounds (10)</option><option value="cabaret">Cabaret rounds (6)</option></select></div>
+          <div id="seatDetail">
         <div class="row" style="margin-top:8px"><label for="rowDFt">First row</label><input type="number" class="num wide" id="rowDFt" min="0" max="200" step="0.5" title="Distance from the stage's front edge to the first seating row, in feet"><span class="unit">ft</span></div>
         <div class="row" style="margin-top:8px"><label for="rowWFt">Row width</label><input type="number" class="num wide" id="rowWFt" min="2" max="400" step="1" title="How wide the seating is, in feet; the sightline rays start along the first row"><span class="unit">ft</span></div>
         <div class="row" style="margin-top:8px"><label for="seatRows">Rows</label><input type="number" class="num wide" id="seatRows" min="1" max="60" step="1" title="Rows of seats, or rows of tables"><span class="unit" id="seatCount"></span></div>
@@ -1218,12 +1239,10 @@
         <div class="row" id="taperRow" style="margin-top:8px"><label for="seatTaper">Taper</label><input type="number" class="num wide" id="seatTaper" min="-120" max="120" step="1" title="Inches each row grows from the one in front, so the rows fan out towards the back; a minus narrows them"><span class="unit">in/row</span></div>
         <div class="row" id="aisleRow" style="margin-top:8px"><label for="seatAisles">Aisles</label><input type="number" class="num wide" id="seatAisles" min="0" max="8" step="1" title="How many aisles cut the rows; Chevron needs at least one"><span class="unit">of</span><input type="number" class="num wide" id="seatAisleW" min="24" max="120" step="1" title="Aisle width in inches" aria-label="Aisle width"><span class="unit">in</span></div>
         <div class="row" style="margin-top:8px"><label for="seatAttendees">Expected</label><input type="number" class="num wide" id="seatAttendees" min="0" max="20000" step="1" placeholder="none" title="How many attendees are expected; the count then says how many seats are short or spare"><span class="unit">people</span></div>
-        <div class="row" style="margin-top:12px"><label for="roomWFt">Room width</label><input type="number" class="num wide" id="roomWFt" min="0" max="600" step="1" placeholder="none" title="The room, wall to wall across, in feet; with a depth it is drawn around the plan"><span class="unit">ft</span></div>
-        <div class="row" style="margin-top:8px"><label for="roomDFt">Room depth</label><input type="number" class="num wide" id="roomDFt" min="0" max="600" step="1" placeholder="none" title="The room front to back, in feet"><span class="unit">ft</span></div>
-        <div class="row" style="margin-top:8px"><label for="roomXFt">Room offset</label><input type="number" class="num wide" id="roomXFt" min="-300" max="300" step="0.5" title="How far the room's centre sits right of the grid's centre as it stands, in feet; negative is left. The room then stays put while the build moves inside it and snaps to its centre."><span class="unit">ft</span></div>
-        <label class="pill" style="margin-top:12px">Add SVG symbol<input type="file" id="svgFile" accept=".svg,image/svg+xml" multiple hidden></label>
-        <p class="note">Lecterns, tables, risers: each SVG becomes a plan element you place, size and name. Kept in this browser.</p>
+            <p class="note">The plan draws sightline rays from the front row past the ends of the front screens: green where they land on a screen behind, red where they see into the gap. Drag the seating or the AV island to place them.</p>
         <div class="row" style="margin-top:12px"><label for="avDFt">AV island</label><input type="number" class="num wide" id="avDFt" min="0" max="400" step="1" placeholder="none" title="Front of house position: how far behind the first row, in feet; blank for none. Drag it in the plan to place it."><span class="unit">ft</span></div>
+          </div>
+        </div>
       </fieldset>
 
       <fieldset>
@@ -1254,8 +1273,9 @@
   <div class="resizer" id="resizer" title="Drag to resize the panel. Double-click to reset."></div>
   <div class="dock" id="dock" aria-label="Show controls">
     <button class="mini" id="fsBtn" title="Fullscreen (F)">Fullscreen<span class="key">F</span></button>
-    <button class="mini" id="hideBtn" title="Hide or show the panel (P)">Hide panel<span class="key">P</span></button>
-    <button class="mini" id="setBtn" title="Presets and set list (S)">Presets<span class="key">S</span></button>
+    <button class="mini" id="hideBtn" title="Hide or show the panel (H)">Hide panel<span class="key">H</span></button>
+    <button class="mini" id="setBtn" title="Presets and set list (P)">Presets<span class="key">P</span></button>
+    <button class="mini" id="settingsBtn" title="Settings (S)">Settings<span class="key">S</span></button>
     <button class="mini" id="recBtn" title="Record the performance (R)">Record<span class="key">R</span></button>
   </div>
   <main class="stage" id="stage">
@@ -1299,12 +1319,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.87";  // Dev mode syncs flags to a Google Sheet and shows replies
+const APP_VERSION = "0.9.88";  // Output modes (Full frame, Stage, Installation), Room card, Settings, grid underlay, typed units
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.88", "Output now has three modes: Full frame, Stage and Installation. Stage plans a show on a deck with a room and seating; Installation is for a piece people walk past or through, so the Stage card and the seating are gone and nothing stands on a deck. The Elevation and Plan buttons moved up beside the modes and show only while planning. Reactivity moved to the end of the VIS tab, so OUT is about output alone. The Plan card is now Room: room width, depth and offset come first, then the Seating choice (Stage mode only), which starts on the new No seating; picking a layout brings its rows, spacing, attendees and AV island underneath. Add SVG symbol moved to Elements, which also gains a Grid underlay: a faint measuring grid behind both views at 6 in, 1, 2 or 5 ft, 10 or 50 cm or 1 m. Any length field takes a unit as you type it: 200 cm in a feet field becomes 6.56, and 6\u2032 2\u2033, 6 ft 2 in and 2.5 m work too. The show controls changed keys: H hides the panel, P opens Presets, and the new Settings (S) holds the measurement unit (in, ft, cm or px, with the pixel pitch) and lists the shortcuts."],
   ["0.9.87", "Dev mode can sync its flags to a Google Sheet, so notes reach Claude without copying and pasting. Press Sync in the flag list and paste the Apps Script web app address (tools/flags-endpoint.gs in the repo says how to set it up); every new flag, edit, tick and delete is sent a moment later, and the button shows \u2713 when it went through. Replies written in the Sheet\u2019s claude reply column appear in green under the flag they answer, checked every 30 seconds and whenever the window comes back into focus. Leave the address empty to stop syncing. Show mode, without ?dev, still sends nothing."],
   ["0.9.86", "Dev mode, for reviewing the app rather than running a show. Add ?dev to the address and a DEV badge appears by the version, with a Dev flags list in the bottom-right corner. Press D (or the Flag button), click any control, card or spot on the stage, and type a note: a numbered pink flag stays pinned to that control as the panel scrolls and tabs change, and hides while its control is out of sight. Click a flag or its row to edit it, tick it when it\u2019s done, and Copy all puts every open note on the clipboard as a list naming each control. Flags are kept in this browser only. Without ?dev nothing changes; in dev mode D drops a flag instead of duplicating a screen in the multi-screen layout."],
   ["0.9.85", "Depth takes the files depth tools actually write, not just pictures a browser can show: OpenEXR (Blender\u2019s render output, including multilayer files with a Depth or Mist pass), Radiance HDR, TIFF (8, 16 and 32-bit, uncompressed, LZW, Deflate or PackBits), Targa, PFM and PGM, NumPy .npy arrays from MiDaS or Depth Anything, and OBJ models, which Vibe renders itself: the model turns slowly on a turntable (Speed sets the turn) and its distance from the camera is the depth. A model usually comes with material and texture files beside it; only the .obj is needed, since a depth pass is geometry alone. A Z or Depth channel is measured in scene units, so it is scaled to the scene\u2019s own nearest and farthest points (the empty background counts as far) and flipped so near is white; a Mist pass is flipped the same way, so the invert box can stay off. The note under the loader says what was read and what range it covered."],
@@ -6871,7 +6892,7 @@ function gmk(o = {}) {
 }
 // the plan's house: the first row's distance from the deck edge and width, the seating layout and its
 // rows, row spacing, seat width, aisles and aisle width, and the AV island's distance behind the first row and sideways offset (inches)
-const PLAN_DEF = { rowD: 180, rowW: 480, layout: "theatre", rows: 10, pitch: 36, seat: 22, aisles: 2, aisleW: 48, taper: 0, avD: 0, avX: 0, avW: 144, avL: 96, attendees: 0 };
+const PLAN_DEF = { rowD: 180, rowW: 480, layout: "none", rows: 10, pitch: 36, seat: 22, aisles: 2, aisleW: 48, taper: 0, avD: 0, avX: 0, avW: 144, avL: 96, attendees: 0 };
 const ROOM_DEF = { w: 0, d: 0, backD: 0, cx: null };  // the room in plan: width and depth (0 = not drawn), the back wall's depth from the screens' front line, and the room centre's x in layout inches (fixed: the build moves within it)
 const SEAT_LAYOUTS = { theatre: "Theatre", chevron: "Chevron", curved: "Curved", classroom: "Classroom", banquet: "Banquet rounds", cabaret: "Cabaret rounds" };
 const P = {
@@ -6881,6 +6902,7 @@ const P = {
   plan: { ...PLAN_DEF },                           // the plan view: seating and the AV island, see PLAN_DEF
   room: { ...ROOM_DEF },
   vis: { devices: true, bg: true, stage: true, house: true },   // the grid's own flag is frame.show
+  scene: "stage",                                  // Output mode: "stage" (deck, room, seating) or "install" (walk-past: no stage, no seating)
   groups: [gmk()],
   maps: [],                                        // mapping presets: named group setups, see gmapSave
   pitch: 2.5,                                      // the build's pixel pitch in mm, for sizes in px
@@ -6911,7 +6933,23 @@ const gcol = g => GCOLS[Math.max(0, P.groups.indexOf(g)) % GCOLS.length];
 // the held source a group shows, or null for whatever is on the stage
 const gsrc = g => g.source === "stage" ? null : (sources.find(sc => sc.id === g.source) || null);
 let gpaint = null;                                // id of the group whose Assign tool is on
-const pui = { snapX: true, snapSize: true, labels: false, units: "in" };
+const pui = { snapX: true, snapSize: true, labels: false, units: "in", grid: 0 };   // grid: the underlay's spacing in inches, 0 off
+try { pui.grid = Math.max(0, +localStorage.getItem("vibe.pileGrid") || 0); } catch (e) { /* default */ }
+// a measuring grid under the drawing, anchored on the mounting grid's left edge and the floor (elevation) or the screens' front line (plan)
+function pdrawUnder(c) {
+  const sp = pui.grid; if (!(sp > 0) || sp * psc < 5 * pdpr) return;
+  const xa = P.frame.x0, k0 = Math.ceil((-pox / psc - xa) / sp), k1 = Math.floor(((pW - pox) / psc - xa) / sp);
+  const j0 = Math.ceil((pfloor - pH) / psc / sp), j1 = Math.floor(pfloor / psc / sp);
+  const major = sp >= 39 ? 5 : sp >= 12 ? 5 : 10;     // a brighter line every few
+  c.save(); c.lineWidth = pdpr;
+  for (const maj of [false, true]) {
+    c.strokeStyle = maj ? "rgba(127,223,253,0.2)" : "rgba(127,223,253,0.08)"; c.beginPath();
+    for (let k = k0; k <= k1; k++) if ((k % major === 0) === maj) { const x = Math.round(PX(xa + k * sp)) + 0.5; c.moveTo(x, 0); c.lineTo(x, pH); }
+    for (let j = j0; j <= j1; j++) if ((j % major === 0) === maj) { const y = Math.round(PY(j * sp)) + 0.5; c.moveTo(0, y); c.lineTo(pW, y); }
+    c.stroke();
+  }
+  c.restore();
+}
 try { pui.units = ["in", "ft", "cm", "px"].includes(localStorage.getItem("vibe.pileUnits")) ? localStorage.getItem("vibe.pileUnits") : "in"; } catch (e) { /* default */ }
 let pid = 1, psel = null, photoImg = null, bdImg = null, roomDirty = true, pdrag = null, phover = null;
 let protBtn = null;                               // the rotate button drawn this frame: { it, x, y, r } in canvas px
@@ -6981,8 +7019,8 @@ const pdrawOrder = () => P.items.map((it, i) => [it, i]).sort((a, b) => pdepth(b
 const PLAN_T = 24;                                    // a screen's structure in plan: two feet from the glass face to its back
 const APRON_MIN = 72;                                 // a person can always walk in front of the screens: six feet of deck
 const pmaxBack = () => Math.max(PLAN_T, ...pscreens().map(s => pdepth(s) + PLAN_T));   // the back of the deepest screen's structure
-const pstageOn = () => P.vis.stage !== false;         // the Stage card's eye: closed, there is no stage at all
-const phouseOn = () => P.vis.house !== false;         // the Plan card's eye: closed, there is no house (seating, island, count, sightlines)
+const pstageOn = () => P.vis.stage !== false && P.scene !== "install";   // Installation has no stage         // the Stage card's eye: closed, there is no stage at all
+const phouseOn = () => P.scene !== "install" && P.plan.layout !== "none";   // seating chosen, in Stage mode: the house (seating, island, count, sightlines)
 const pstageH = () => pstageOn() ? P.bg.stageH : 0;
 const pminDepth = () => pscreens().length ? Math.min(...pscreens().map(pdepth)) : 0;   // the frontmost screen's glass
 const pdeckBack = () => pmaxBack() + (pstageOn() ? (P.bg.backClear > 0 ? P.bg.backClear : 48) : 0);   // the stage's back edge: the service gap behind the deepest screen
@@ -7048,7 +7086,7 @@ function pubounds() {
 /* ---- save, load, undo ---- */
 function pserialize() {
   return JSON.stringify({
-    v: 2, frame: P.frame, bg: P.bg, vis: P.vis,
+    v: 2, scene: P.scene, frame: P.frame, bg: P.bg, vis: P.vis,
     groups: P.groups.map(g => ({ id: g.id, name: g.name, mapping: g.mapping, direct: !!g.direct, source: g.source, presets: g.presets })),   // source ids are per session
     maps: P.maps, pitch: P.pitch, play: P.play, plan: P.plan, room: P.room,
     items: P.items.map(it => it.type === "camera" ? { type: "camera", x: pr1(it.x), y: pr1(it.y) } : it.type === "person" ? { type: "person", x: pr1(it.x), y: 0, ht: it.ht, col: it.col || PERSON_COL } : it.type === "door" ? { type: "door", x: pr1(it.x), y: 0, w: pr1(it.w), h: pr1(it.h), dbl: !!it.dbl, exit: !!it.exit }
@@ -7065,6 +7103,7 @@ function papply(d, keepSources) {
   P.frame.thick = P.frame.thick > 0 ? rigSnap(P.frame.kind, +P.frame.thick) : RIG_DEPTH_DEF[P.frame.kind];
   if (d.bg) Object.assign(P.bg, d.bg);
   P.vis = { devices: true, bg: true, stage: true, house: true }; if (d.vis) Object.assign(P.vis, d.vis);
+  P.scene = d.scene === "install" ? "install" : "stage";
   if (P.bg.wall !== "photo") P.bg.wall = "plain";
   chaosFreeAll();
   // a v1 layout had one global mapping: it becomes the single group
@@ -7084,7 +7123,8 @@ function papply(d, keepSources) {
     if (typeof d.plan.taper === "number") P.plan.taper = Math.max(-120, Math.min(120, Math.round(d.plan.taper)));
     if (d.plan.attendees >= 0) P.plan.attendees = Math.round(+d.plan.attendees);
     if (typeof d.plan.avX === "number") P.plan.avX = Math.round(d.plan.avX);
-    if (SEAT_LAYOUTS[d.plan.layout]) P.plan.layout = d.plan.layout;
+    if (SEAT_LAYOUTS[d.plan.layout] || d.plan.layout === "none") P.plan.layout = d.plan.layout;
+    if (d.vis && d.vis.house === false) P.plan.layout = "none";                 // the old house eye, closed, is No seating now
   }
   if (!(P.bg.stageD >= 0)) P.bg.stageD = 0; if (!(P.bg.backClear > 0)) P.bg.backClear = 48;
   P.room = { ...ROOM_DEF };
@@ -7309,6 +7349,7 @@ function drawPileBg() {
   if (roomDirty) drawRoom();
   const c = pbx, dim = P.bg.light === "dim";
   c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, pW, pH); c.drawImage(roomCv, 0, 0);
+  pdrawUnder(c);
   if (dim) {   // screen light spilling onto the backdrop
     const B = pbounds(), i = Math.floor((((T * 0.05) % 1) + 1) % 1 * 255) * 4;   // T can start below zero
     const cx = PX((B.minX + B.maxX) / 2), cy = PY(B.maxY * 0.5);
@@ -8076,6 +8117,7 @@ function drawPlan() {
   const c = pbx, f = pfx;
   c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, pW, pH); f.setTransform(1, 0, 0, 1, 0, 0); f.clearRect(0, 0, pW, pH); protBtn = null;
   c.fillStyle = "#0E1016"; c.fillRect(0, 0, pW, pH);
+  pdrawUnder(c);
   f.textAlign = "center"; f.textBaseline = "middle";
   const font = "500 " + 12 * pdpr + 'px "Space Grotesk", sans-serif', lf = "600 " + 11 * pdpr + 'px "Space Grotesk", sans-serif';
   const E = planExtents(), cx = pstageCX(), hw = pstageW() / 2, front = pdeckFront(), back = pdeckBack(), R = proom();
@@ -8626,7 +8668,7 @@ function psyncSel(full = true) {
     return;
   }
   if (psel.kind === "frame" || psel.kind === "av" || psel.kind === "seating") {
-    box.innerHTML = '<div class="t"></div>' + (psel.kind === "frame" ? "" : '<p class="note" style="margin:6px 0 0">' + (psel.kind === "av" ? "Drag the island anywhere in the house; drag its edges to size it." : "Drag the block to set the first row’s distance; the Plan card sets the layout.") + "</p>");
+    box.innerHTML = '<div class="t"></div>' + (psel.kind === "frame" ? "" : '<p class="note" style="margin:6px 0 0">' + (psel.kind === "av" ? "Drag the island anywhere in the house; drag its edges to size it." : "Drag the block to set the first row’s distance; the Room card sets the layout.") + "</p>");
     barJoin(box.querySelector(".t"), pselTitle());
     return;
   }
@@ -8779,6 +8821,8 @@ function psyncBg() {
   $("roomWFt").value = P.room.w > 0 ? +(P.room.w / 12).toFixed(2) : ""; $("roomDFt").value = P.room.d > 0 ? +(P.room.d / 12).toFixed(2) : "";
   $("roomBackFt").value = P.room.w > 0 && P.room.d > 0 && P.room.backD > 0 ? +((P.room.backD - pdeckBack()) / 12).toFixed(2) : "";   // meaningful once there is a room $("roomXFt").value = +(((P.room.cx === null ? pgridCX() : P.room.cx) - pgridCX()) / 12).toFixed(2);
   document.querySelectorAll("#viewSeg button").forEach(b => b.classList.toggle("active", b.dataset.view === pview));
+  $("stageCard").hidden = $("seatBlock").hidden = P.scene === "install";
+  $("seatDetail").hidden = P.plan.layout === "none";
   syncWall(); syncLight();
 }
 function prefresh() { pfit(); psyncGrid(); pstats(); psyncSel(); psyncBg(); psyncUnits(); gsync(); }
@@ -8820,6 +8864,43 @@ seg("rigSeg", "rig", () => P.frame.kind, v => { P.frame.kind = v; P.frame.thick 
 $("gD").addEventListener("change", e => { P.frame.thick = rigSnap(P.frame.kind, +e.target.value); roomDirty = true; pcommit(); });
 seg("playSeg", "play", () => P.play, v => { P.play = v; pcommit(); });
 $("snapX").addEventListener("change", e => { pui.snapX = e.target.checked; });
+$("gridUnder").value = String(pui.grid);
+if ($("gridUnder").value !== String(pui.grid)) { pui.grid = 0; $("gridUnder").value = "0"; }
+$("gridUnder").addEventListener("change", e => { pui.grid = +e.target.value || 0; try { localStorage.setItem("vibe.pileGrid", String(pui.grid)); } catch (x) { /* no storage */ } });
+
+/* length fields take a unit as typed: "200 cm" in a feet field becomes 6.56,
+   6' 2" or 6 ft 2 in become 6.17; a plain number is the field's own unit */
+const LEN_IN = { in: 1, inch: 1, inches: 1, '"': 1, "\u2033": 1, ft: 12, foot: 12, feet: 12, "'": 12, "\u2032": 12, cm: 1 / 2.54, mm: 1 / 25.4, m: 100 / 2.54 };
+function parseLen(str, fieldIn) {
+  const t = String(str).trim().toLowerCase().replace(/,/g, ".");
+  if (!t) return "";
+  if (!/^-?\s*(\d*\.?\d+\s*(inches|inch|in|feet|foot|ft|mm|cm|m|["'\u2032\u2033])?\s*)+$/.test(t)) return null;
+  const re = /(\d*\.?\d+)\s*(inches|inch|in|feet|foot|ft|mm|cm|m|["'\u2032\u2033])?/g;
+  let m, total = 0, prevFt = false;
+  while ((m = re.exec(t))) { const k = m[2] ? LEN_IN[m[2]] : prevFt ? 1 : fieldIn; total += +m[1] * k; prevFt = k === 12; }
+  return (t.startsWith("-") ? -total : total) / fieldIn;
+}
+document.querySelectorAll("#pileUI input.num").forEach(el => {
+  const nx = el.nextElementSibling, lab = el.closest("label")?.querySelector("span");
+  const u = nx && nx.classList.contains("unit") ? nx.textContent.trim() : lab && /\bin$/.test(lab.textContent.trim()) ? "in" : "";
+  if (u !== "ft" && u !== "in") return;
+  el.type = "text"; el.classList.add("len"); el.dataset.u = u; el.autocomplete = "off"; el.spellcheck = false;
+});
+document.addEventListener("change", e => {                // runs before each field's own handler
+  const el = e.target; if (!el.classList || !el.classList.contains("len")) return;
+  const v = parseLen(el.value, el.dataset.u === "ft" ? 12 : 1);
+  if (v === null) { e.stopImmediatePropagation(); prefresh(); ptoast("That isn\u2019t a length. Try 12, 200 cm, 2.5 m or 6\u2032 2\u2033."); return; }
+  if (v !== "") el.value = String(+v.toFixed(2));
+}, true);
+document.addEventListener("keydown", e => {               // arrows still step a length field
+  const el = e.target; if (!el.classList || !el.classList.contains("len") || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+  const v = parseLen(el.value, el.dataset.u === "ft" ? 12 : 1); if (v === null || v === "") return;
+  e.preventDefault();
+  const st = (+el.getAttribute("step") || 1) * (e.shiftKey ? 10 : 1), mn = el.getAttribute("min"), mx = el.getAttribute("max");
+  let n = v + (e.key === "ArrowUp" ? st : -st);
+  if (mn !== null) n = Math.max(+mn, n); if (mx !== null) n = Math.min(+mx, n);
+  el.value = String(+n.toFixed(2)); el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true }));
+});
 $("snapSize").addEventListener("change", e => { pui.snapSize = e.target.checked; });
 const segUnit = seg("unitSeg", "unit", () => pui.units, v => {
   pui.units = v;
@@ -9019,7 +9100,7 @@ $("roomDFt").addEventListener("change", e => { P.room.d = Math.round(Math.max(0,
 $("roomBackFt").addEventListener("change", e => { P.room.backD = pdeckBack() + Math.round(Math.max(0, Math.min(200, +e.target.value || 0)) * 12); pcommit(); });
 $("roomXFt").addEventListener("change", e => { P.room.cx = pgridCX() + Math.round(Math.max(-300, Math.min(300, +e.target.value || 0)) * 12); pcommit(); });
 $("seatLayout").addEventListener("change", e => {
-  P.plan.layout = SEAT_LAYOUTS[e.target.value] ? e.target.value : "theatre";
+  P.plan.layout = SEAT_LAYOUTS[e.target.value] || e.target.value === "none" ? e.target.value : "none";
   if (P.plan.layout === "chevron" && P.plan.aisles < 1) P.plan.aisles = 1;                       // a chevron needs a centre aisle to angle about
   pcommit();
 });
@@ -9098,9 +9179,11 @@ $("loadLayout").addEventListener("click", () => {
   catch (e) { ptoast("That isn't layout code. Copy it again with Copy layout code."); }
 });
 
-const syncPreview = seg("previewSeg", "preview", () => preview, v => {
-  preview = v;
-  const pile = v === "pile";
+const syncPreview = seg("previewSeg", "preview", () => preview === "pile" ? P.scene : "full", v => {
+  const pile = v !== "full";
+  preview = pile ? "pile" : "full";
+  if (pile && P.scene !== v) { P.scene = v; psel = null; pcommit(); }
+  $("viewRow").hidden = !pile;
   pileBg.hidden = pileFg.hidden = !pile;
   $("pileUI").hidden = !pile;
   $("dockPad").hidden = pile;                      // in Full frame, Output is last: keep it clear of the dock
@@ -9385,20 +9468,25 @@ $("fsBtn").addEventListener("click", () => {
 });
 function togglePanel(force) {
   document.body.classList.toggle("hide-ui", force);
-  $("hideBtn").innerHTML = (document.body.classList.contains("hide-ui") ? "Show panel" : "Hide panel") + '<span class="key">P</span>';
+  $("hideBtn").innerHTML = (document.body.classList.contains("hide-ui") ? "Show panel" : "Hide panel") + '<span class="key">H</span>';
 }
 $("hideBtn").addEventListener("click", () => togglePanel());
+function toggleSettings() { const d = $("settingsDlg"); if (d.open) d.close(); else d.showModal(); }
+$("settingsBtn").addEventListener("click", toggleSettings);
+$("settingsClose").addEventListener("click", () => $("settingsDlg").close());
+$("settingsDlg").addEventListener("click", e => { if (e.target === $("settingsDlg")) $("settingsDlg").close(); });
 addEventListener("keydown", e => {
   if (e.target.matches("input, select, textarea")) return;
   if (e.key === "f") $("fsBtn").click();
   if (e.key === "r") $("recBtn").click();
-  if (e.key === "s") toggleOverlay();
+  if (e.key === "p") toggleOverlay();
+  if (e.key === "s") toggleSettings();
   if (/^[1-8]$/.test(e.key)) applySlot(+e.key - 1);
   if (e.key === " ") {
     if (srcMode === "music") { e.preventDefault(); togglePlay(); }
     else if (imgVideo) { e.preventDefault(); toggleVideo(); }
   }
-  if (e.key === "p") togglePanel();
+  if (e.key === "h") togglePanel();
   if (e.key === "Escape") togglePanel(false);
 });
 
@@ -9440,14 +9528,14 @@ $("recBtn").addEventListener("click", () => {
 (() => {
   let d = null;
   document.addEventListener("pointerdown", e => {
-    const el = e.target.closest("input[type=number]"); if (!el || e.button !== 0) return;
+    const el = e.target.closest("input[type=number], input.len"); if (!el || e.button !== 0) return;
     d = { el, x: e.clientX, v: +el.value || 0, moved: false, id: e.pointerId };
   });
   document.addEventListener("pointermove", e => {
     if (!d || e.pointerId !== d.id) return;
     const dx = e.clientX - d.x;
     if (!d.moved) { if (Math.abs(dx) < 4) return; d.moved = true; try { d.el.setPointerCapture(d.id); } catch (x) { /* fine */ } d.el.blur(); document.body.style.cursor = "ew-resize"; }
-    const step = +d.el.step || 1, mn = d.el.min === "" ? -Infinity : +d.el.min, mx = d.el.max === "" ? Infinity : +d.el.max;
+    const a = n => d.el.getAttribute(n), step = +a("step") || 1, mn = a("min") === null || a("min") === "" ? -Infinity : +a("min"), mx = a("max") === null || a("max") === "" ? Infinity : +a("max");
     const dec = (String(step).split(".")[1] || "").length;
     let v = d.v + Math.round(dx / 4) * step * (e.shiftKey ? 10 : 1);
     v = Math.max(mn, Math.min(mx, +v.toFixed(dec)));
