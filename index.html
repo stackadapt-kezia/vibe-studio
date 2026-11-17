@@ -1319,12 +1319,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.88";  // Output modes (Full frame, Stage, Installation), Room card, Settings, grid underlay, typed units
+const APP_VERSION = "0.9.89";  // Depth models move: Motion (Spin, Swing, Step to beat, Tumble), Tilt, Zoom, and Bass -> Bloat
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.89", "Depth: a loaded 3-D model can do more than turn. Motion picks how it moves: Spin (the turntable as before), Swing (rocks back and forth), Step to beat (turns an eighth on every beat, easing into place) or Tumble (turns over on more than one axis). Tilt looks down on it or up at it, and Zoom brings it closer or pushes it back; all three show only while a model is loaded, and Speed still sets the pace. A new reactivity target, Bloat, swells the shape out along its surface with a slow ripple, so it breathes with the music; picking Depth brings Bass \u2192 Bloat along with its other two routes. The demo scene\u2019s spheres bloat too, so the route can be tried before loading anything."],
   ["0.9.88", "Output now has three modes: Full frame, Stage and Installation. Stage plans a show on a deck with a room and seating; Installation is for a piece people walk past or through, so the Stage card and the seating are gone and nothing stands on a deck. The Elevation and Plan buttons moved up beside the modes and show only while planning. Reactivity moved to the end of the VIS tab, so OUT is about output alone. The Plan card is now Room: room width, depth and offset come first, then the Seating choice (Stage mode only), which starts on the new No seating; picking a layout brings its rows, spacing, attendees and AV island underneath. Add SVG symbol moved to Elements, which also gains a Grid underlay: a faint measuring grid behind both views at 6 in, 1, 2 or 5 ft, 10 or 50 cm or 1 m. Any length field takes a unit as you type it: 200 cm in a feet field becomes 6.56, and 6\u2032 2\u2033, 6 ft 2 in and 2.5 m work too. The show controls changed keys: H hides the panel, P opens Presets, and the new Settings (S) holds the measurement unit (in, ft, cm or px, with the pixel pitch) and lists the shortcuts."],
   ["0.9.87", "Dev mode can sync its flags to a Google Sheet, so notes reach Claude without copying and pasting. Press Sync in the flag list and paste the Apps Script web app address (tools/flags-endpoint.gs in the repo says how to set it up); every new flag, edit, tick and delete is sent a moment later, and the button shows \u2713 when it went through. Replies written in the Sheet\u2019s claude reply column appear in green under the flag they answer, checked every 30 seconds and whenever the window comes back into focus. Leave the address empty to stop syncing. Show mode, without ?dev, still sends nothing."],
   ["0.9.86", "Dev mode, for reviewing the app rather than running a show. Add ?dev to the address and a DEV badge appears by the version, with a Dev flags list in the bottom-right corner. Press D (or the Flag button), click any control, card or spot on the stage, and type a note: a numbered pink flag stays pinned to that control as the panel scrolls and tabs change, and hides while its control is out of sight. Click a flag or its row to edit it, tick it when it\u2019s done, and Copy all puts every open note on the clipboard as a list naming each control. Flags are kept in this browser only. Without ?dev nothing changes; in dev mode D drops a flag instead of duplicating a screen in the multi-screen layout."],
@@ -1528,6 +1529,7 @@ const state = {
   weights: [...PRESET_WEIGHTS["core-horizon"]],
   scale: 1, speed: 1, warp: 0.4, blobs: 5,
   dFocus: 0.7, dLens: 0.35, dRange: 0.5, dFlow: 0.15, dSweep: 0.45, dPar: 0.3, dInvert: 0,   // Depth
+  dMotion: 0, dTilt: 16, dZoom: 1,                // Depth, for a 3-D model: how it moves, the camera's tilt in degrees, and zoom
   trails: 0.45, fbZoom: 0.004, fbSpin: 0.002,
   grain: 0.08, bands: 0, blur: 0,
   dist: 0, distort: 0.5,
@@ -1553,6 +1555,9 @@ const LOOK = [
   ["dFlow", "Colour flow", 0, 1, 0.01, v => v.toFixed(2)],
   ["dSweep", "Light sweep", 0, 1, 0.01, v => v.toFixed(2)],
   ["dPar", "Parallax", 0, 1, 0.01, v => v.toFixed(2)],
+  ["dMotion", "Motion", 0, 3, 1, v => MESH_MOTIONS[v] || "Spin"],
+  ["dTilt", "Tilt", -60, 60, 1, v => v + "\u00b0"],
+  ["dZoom", "Zoom", 0.6, 1.6, 0.01, v => v.toFixed(2) + "\u00d7"],
   ["warp", "Warp", 0, 1, 0.01, v => v.toFixed(2)],
   ["blobs", "Blobs", 2, 8, 1, v => String(v)],
   ["trails", "Trails", 0, 0.97, 0.01, v => v.toFixed(2)],
@@ -1569,8 +1574,9 @@ const SOURCES = { bass: "Bass", mid: "Mids", high: "Highs", beat: "Beat", presen
 const TARGETS = {
   size: "Size", motion: "Motion", colour: "Colour", grain: "Grain", flash: "Flash",
   distort: "Distort", warp: "Warp", trails: "Trails", push: "Push", spin: "Spin", echo: "Echo",
-  zoom: "Zoom", fringe: "Fringe", screen: "Screen", texture: "Texture", blur: "Blur", geo: "Geometry", weight: "Weight", focus: "Focus",
+  zoom: "Zoom", fringe: "Fringe", screen: "Screen", texture: "Texture", blur: "Blur", geo: "Geometry", weight: "Weight", focus: "Focus", bloat: "Bloat",
 };
+const MESH_MOTIONS = ["Spin", "Swing", "Step to beat", "Tumble"];
 // Size and Warp say what they mean for the pattern on stage (Bead size, Shine, Yarn...)
 function targetLabels() {
   const s = state.style, out = { ...TARGETS };
@@ -2160,6 +2166,7 @@ function syncControls() {
   const show = (key, on) => document.querySelectorAll('.row[data-key="' + key + '"]').forEach(r => { r.hidden = !on; });
   show("blobs", s === 0);
   ["dFocus", "dLens", "dRange", "dFlow", "dSweep", "dPar"].forEach(k => show(k, s === 22));
+  ["dMotion", "dTilt", "dZoom"].forEach(k => show(k, s === 22 && !!depthMesh));   // only a model can turn
   ["trails", "fbZoom", "fbSpin"].forEach(k => show(k, s !== 22));   // Depth never feeds back: ghosts of the last map pile up
   $("depthRow").hidden = s !== 22;
   $("depthInvert").checked = !!state.dInvert;
@@ -2353,7 +2360,7 @@ uniform float u_palEnd;      // where the palette's wrap-around segment starts
 uniform float u_shift;       // palette rotation from the Colour route
 uniform sampler2D u_dtex;    // Depth: the loaded depth map, white near and black far
 uniform float u_hasDepth, u_dAspect, u_invert, u_dscale;
-uniform float u_focus, u_lens, u_spread, u_flowOff, u_push, u_sweepPos, u_sweep;
+uniform float u_focus, u_lens, u_spread, u_flowOff, u_push, u_sweepPos, u_sweep, u_bloat;
 uniform vec2 u_wobble;
 
 float hash(float n) { return fract(sin(n * 78.233) * 43758.5453123); }
@@ -2813,7 +2820,7 @@ float demoDepth(vec2 uv) {
   for (int i = 0; i < 3; i++) {
     float fi = float(i);
     vec2 c = vec2(0.42 * sin(u_time * 0.21 + fi * 2.1), -0.02 + 0.06 * sin(u_time * 0.33 + fi * 1.4));
-    float r = 0.17 + 0.05 * fi;
+    float r = (0.17 + 0.05 * fi) * (1.0 + u_bloat);
     float zc = 0.35 + 0.16 * fi;
     float q = dot(p - c, p - c);
     if (q < r * r) d = max(d, zc + 0.32 * sqrt(1.0 - q / (r * r)));
@@ -4272,9 +4279,10 @@ function depthNote(msg, warn) {
 depthNote("Demo scene: load a map to replace it.");
 function setDepthEl(el, w, h, name, video) {
   if (depthVideo && depthVideo !== el) { depthVideo.pause(); depthVideo.removeAttribute("src"); depthVideo.load(); }
-  if (depthMesh && depthMesh !== el) { gl.deleteBuffer(depthMesh.vbo); depthMesh = null; }
+  if (depthMesh && depthMesh !== el) { gl.deleteBuffer(depthMesh.vbo); gl.deleteBuffer(depthMesh.nbo); depthMesh = null; }
   depthEl = el; depthVideo = video ? el : null; depthMesh = el && el.tris ? el : null; depthAspect = w / h; depthDirty = true;
   depthNote(name + " (" + (video ? "video" : depthMesh ? "3-D model" : "image") + ") is the depth map.");
+  syncControls();
 }
 function useDepth(file, opts = {}) {
   const url = URL.createObjectURL(file), name = opts.name || file.name || "Depth map";
@@ -4341,11 +4349,12 @@ function useDepth(file, opts = {}) {
 }
 function clearDepth() {
   if (depthVideo) { depthVideo.pause(); depthVideo.removeAttribute("src"); depthVideo.load(); }
-  if (depthMesh) gl.deleteBuffer(depthMesh.vbo);
+  if (depthMesh) { gl.deleteBuffer(depthMesh.vbo); gl.deleteBuffer(depthMesh.nbo); }
   depthEl = null; depthVideo = null; depthMesh = null; depthAspect = 1;
   if (depthMedia) mediaDel(depthMedia).catch(() => {});
   depthMedia = null;
   depthNote("Demo scene: load a map to replace it.");
+  syncControls();
 }
 // upload a new image once, a playing video every frame it has a picture
 function uploadDepth() {
@@ -4362,7 +4371,7 @@ function uploadDepth() {
 function depthRoutes() {
   if (state.style !== 22) return;
   const add = (src, dst, amt) => { if (!state.routes.some(r => r.dst === dst) && state.routes.length < ROUTE_MAX) state.routes.push({ src, dst, amt }); };
-  add("bass", "push", 0.6); add("beat", "focus", 0.4);
+  add("bass", "push", 0.6); add("beat", "focus", 0.4); add("bass", "bloat", 0.5);
   saveRoutes();
 }
 $("depthLoad").addEventListener("click", () => $("depthFile").click());
@@ -4683,8 +4692,9 @@ function decodeNPY(buf) {
 // centred and scaled to a unit sphere, turned slowly about its axis (Speed
 // sets the turn, through T) and drawn into the depth texture with the
 // distance from the camera as brightness, near white, the empty background
-// black. Only positions and faces are read; normals, textures and materials
-// are ignored.
+// black. Only positions and faces are read; textures and materials are
+// ignored, and smooth normals are worked out here so Bloat can push the
+// surface outward evenly.
 const MESH_W = 1280, MESH_H = 720;
 function parseOBJ(text) {
   const v = [], idx = [];
@@ -4713,16 +4723,39 @@ function parseOBJ(text) {
     if (j < 0 || j + 2 >= v.length) throw new Error("a face refers to a vertex the file doesn’t have");
     pos[i * 3] = (v[j] - center[0]) / radius; pos[i * 3 + 1] = (v[j + 1] - center[1]) / radius; pos[i * 3 + 2] = (v[j + 2] - center[2]) / radius;
   }
+  // smooth normals: each face's (area-weighted) normal added to its corners, then normalised
+  const vn = new Float32Array(v.length);
+  for (let t = 0; t < idx.length; t += 3) {
+    const a = t * 3, b = a + 3, c = a + 6;
+    const ux = pos[b] - pos[a], uy = pos[b + 1] - pos[a + 1], uz = pos[b + 2] - pos[a + 2];
+    const wx = pos[c] - pos[a], wy = pos[c + 1] - pos[a + 1], wz = pos[c + 2] - pos[a + 2];
+    const nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx;
+    for (let k = 0; k < 3; k++) { const j = idx[t + k] * 3; vn[j] += nx; vn[j + 1] += ny; vn[j + 2] += nz; }
+  }
+  const nrm = new Float32Array(idx.length * 3);
+  for (let i = 0; i < idx.length; i++) {
+    const j = idx[i] * 3; let x = vn[j], y = vn[j + 1], z = vn[j + 2], l = Math.hypot(x, y, z);
+    if (l < 1e-12) { x = pos[i * 3]; y = pos[i * 3 + 1]; z = pos[i * 3 + 2]; l = Math.hypot(x, y, z) || 1; }   // a stray vertex: push it away from the centre
+    nrm[i * 3] = x / l; nrm[i * 3 + 1] = y / l; nrm[i * 3 + 2] = z / l;
+  }
   const vbo = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
   gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
-  return { vbo, tris: idx.length / 3, count: idx.length };
+  const nbo = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, nbo);
+  gl.bufferData(gl.ARRAY_BUFFER, nrm, gl.STATIC_DRAW);
+  return { vbo, nbo, tris: idx.length / 3, count: idx.length };
 }
 const MESH_VERT = `
-attribute vec3 a_pos;
+attribute vec3 a_pos, a_nrm;
 uniform mat4 u_mvp, u_mv;
+uniform float u_bloat, u_t;
 varying float v_d;
-void main() { vec4 e = u_mv * vec4(a_pos, 1.0); v_d = -e.z; gl_Position = u_mvp * vec4(a_pos, 1.0); }`;
+void main() {
+  float w = 1.0 + 0.35 * sin(a_pos.y * 5.0 + u_t * 2.3) * sin(a_pos.x * 4.0 - u_t * 1.7);   // a slow ripple, so the swell breathes rather than scales
+  vec3 p = a_pos + a_nrm * u_bloat * w;
+  vec4 e = u_mv * vec4(p, 1.0); v_d = -e.z; gl_Position = u_mvp * vec4(p, 1.0);
+}`;
 const MESH_FRAG = `
 precision mediump float;
 varying float v_d;
@@ -4734,7 +4767,10 @@ const m4mul = (a, b) => { const o = new Float32Array(16); for (let c = 0; c < 4;
 const m4persp = (fovy, ar, n, f) => { const t = 1 / Math.tan(fovy / 2); return new Float32Array([t / ar, 0, 0, 0, 0, t, 0, 0, 0, 0, (f + n) / (n - f), -1, 0, 0, 2 * f * n / (n - f), 0]); };
 const m4rotY = a => new Float32Array([Math.cos(a), 0, -Math.sin(a), 0, 0, 1, 0, 0, Math.sin(a), 0, Math.cos(a), 0, 0, 0, 0, 1]);
 const m4rotX = a => new Float32Array([1, 0, 0, 0, 0, Math.cos(a), Math.sin(a), 0, 0, -Math.sin(a), Math.cos(a), 0, 0, 0, 0, 1]);
+const m4rotZ = a => new Float32Array([Math.cos(a), Math.sin(a), 0, 0, -Math.sin(a), Math.cos(a), 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 const m4trans = (x, y, z) => new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1]);
+// Step to beat: each beat turns the model a further eighth, eased in
+let meshYaw = 0, meshStep = 0, meshBeat = 0;
 function renderMeshDepth() {
   if (!meshProg) {
     meshProg = program(MESH_FRAG, MESH_VERT);
@@ -4751,10 +4787,20 @@ function renderMeshDepth() {
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, meshRB);
     depthDirty = false;
   }
-  const D = 2.7, tilt = 0.28, yaw = T * 0.3;          // camera distance for a unit sphere, a slight look down, the turn
-  const model = m4mul(m4rotX(tilt), m4rotY(yaw));
+  const bloat = Math.min(0.6, modsFor(state.routes)("bloat") * 0.35);   // Bass -> Bloat: the surface swells out along its normals
+  const D = 2.7 / Math.max(0.6, Math.min(1.6, state.dZoom || 1)), tilt = (state.dTilt ?? 16) * Math.PI / 180;
+  const mo = state.dMotion | 0;
+  let model;
+  if (mo === 1) model = m4mul(m4rotX(tilt), m4rotY(Math.sin(T * 0.5) * 0.9));                       // Swing: rocks about 50 degrees each way
+  else if (mo === 2) {                                                                                 // Step to beat
+    if (lastBeat !== meshBeat) { meshBeat = lastBeat; meshStep += Math.PI / 4; }
+    meshYaw += (meshStep - meshYaw) * 0.16;
+    if (meshStep > 40) { meshStep -= 8 * Math.PI; meshYaw -= 8 * Math.PI; }                            // keep the angles small over hours
+    model = m4mul(m4rotX(tilt), m4rotY(meshYaw));
+  } else if (mo === 3) model = m4mul(m4rotX(tilt), m4mul(m4rotY(T * 0.3), m4mul(m4rotX(T * 0.21), m4rotZ(Math.sin(T * 0.13) * 0.6))));   // Tumble
+  else model = m4mul(m4rotX(tilt), m4rotY(T * 0.3));                                                  // Spin: the turntable
   const mv = m4mul(m4trans(0, 0, -D), model);
-  const mvp = m4mul(m4persp(0.72, MESH_W / MESH_H, 0.5, 10), mv);
+  const mvp = m4mul(m4persp(0.72, MESH_W / MESH_H, 0.1, 10), mv);
   gl.bindFramebuffer(gl.FRAMEBUFFER, meshFB);
   gl.viewport(0, 0, MESH_W, MESH_H);
   gl.useProgram(meshProg);
@@ -4765,13 +4811,19 @@ function renderMeshDepth() {
   gl.bindBuffer(gl.ARRAY_BUFFER, depthMesh.vbo);
   gl.enableVertexAttribArray(loc);
   gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0);
+  const nloc = gl.getAttribLocation(meshProg, "a_nrm");
+  if (nloc >= 0) { gl.bindBuffer(gl.ARRAY_BUFFER, depthMesh.nbo); gl.enableVertexAttribArray(nloc); gl.vertexAttribPointer(nloc, 3, gl.FLOAT, false, 0, 0); }
   gl.uniformMatrix4fv(gl.getUniformLocation(meshProg, "u_mvp"), false, mvp);
   gl.uniformMatrix4fv(gl.getUniformLocation(meshProg, "u_mv"), false, mv);
-  gl.uniform1f(gl.getUniformLocation(meshProg, "u_near"), D - 1);
-  gl.uniform1f(gl.getUniformLocation(meshProg, "u_far"), D + 1);
+  gl.uniform1f(gl.getUniformLocation(meshProg, "u_bloat"), bloat);
+  gl.uniform1f(gl.getUniformLocation(meshProg, "u_t"), T);
+  gl.uniform1f(gl.getUniformLocation(meshProg, "u_near"), Math.max(0.1, D - 1 - bloat * 1.35));   // the depth range follows the swell
+  gl.uniform1f(gl.getUniformLocation(meshProg, "u_far"), D + 1 + bloat * 1.35);
   gl.drawArrays(gl.TRIANGLES, 0, depthMesh.count);
   gl.disable(gl.DEPTH_TEST);
   if (loc !== 0) gl.disableVertexAttribArray(loc);
+  if (nloc > 0) gl.disableVertexAttribArray(nloc);
+  if (loc === 0 || nloc === 0) { gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0); }   // hand slot 0 back to the full-screen quad
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 
@@ -5873,7 +5925,7 @@ const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom
                    "dist", "distort", "screen", "screenAmt", "tex", "texAmt", "distSize", "screenSize", "texSize",
                    "glass", "glassAngle", "glassSeam", "glassSeamW", "gsAngle", "gsRand", "echoSpread", "echoDecay", "echoAngle", "echoDrift", "slitAngle", "sortMode",
                    "geo", "geoN", "geoSpin", "geoGap", "geoTile", "lineW", "fracSeed", "fracKind", "dotKind", "beadBoard", "fabric", "asciiKind",
-                   "dFocus", "dLens", "dRange", "dFlow", "dSweep", "dPar", "dInvert"];
+                   "dFocus", "dLens", "dRange", "dFlow", "dSweep", "dPar", "dInvert", "dMotion", "dTilt", "dZoom"];
 const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
 // Groups (the library's categories), in display order. presets/library.json
 // may ship its own list; renames, additions and deletions made here are kept
@@ -6036,7 +6088,8 @@ function setLook(L, m, w, h, pEnd, time = T, stops = state.colors) {
   gl.uniform1f(U("u_lens"), L.dLens);
   gl.uniform1f(U("u_spread"), L.dRange);
   gl.uniform1f(U("u_flowOff"), depth.flow);
-  gl.uniform1f(U("u_push"), m("push") * 0.3);                              // Bass -> Push shoves the colours up the palette
+  gl.uniform1f(U("u_push"), m("push") * 0.3);
+  gl.uniform1f(U("u_bloat"), Math.min(0.6, m("bloat") * 0.35));            // Bass -> Bloat swells the demo spheres (a model swells in its own pass)                              // Bass -> Push shoves the colours up the palette
   gl.uniform1f(U("u_sweepPos"), depth.sweep - 0.15);
   gl.uniform1f(U("u_sweep"), L.dSweep);
   gl.uniform2f(U("u_wobble"), Math.sin(time * 0.45) * L.dPar * 0.04, Math.sin(time * 0.31) * L.dPar * 0.016);
