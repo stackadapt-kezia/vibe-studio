@@ -198,6 +198,8 @@
   .num:hover { border-bottom-color: var(--line); }
   .num:focus { outline: none; border-bottom-color: var(--accent); }
   .seg { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  #previewSeg { grid-template-columns: repeat(3, 1fr); }
+  #previewSeg button { padding-left: 4px; padding-right: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .seg button, .pill {
     background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
     padding: 9px 10px; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer;
@@ -261,6 +263,11 @@
   .mini-seg button { padding: 3px 9px; font-size: 12px; border-radius: 999px; }
   .swlib { margin-top: 8px; }
   .swlib:empty { display: none; }
+  .swset.dragging { opacity: .4; }
+  .swset.dropbefore { box-shadow: -3px 0 0 var(--accent); }
+  .swlib.list .swset.dropbefore { box-shadow: 0 -3px 0 var(--accent); }
+  .swset.dropafter { box-shadow: 3px 0 0 var(--accent); }
+  .swlib.list .swset.dropafter { box-shadow: 0 3px 0 var(--accent); }
   .swlib.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(96px, calc(50% - 3px)), 1fr)); gap: 6px; }
   .swlib.list { display: flex; flex-direction: column; gap: 4px; }
   .swset {
@@ -986,7 +993,7 @@
       <div id="depthRow" hidden>
         <div class="row">
           <label title="A black-and-white picture or video where white is near and black is far">Depth map</label>
-          <button class="mini" id="depthLoad" type="button" title="A picture or video the browser can show, an EXR, HDR, TIFF, TGA, PFM, PGM or NumPy depth file, or an OBJ model to turn on a turntable">Load depth image or video</button>
+          <button class="mini" id="depthLoad" type="button" title="A picture or video the browser can show, an EXR, HDR, TIFF, TGA, PFM, PGM or NumPy depth file, or an OBJ model">Load depth image or video</button>
           <button class="mini" id="depthClear" type="button" title="Back to the demo scene" hidden>Clear</button>
         </div>
         <label class="check"><input type="checkbox" id="depthInvert"> Near is dark (invert the map)</label>
@@ -1319,12 +1326,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.89";  // Depth models move: Motion (Spin, Swing, Step to beat, Tumble), Tilt, Zoom, and Bass -> Bloat
+const APP_VERSION = "0.9.90";  // Swatch sets reorder by drag, Output modes on one line, grid on the room centre, Depth Angle
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.90", "Saved colour sets can be dragged into a new order, in tiles or list view; a line shows where the set will land. The Output modes (Full frame, Stage, Installation) fit on one line. With a room set, the Grid underlay puts a major line on the room\u2019s centre line, and in Plan on its centre front to back too. Installation mode leaves out the walk-through measurements between screens. Depth: the long note about where depth maps come from is gone from under the loader (hover the Load button to read it), and a loaded model gains an Angle, which way it faces, beside Motion, Tilt and Zoom."],
   ["0.9.89", "Depth: a loaded 3-D model can do more than turn. Motion picks how it moves: Spin (the turntable as before), Swing (rocks back and forth), Step to beat (turns an eighth on every beat, easing into place) or Tumble (turns over on more than one axis). Tilt looks down on it or up at it, and Zoom brings it closer or pushes it back; all three show only while a model is loaded, and Speed still sets the pace. A new reactivity target, Bloat, swells the shape out along its surface with a slow ripple, so it breathes with the music; picking Depth brings Bass \u2192 Bloat along with its other two routes. The demo scene\u2019s spheres bloat too, so the route can be tried before loading anything."],
   ["0.9.88", "Output now has three modes: Full frame, Stage and Installation. Stage plans a show on a deck with a room and seating; Installation is for a piece people walk past or through, so the Stage card and the seating are gone and nothing stands on a deck. The Elevation and Plan buttons moved up beside the modes and show only while planning. Reactivity moved to the end of the VIS tab, so OUT is about output alone. The Plan card is now Room: room width, depth and offset come first, then the Seating choice (Stage mode only), which starts on the new No seating; picking a layout brings its rows, spacing, attendees and AV island underneath. Add SVG symbol moved to Elements, which also gains a Grid underlay: a faint measuring grid behind both views at 6 in, 1, 2 or 5 ft, 10 or 50 cm or 1 m. Any length field takes a unit as you type it: 200 cm in a feet field becomes 6.56, and 6\u2032 2\u2033, 6 ft 2 in and 2.5 m work too. The show controls changed keys: H hides the panel, P opens Presets, and the new Settings (S) holds the measurement unit (in, ft, cm or px, with the pixel pitch) and lists the shortcuts."],
   ["0.9.87", "Dev mode can sync its flags to a Google Sheet, so notes reach Claude without copying and pasting. Press Sync in the flag list and paste the Apps Script web app address (tools/flags-endpoint.gs in the repo says how to set it up); every new flag, edit, tick and delete is sent a moment later, and the button shows \u2713 when it went through. Replies written in the Sheet\u2019s claude reply column appear in green under the flag they answer, checked every 30 seconds and whenever the window comes back into focus. Leave the address empty to stop syncing. Show mode, without ?dev, still sends nothing."],
@@ -1529,7 +1537,7 @@ const state = {
   weights: [...PRESET_WEIGHTS["core-horizon"]],
   scale: 1, speed: 1, warp: 0.4, blobs: 5,
   dFocus: 0.7, dLens: 0.35, dRange: 0.5, dFlow: 0.15, dSweep: 0.45, dPar: 0.3, dInvert: 0,   // Depth
-  dMotion: 0, dTilt: 16, dZoom: 1,                // Depth, for a 3-D model: how it moves, the camera's tilt in degrees, and zoom
+  dMotion: 0, dTilt: 16, dAngle: 0, dZoom: 1,     // Depth, for a 3-D model: how it moves, the camera's tilt and the model's turn in degrees, and zoom
   trails: 0.45, fbZoom: 0.004, fbSpin: 0.002,
   grain: 0.08, bands: 0, blur: 0,
   dist: 0, distort: 0.5,
@@ -1557,6 +1565,7 @@ const LOOK = [
   ["dPar", "Parallax", 0, 1, 0.01, v => v.toFixed(2)],
   ["dMotion", "Motion", 0, 3, 1, v => MESH_MOTIONS[v] || "Spin"],
   ["dTilt", "Tilt", -60, 60, 1, v => v + "\u00b0"],
+  ["dAngle", "Angle", -180, 180, 1, v => v + "\u00b0"],
   ["dZoom", "Zoom", 0.6, 1.6, 0.01, v => v.toFixed(2) + "\u00d7"],
   ["warp", "Warp", 0, 1, 0.01, v => v.toFixed(2)],
   ["blobs", "Blobs", 2, 8, 1, v => String(v)],
@@ -2039,6 +2048,7 @@ function rampCss(colors, weights) {
   const stops = colors.map((c, i) => { const from = acc / sum; acc += w[i]; return c + " " + (from * 100).toFixed(1) + "% " + (acc / sum * 100).toFixed(1) + "%"; });
   return "linear-gradient(to right, " + stops.join(", ") + ")";
 }
+let swDrag = -1;                                  // index of the set being dragged, -1 for none
 function renderSwatchLib() {
   const host = $("swlib");
   host.className = "swlib " + swView;
@@ -2078,6 +2088,20 @@ function renderSwatchLib() {
     };
     el.addEventListener("click", apply);
     el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); apply(); } });
+    el.draggable = true;                              // drag a set onto another to move it there
+    el.addEventListener("dragstart", e => { swDrag = i; el.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", s.name); } catch (x) { /* fine */ } });
+    el.addEventListener("dragend", () => { swDrag = -1; host.querySelectorAll(".swset").forEach(x => x.classList.remove("dragging", "dropbefore", "dropafter")); });
+    el.addEventListener("dragover", e => {
+      if (swDrag < 0 || swDrag === i) return;
+      e.preventDefault(); e.dataTransfer.dropEffect = "move";
+      el.classList.toggle("dropbefore", swDrag > i); el.classList.toggle("dropafter", swDrag < i);
+    });
+    el.addEventListener("dragleave", () => el.classList.remove("dropbefore", "dropafter"));
+    el.addEventListener("drop", e => {
+      e.preventDefault(); if (swDrag < 0 || swDrag === i) return;
+      const [moved] = swatchLib.splice(swDrag, 1); swatchLib.splice(i, 0, moved); swDrag = -1;
+      saveSwatchLib(); renderSwatchLib();
+    });
     host.append(el);
   });
   $("swlibCount").textContent = swatchLib.length ? swatchLib.length + " saved set" + (swatchLib.length > 1 ? "s" : "") : "No saved sets";
@@ -2166,7 +2190,7 @@ function syncControls() {
   const show = (key, on) => document.querySelectorAll('.row[data-key="' + key + '"]').forEach(r => { r.hidden = !on; });
   show("blobs", s === 0);
   ["dFocus", "dLens", "dRange", "dFlow", "dSweep", "dPar"].forEach(k => show(k, s === 22));
-  ["dMotion", "dTilt", "dZoom"].forEach(k => show(k, s === 22 && !!depthMesh));   // only a model can turn
+  ["dMotion", "dTilt", "dAngle", "dZoom"].forEach(k => show(k, s === 22 && !!depthMesh));   // only a model can turn
   ["trails", "fbZoom", "fbSpin"].forEach(k => show(k, s !== 22));   // Depth never feeds back: ghosts of the last map pile up
   $("depthRow").hidden = s !== 22;
   $("depthInvert").checked = !!state.dInvert;
@@ -4273,10 +4297,11 @@ const DEPTH_WHERE = "Depth maps: Photoshop’s Neural Filters → Depth Blur wit
 function depthNote(msg, warn) {
   const n = $("depthNote");
   n.className = warn ? "note warn" : "note";
-  n.textContent = (msg ? msg + " " : "") + DEPTH_WHERE;
+  n.textContent = msg || "";
+  n.hidden = !msg;
   $("depthClear").hidden = !depthEl;
 }
-depthNote("Demo scene: load a map to replace it.");
+depthNote("");
 function setDepthEl(el, w, h, name, video) {
   if (depthVideo && depthVideo !== el) { depthVideo.pause(); depthVideo.removeAttribute("src"); depthVideo.load(); }
   if (depthMesh && depthMesh !== el) { gl.deleteBuffer(depthMesh.vbo); gl.deleteBuffer(depthMesh.nbo); depthMesh = null; }
@@ -4353,7 +4378,7 @@ function clearDepth() {
   depthEl = null; depthVideo = null; depthMesh = null; depthAspect = 1;
   if (depthMedia) mediaDel(depthMedia).catch(() => {});
   depthMedia = null;
-  depthNote("Demo scene: load a map to replace it.");
+  depthNote("");
   syncControls();
 }
 // upload a new image once, a playing video every frame it has a picture
@@ -4375,6 +4400,7 @@ function depthRoutes() {
   saveRoutes();
 }
 $("depthLoad").addEventListener("click", () => $("depthFile").click());
+$("depthLoad").title += ". " + DEPTH_WHERE;            // where maps come from, on hover rather than under the button
 $("depthFile").addEventListener("change", e => { const f = e.target.files[0]; if (f) useDepth(f); e.target.value = ""; });
 $("depthClear").addEventListener("click", clearDepth);
 $("depthInvert").addEventListener("change", e => { state.dInvert = e.target.checked ? 1 : 0; touch(); });
@@ -4789,7 +4815,7 @@ function renderMeshDepth() {
   }
   const bloat = Math.min(0.6, modsFor(state.routes)("bloat") * 0.35);   // Bass -> Bloat: the surface swells out along its normals
   const D = 2.7 / Math.max(0.6, Math.min(1.6, state.dZoom || 1)), tilt = (state.dTilt ?? 16) * Math.PI / 180;
-  const mo = state.dMotion | 0;
+  const mo = state.dMotion | 0, ang = (state.dAngle || 0) * Math.PI / 180;   // Angle: which way the model faces, before its motion
   let model;
   if (mo === 1) model = m4mul(m4rotX(tilt), m4rotY(Math.sin(T * 0.5) * 0.9));                       // Swing: rocks about 50 degrees each way
   else if (mo === 2) {                                                                                 // Step to beat
@@ -4799,6 +4825,7 @@ function renderMeshDepth() {
     model = m4mul(m4rotX(tilt), m4rotY(meshYaw));
   } else if (mo === 3) model = m4mul(m4rotX(tilt), m4mul(m4rotY(T * 0.3), m4mul(m4rotX(T * 0.21), m4rotZ(Math.sin(T * 0.13) * 0.6))));   // Tumble
   else model = m4mul(m4rotX(tilt), m4rotY(T * 0.3));                                                  // Spin: the turntable
+  model = m4mul(model, m4rotY(ang));
   const mv = m4mul(m4trans(0, 0, -D), model);
   const mvp = m4mul(m4persp(0.72, MESH_W / MESH_H, 0.1, 10), mv);
   gl.bindFramebuffer(gl.FRAMEBUFFER, meshFB);
@@ -5925,7 +5952,7 @@ const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom
                    "dist", "distort", "screen", "screenAmt", "tex", "texAmt", "distSize", "screenSize", "texSize",
                    "glass", "glassAngle", "glassSeam", "glassSeamW", "gsAngle", "gsRand", "echoSpread", "echoDecay", "echoAngle", "echoDrift", "slitAngle", "sortMode",
                    "geo", "geoN", "geoSpin", "geoGap", "geoTile", "lineW", "fracSeed", "fracKind", "dotKind", "beadBoard", "fabric", "asciiKind",
-                   "dFocus", "dLens", "dRange", "dFlow", "dSweep", "dPar", "dInvert", "dMotion", "dTilt", "dZoom"];
+                   "dFocus", "dLens", "dRange", "dFlow", "dSweep", "dPar", "dInvert", "dMotion", "dTilt", "dAngle", "dZoom"];
 const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
 // Groups (the library's categories), in display order. presets/library.json
 // may ship its own list; renames, additions and deletions made here are kept
@@ -6991,14 +7018,15 @@ try { pui.grid = Math.max(0, +localStorage.getItem("vibe.pileGrid") || 0); } cat
 // a measuring grid under the drawing, anchored on the mounting grid's left edge and the floor (elevation) or the screens' front line (plan)
 function pdrawUnder(c) {
   const sp = pui.grid; if (!(sp > 0) || sp * psc < 5 * pdpr) return;
-  const xa = P.frame.x0, k0 = Math.ceil((-pox / psc - xa) / sp), k1 = Math.floor(((pW - pox) / psc - xa) / sp);
-  const j0 = Math.ceil((pfloor - pH) / psc / sp), j1 = Math.floor(pfloor / psc / sp);
+  const R = proom(), xa = R ? R.cx : P.frame.x0;      // a room puts a major line on its centre line (and, in plan, its centre)
+  const ya = R && pview === "plan" ? (R.back + R.front) / 2 : 0, k0 = Math.ceil((-pox / psc - xa) / sp), k1 = Math.floor(((pW - pox) / psc - xa) / sp);
+  const j0 = Math.ceil(((pfloor - pH) / psc - ya) / sp), j1 = Math.floor((pfloor / psc - ya) / sp);
   const major = sp >= 39 ? 5 : sp >= 12 ? 5 : 10;     // a brighter line every few
   c.save(); c.lineWidth = pdpr;
   for (const maj of [false, true]) {
     c.strokeStyle = maj ? "rgba(127,223,253,0.2)" : "rgba(127,223,253,0.08)"; c.beginPath();
     for (let k = k0; k <= k1; k++) if ((k % major === 0) === maj) { const x = Math.round(PX(xa + k * sp)) + 0.5; c.moveTo(x, 0); c.lineTo(x, pH); }
-    for (let j = j0; j <= j1; j++) if ((j % major === 0) === maj) { const y = Math.round(PY(j * sp)) + 0.5; c.moveTo(0, y); c.lineTo(pW, y); }
+    for (let j = j0; j <= j1; j++) if ((j % major === 0) === maj) { const y = Math.round(PY(ya + j * sp)) + 0.5; c.moveTo(0, y); c.lineTo(pW, y); }
     c.stroke();
   }
   c.restore();
@@ -8226,7 +8254,7 @@ function drawPlan() {
     if (pui.labels || isSel || isHov) plabel((o.name || "Symbol") + " \u00b7 " + fmtLen(o.w) + " \u00d7 " + fmtLen(o.l), x + w / 2, y - 12 * pdpr, lf);
   }
   // walk-through gaps: from the back of each screen's structure to the face of the nearest screen behind it that it overlaps
-  const byDepth = scr.slice().sort((a, b) => pdepth(a) - pdepth(b));
+  const byDepth = P.scene === "install" ? [] : scr.slice().sort((a, b) => pdepth(a) - pdepth(b));   // Installation leaves them out
   for (const S of byDepth) {
     const dS = pdepth(S), ds = pdims(S), l1 = S.x - ds.w / 2, r1 = S.x + ds.w / 2;
     let best = null;
