@@ -1326,12 +1326,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.91";  // Islands: AV and camera islands and delay TVs as plan elements; seats move out from under them
+const APP_VERSION = "0.9.92";  // Depth: Bloat style Faces domes each face and keeps the seams; Swell is the old push
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.92", "Depth: Bloat now inflates each face of a model like a pillow, its middle doming out while its edges, the seams, stay exactly where they are, so a cube becomes a soft cushion instead of a bigger cube. Big faces dome more than small ones. The old behaviour, the whole shape swelling outward with a ripple, is still there as Bloat style: Swell. Faces shows best on low-poly models; a very dense model (over about 400,000 triangles) can\u2019t be split finely enough, so it swells instead, and the note under the loader says so."],
   ["0.9.91", "Multi-screen: Elements adds AV island, Camera island and Delay TV, as many of each as you like. They live in the plan and go anywhere in the room, including far off the stage at the back of the house: drag to place, drag the edges to size, name each one in its box, and Option-drag or Duplicate to copy. A Delay TV is a screen on a stand for the back rows, drawn with its bright face towards them. Seats under an island (with 18 inches round it) are taken out and the same number added back at the back of the seating, a row at a time, so the count holds; banquet and cabaret rounds move whole tables. The plan and the spec say how many seats moved. The AV island field in the Room card is gone: a layout that had an island keeps it as an element."],
   ["0.9.90", "Saved colour sets can be dragged into a new order, in tiles or list view; a line shows where the set will land. The Output modes (Full frame, Stage, Installation) fit on one line. With a room set, the Grid underlay puts a major line on the room\u2019s centre line, and in Plan on its centre front to back too. Installation mode leaves out the walk-through measurements between screens. Depth: the long note about where depth maps come from is gone from under the loader (hover the Load button to read it), and a loaded model gains an Angle, which way it faces, beside Motion, Tilt and Zoom."],
   ["0.9.89", "Depth: a loaded 3-D model can do more than turn. Motion picks how it moves: Spin (the turntable as before), Swing (rocks back and forth), Step to beat (turns an eighth on every beat, easing into place) or Tumble (turns over on more than one axis). Tilt looks down on it or up at it, and Zoom brings it closer or pushes it back; all three show only while a model is loaded, and Speed still sets the pace. A new reactivity target, Bloat, swells the shape out along its surface with a slow ripple, so it breathes with the music; picking Depth brings Bass \u2192 Bloat along with its other two routes. The demo scene\u2019s spheres bloat too, so the route can be tried before loading anything."],
@@ -1538,7 +1539,7 @@ const state = {
   weights: [...PRESET_WEIGHTS["core-horizon"]],
   scale: 1, speed: 1, warp: 0.4, blobs: 5,
   dFocus: 0.7, dLens: 0.35, dRange: 0.5, dFlow: 0.15, dSweep: 0.45, dPar: 0.3, dInvert: 0,   // Depth
-  dMotion: 0, dTilt: 16, dAngle: 0, dZoom: 1,     // Depth, for a 3-D model: how it moves, the camera's tilt and the model's turn in degrees, and zoom
+  dMotion: 0, dTilt: 16, dAngle: 0, dZoom: 1, dBloatKind: 0,   // dBloatKind: 0 Faces (each face domes, seams stay), 1 Swell (the whole shape)     // Depth, for a 3-D model: how it moves, the camera's tilt and the model's turn in degrees, and zoom
   trails: 0.45, fbZoom: 0.004, fbSpin: 0.002,
   grain: 0.08, bands: 0, blur: 0,
   dist: 0, distort: 0.5,
@@ -1568,6 +1569,7 @@ const LOOK = [
   ["dTilt", "Tilt", -60, 60, 1, v => v + "\u00b0"],
   ["dAngle", "Angle", -180, 180, 1, v => v + "\u00b0"],
   ["dZoom", "Zoom", 0.6, 1.6, 0.01, v => v.toFixed(2) + "\u00d7"],
+  ["dBloatKind", "Bloat style", 0, 1, 1, v => v ? "Swell" : "Faces"],
   ["warp", "Warp", 0, 1, 0.01, v => v.toFixed(2)],
   ["blobs", "Blobs", 2, 8, 1, v => String(v)],
   ["trails", "Trails", 0, 0.97, 0.01, v => v.toFixed(2)],
@@ -2191,7 +2193,7 @@ function syncControls() {
   const show = (key, on) => document.querySelectorAll('.row[data-key="' + key + '"]').forEach(r => { r.hidden = !on; });
   show("blobs", s === 0);
   ["dFocus", "dLens", "dRange", "dFlow", "dSweep", "dPar"].forEach(k => show(k, s === 22));
-  ["dMotion", "dTilt", "dAngle", "dZoom"].forEach(k => show(k, s === 22 && !!depthMesh));   // only a model can turn
+  ["dMotion", "dTilt", "dAngle", "dZoom", "dBloatKind"].forEach(k => show(k, s === 22 && !!depthMesh));   // only a model can turn
   ["trails", "fbZoom", "fbSpin"].forEach(k => show(k, s !== 22));   // Depth never feeds back: ghosts of the last map pile up
   $("depthRow").hidden = s !== 22;
   $("depthInvert").checked = !!state.dInvert;
@@ -4326,7 +4328,7 @@ function useDepth(file, opts = {}) {
     file.text().then(txt => {
       const mesh = parseOBJ(txt);
       setDepthEl(mesh, MESH_W, MESH_H, name, false); keep();
-      depthNote(name + " (3-D model) is the depth map: " + mesh.tris.toLocaleString() + " triangles, turning; Speed sets the turn and the camera\u2019s distance is the depth.");
+      depthNote(name + " (3-D model): " + mesh.tris.toLocaleString() + " triangles." + (mesh.sub > 1 ? "" : " Too dense for Faces bloat, so Bloat swells the whole shape."));
     }).catch(err => { if (!opts.quiet) depthNote("Couldn\u2019t read " + name + ": " + err.message, true); });
     return;
   }
@@ -4723,8 +4725,9 @@ function decodeNPY(buf) {
 // ignored, and smooth normals are worked out here so Bloat can push the
 // surface outward evenly.
 const MESH_W = 1280, MESH_H = 720;
+const MESH_STRIDE = 10, MESH_SUB_BUDGET = 400000;   // floats a vertex: position, smooth normal, face normal, bulge; triangles after splitting
 function parseOBJ(text) {
-  const v = [], idx = [];
+  const v = [], idx = [], polyIdx = [], polyAt = [], triPoly = [];   // each OBJ face (polygon) and, per triangle, the polygon it was fanned from
   let lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
   for (const ln of text.split(/\r?\n/)) {
     const c0 = ln.charCodeAt(0), c1 = ln.charCodeAt(1);
@@ -4736,7 +4739,8 @@ function parseOBJ(text) {
       if (z < lo[2]) lo[2] = z; if (z > hi[2]) hi[2] = z;
     } else if (c0 === 102 && (c1 === 32 || c1 === 9)) {                 // "f a/b/c ...", any polygon, fanned
       const p = ln.trim().split(/\s+/).slice(1).map(t => { const i = parseInt(t, 10); return i < 0 ? v.length / 3 + i : i - 1; });
-      for (let k = 1; k + 1 < p.length; k++) idx.push(p[0], p[k], p[k + 1]);
+      const pi = polyAt.length; polyAt.push(polyIdx.length); polyIdx.push(...p);
+      for (let k = 1; k + 1 < p.length; k++) { idx.push(p[0], p[k], p[k + 1]); triPoly.push(pi); }
     }
   }
   if (!v.length) throw new Error("the OBJ has no vertices");
@@ -4765,22 +4769,63 @@ function parseOBJ(text) {
     if (l < 1e-12) { x = pos[i * 3]; y = pos[i * 3 + 1]; z = pos[i * 3 + 2]; l = Math.hypot(x, y, z) || 1; }   // a stray vertex: push it away from the centre
     nrm[i * 3] = x / l; nrm[i * 3 + 1] = y / l; nrm[i * 3 + 2] = z / l;
   }
+  // for Faces bloat each triangle is split N x N (as fine as about 400,000 triangles allow, at most 6), so
+  // its middle can dome out while its edges, the seams it shares with its neighbours, stay put
+  const tris = idx.length / 3, N = Math.max(1, Math.min(6, Math.floor(Math.sqrt(MESH_SUB_BUDGET / tris))));
+  const out = new Float32Array(tris * N * N * 3 * MESH_STRIDE);
+  let o = 0;
+  const put = (t, b0, b1) => {                        // one vertex at barycentric (b0, b1, 1 - b0 - b1) of triangle t
+    const b2 = 1 - b0 - b1, a = t * 9;
+    for (let k = 0; k < 3; k++) out[o + k] = pos[a + k] * b0 + pos[a + 3 + k] * b1 + pos[a + 6 + k] * b2;
+    let sx = 0, sy = 0, sz = 0;
+    sx = nrm[a] * b0 + nrm[a + 3] * b1 + nrm[a + 6] * b2; sy = nrm[a + 1] * b0 + nrm[a + 4] * b1 + nrm[a + 7] * b2; sz = nrm[a + 2] * b0 + nrm[a + 5] * b1 + nrm[a + 8] * b2;
+    const sl = Math.hypot(sx, sy, sz) || 1;
+    out[o + 3] = sx / sl; out[o + 4] = sy / sl; out[o + 5] = sz / sl;
+    out[o + 6] = fN[0]; out[o + 7] = fN[1]; out[o + 8] = fN[2];
+    let dE = Infinity; for (let k = 0; k < poly.length; k++) dE = Math.min(dE, segD(out[o], out[o + 1], out[o + 2], poly[k], poly[(k + 1) % poly.length]));
+    const q = Math.min(1, dE / fIn); out[o + 9] = (1 - (1 - q) * (1 - q)) * fS;   // a rounded cushion: 0 on the face's edges, 1 at its middle, scaled by its size
+    o += MESH_STRIDE;
+  };
+  // the dome belongs to the OBJ's own face (a quad stays one cushion, not two creased triangles): its height
+  // at a point is set by the distance to that polygon's edges, 0 on them and 1 at the middle
+  const P3 = k => [(v[k * 3] - center[0]) / radius, (v[k * 3 + 1] - center[1]) / radius, (v[k * 3 + 2] - center[2]) / radius];
+  const segD = (px, py, pz, A, B) => { const ex = B[0] - A[0], ey = B[1] - A[1], ez = B[2] - A[2], L = ex * ex + ey * ey + ez * ez;
+    let u = L > 0 ? ((px - A[0]) * ex + (py - A[1]) * ey + (pz - A[2]) * ez) / L : 0; u = Math.max(0, Math.min(1, u));
+    return Math.hypot(px - A[0] - u * ex, py - A[1] - u * ey, pz - A[2] - u * ez); };
+  let poly = null, polyN = -1, fN = [0, 0, 1], fS = 0, fIn = 1;
+  const polyFor = pi => {
+    const st = polyAt[pi], en = pi + 1 < polyAt.length ? polyAt[pi + 1] : polyIdx.length, pts = [];
+    for (let k = st; k < en; k++) pts.push(P3(polyIdx[k]));
+    let nx = 0, ny = 0, nz = 0, gx = 0, gy = 0, gz = 0;
+    for (let k = 0; k < pts.length; k++) { const A = pts[k], B = pts[(k + 1) % pts.length]; nx += (A[1] - B[1]) * (A[2] + B[2]); ny += (A[2] - B[2]) * (A[0] + B[0]); nz += (A[0] - B[0]) * (A[1] + B[1]); gx += A[0]; gy += A[1]; gz += A[2]; }
+    const nl = Math.hypot(nx, ny, nz); gx /= pts.length; gy /= pts.length; gz /= pts.length;
+    fN = nl > 1e-12 ? [nx / nl, ny / nl, nz / nl] : [0, 0, 0]; fS = Math.sqrt(nl / 2);   // Newell's normal; its length is twice the area
+    fIn = Infinity; for (let k = 0; k < pts.length; k++) fIn = Math.min(fIn, segD(gx, gy, gz, pts[k], pts[(k + 1) % pts.length]));
+    fIn = Math.max(1e-6, fIn); poly = pts;
+  };
+  for (let t = 0; t < tris; t++) {
+    if (triPoly[t] !== polyN) { polyN = triPoly[t]; polyFor(polyN); }
+    for (let i = 0; i < N; i++) for (let j = 0; i + j < N; j++) {
+      put(t, i / N, j / N); put(t, (i + 1) / N, j / N); put(t, i / N, (j + 1) / N);
+      if (i + j < N - 1) { put(t, (i + 1) / N, j / N); put(t, (i + 1) / N, (j + 1) / N); put(t, i / N, (j + 1) / N); }
+    }
+  }
   const vbo = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-  gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
-  const nbo = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, nbo);
-  gl.bufferData(gl.ARRAY_BUFFER, nrm, gl.STATIC_DRAW);
-  return { vbo, nbo, tris: idx.length / 3, count: idx.length };
+  gl.bufferData(gl.ARRAY_BUFFER, out, gl.STATIC_DRAW);
+  return { vbo, nbo: null, tris, count: o / MESH_STRIDE, sub: N };
 }
 const MESH_VERT = `
-attribute vec3 a_pos, a_nrm;
+attribute vec3 a_pos, a_nrm, a_fn;
+attribute float a_bulge;
 uniform mat4 u_mvp, u_mv;
-uniform float u_bloat, u_t;
+uniform float u_bloat, u_t, u_faces;
 varying float v_d;
 void main() {
   float w = 1.0 + 0.35 * sin(a_pos.y * 5.0 + u_t * 2.3) * sin(a_pos.x * 4.0 - u_t * 1.7);   // a slow ripple, so the swell breathes rather than scales
-  vec3 p = a_pos + a_nrm * u_bloat * w;
+  vec3 swell = a_nrm * u_bloat * w;
+  vec3 faces = a_fn * a_bulge * u_bloat * 0.8;        // each face domes out; its edges, the seams, stay where they are
+  vec3 p = a_pos + mix(swell, faces, u_faces);
   vec4 e = u_mv * vec4(p, 1.0); v_d = -e.z; gl_Position = u_mvp * vec4(p, 1.0);
 }`;
 const MESH_FRAG = `
@@ -4835,23 +4880,24 @@ function renderMeshDepth() {
   gl.clearColor(0, 0, 0, 1);
   gl.enable(gl.DEPTH_TEST);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  const loc = gl.getAttribLocation(meshProg, "a_pos");
   gl.bindBuffer(gl.ARRAY_BUFFER, depthMesh.vbo);
-  gl.enableVertexAttribArray(loc);
-  gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0);
-  const nloc = gl.getAttribLocation(meshProg, "a_nrm");
-  if (nloc >= 0) { gl.bindBuffer(gl.ARRAY_BUFFER, depthMesh.nbo); gl.enableVertexAttribArray(nloc); gl.vertexAttribPointer(nloc, 3, gl.FLOAT, false, 0, 0); }
+  const F = 4, ST = MESH_STRIDE * F, locs = [];
+  for (const [name, size, off] of [["a_pos", 3, 0], ["a_nrm", 3, 3], ["a_fn", 3, 6], ["a_bulge", 1, 9]]) {
+    const l = gl.getAttribLocation(meshProg, name); if (l < 0) continue;
+    gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, size, gl.FLOAT, false, ST, off * F); locs.push(l);
+  }
+  const faces = (state.dBloatKind | 0) === 0 && depthMesh.sub > 1;
   gl.uniformMatrix4fv(gl.getUniformLocation(meshProg, "u_mvp"), false, mvp);
   gl.uniformMatrix4fv(gl.getUniformLocation(meshProg, "u_mv"), false, mv);
   gl.uniform1f(gl.getUniformLocation(meshProg, "u_bloat"), bloat);
   gl.uniform1f(gl.getUniformLocation(meshProg, "u_t"), T);
+  gl.uniform1f(gl.getUniformLocation(meshProg, "u_faces"), faces ? 1 : 0);
   gl.uniform1f(gl.getUniformLocation(meshProg, "u_near"), Math.max(0.1, D - 1 - bloat * 1.35));   // the depth range follows the swell
   gl.uniform1f(gl.getUniformLocation(meshProg, "u_far"), D + 1 + bloat * 1.35);
   gl.drawArrays(gl.TRIANGLES, 0, depthMesh.count);
   gl.disable(gl.DEPTH_TEST);
-  if (loc !== 0) gl.disableVertexAttribArray(loc);
-  if (nloc > 0) gl.disableVertexAttribArray(nloc);
-  if (loc === 0 || nloc === 0) { gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0); }   // hand slot 0 back to the full-screen quad
+  for (const l of locs) if (l !== 0) gl.disableVertexAttribArray(l);
+  if (locs.includes(0)) { gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0); }   // hand slot 0 back to the full-screen quad
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 
@@ -5953,7 +5999,7 @@ const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom
                    "dist", "distort", "screen", "screenAmt", "tex", "texAmt", "distSize", "screenSize", "texSize",
                    "glass", "glassAngle", "glassSeam", "glassSeamW", "gsAngle", "gsRand", "echoSpread", "echoDecay", "echoAngle", "echoDrift", "slitAngle", "sortMode",
                    "geo", "geoN", "geoSpin", "geoGap", "geoTile", "lineW", "fracSeed", "fracKind", "dotKind", "beadBoard", "fabric", "asciiKind",
-                   "dFocus", "dLens", "dRange", "dFlow", "dSweep", "dPar", "dInvert", "dMotion", "dTilt", "dAngle", "dZoom"];
+                   "dFocus", "dLens", "dRange", "dFlow", "dSweep", "dPar", "dInvert", "dMotion", "dTilt", "dAngle", "dZoom", "dBloatKind"];
 const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
 // Groups (the library's categories), in display order. presets/library.json
 // may ship its own list; renames, additions and deletions made here are kept
