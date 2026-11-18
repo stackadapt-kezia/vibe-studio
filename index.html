@@ -1345,12 +1345,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.95";  // Beads: varied sizes and holes, fused where they touch, matte cut faces with blade marks
+const APP_VERSION = "0.9.96";  // Delay TVs play the full frame: counted as outputs, live preview in the Plan
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.96", "Multi-screen: Delay TVs now play the show. Each one takes the full frame, like a Mirror screen, three to a splitter feed, and they count in the Outputs and machines and in the AV spec. In the Plan, every delay TV shows a live preview of what it plays, laid just in front of its face."],
   ["0.9.95", "Beads look more like real ironed perler beads: every bead is its own size with its own size of hole, they sit close enough that many touch, and where two meet they melt into each other the way fused beads do. The cut top is matte now, with only a faint sheen (Shine still adds a little), and carries fine parallel score lines from the blade at a different angle on every bead, which fade out when the beads are too small to show them cleanly."],
   ["0.9.94", "Depth: two more Motions for a model. Bounce shrinks it and sends it travelling round the inside of the frame, coming off the edges and the front and back like a ball in a box; every beat kicks it faster, and it settles back to its cruising speed. Random wanders it along a path that doesn\u2019t repeat for a long while, tumbling loosely as it goes. Speed sets the pace of both. Multi-screen: a scaffold, truss or pipe grid stands on the stage while it\u2019s on the stage and drops to the room floor when dragged off it, in either view. Doors and windows can be dragged in the Plan along any wall of the room, back, left or right, so the entrances read clearly; the selection box has a Wall choice too. Side-wall doors show in the Plan and the spec, not in the elevation, which looks at the back wall."],
   ["0.9.93", "Multi-screen: Elements is split into Stage elements (screens, speakers, cameras, people, rigs), Wall elements (doors and the new Window, with its own width, height and sill) and Room elements (islands, delay TVs, SVG symbols). The Room card comes first, right after Output. Elevation and Plan sit in their own View box with the Grid underlay. Groups is now Screen Groups. The stage\u2019s apron note is an (i) to hover. Backdrops hang to the room floor, behind the stage, instead of starting at stage level. Speaker cabinets and cameras now show in the Plan by their footprint and can be dragged to any depth; one placed downstage of the screens is drawn in front of them in the elevation. AV layout lists every screen with its glass size, pixels and aspect ratio, and the AV spec includes the list. Depth: the Bloat style switch is gone; Bloat (each face domes) and Swell (the whole shape grows) are separate reactivity targets, so either or both can be routed."],
@@ -7102,6 +7103,7 @@ const PLAYS = { displays: "Separate displays", led: "LED panels" };
 function poutputs() {
   let own = 0, feeds = 0;
   for (const g of P.groups) { const n = gscreens(g).length; if (g.mapping === "unified" || g.mapping === "scatter") own += n; else feeds += Math.ceil(n / 3); }
+  feeds += Math.ceil(pislands().filter(i => i.kind === "tv").length / 3);   // delay TVs play the full frame, three to a splitter feed
   return { own, feeds, outputs: own + feeds, machines: Math.ceil((own + feeds) / 3) };
 }
 // sizes in the operator's unit: inches, feet and inches, centimetres, or pixels at the pixel pitch
@@ -7946,6 +7948,15 @@ function drawPileScreens() {
   const now = performance.now() / 1000;
   gl.uniform1f(UP("u_time"), now);
   const UB = pubounds(), tAR = fin.w / fin.h;
+  if (P.vis.devices && pview === "plan") for (const o of pislands()) if (o.kind === "tv") {   // a delay TV plays the full frame: a live preview laid just in front of its face
+    const w = Math.max(24 * pdpr, o.w * psc), h = w * 9 / 16, sar = 16 / 9;
+    let sw = 1, sh = 1; if (sar < tAR) sw = sar / tAR; else sh = tAR / sar;
+    gl.bindTexture(gl.TEXTURE_2D, fin.tex);
+    gl.uniform4f(UP("u_rect"), PX(o.x), PY(pdepth(o)) + h / 2 + 6 * pdpr, w, h);
+    gl.uniform4f(UP("u_src"), (1 - sw) / 2, (1 - sh) / 2, sw, sh);
+    gl.uniform1f(UP("u_dim"), 0); gl.uniform1f(UP("u_dead"), 0);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
   if (!P.vis.devices || pview === "plan") return;    // the plan is a 2D drawing: the GL canvas stays clear
   for (const s of pdrawOrder()) {
     if (s.type !== "screen") continue;
@@ -9522,7 +9533,7 @@ $("copySpec").addEventListener("click", () => {
     "Speaker cabinets (props): " + P.items.filter(i => i.type === "cab").length,
     "Cameras: " + cams.length + (cams.length ? ", " + cams.map(cm => "x " + Math.round(cm.x - f.x0) + " / " + Math.round(cm.y) + "\" up").join("; ") : ""),
     ...(P.items.some(i => i.type === "rig") ? ["Further rigs (centre x from grid left edge): " + P.items.filter(i => i.type === "rig").map(r => (RIGS[r.kind] || RIGS.pipe)[0].toLowerCase() + " " + fmtLen(r.w) + " x " + fmtLen(r.h) + ", " + rigSizeName(rigThick(r)) + " deep, at " + fmtLen(r.x - f.x0) + (pdepth(r) ? ", " + fmtLen(Math.abs(r.depth)) + (r.depth > 0 ? " upstage" : " downstage") : "")).join("; ")] : []),
-    ...(pislands().length ? ["Islands and delay screens: " + pislands().map(o => (o.name || ISLANDS[o.kind][0]) + " " + fmtLen(o.w) + " x " + fmtLen(o.l) + " at x " + fmtLen(o.x - f.x0) + ", " + fmtLen(Math.abs(o.depth || 0)) + ((o.depth || 0) >= 0 ? " upstage" : " downstage")).join("; ") + (phouseOn() && pseating().moved ? "; " + pseating().moved + " seats moved from under them to the back rows" : "")] : []),
+    ...(pislands().length ? ["Islands and delay screens: " + pislands().map(o => (o.name || ISLANDS[o.kind][0]) + " " + fmtLen(o.w) + " x " + fmtLen(o.l) + " at x " + fmtLen(o.x - f.x0) + ", " + fmtLen(Math.abs(o.depth || 0)) + ((o.depth || 0) >= 0 ? " upstage" : " downstage")).join("; ") + (phouseOn() && pseating().moved ? "; " + pseating().moved + " seats moved from under them to the back rows" : "") + (pislands().some(i => i.kind === "tv") ? "; delay TVs play the full frame (Mirror), three to a splitter feed, counted in the outputs" : "")] : []),
     ...(P.items.some(i => i.type === "svg") ? ["Plan symbols: " + P.items.filter(i => i.type === "svg").map(o => (o.name || "symbol") + " " + fmtLen(o.w) + " x " + fmtLen(o.l) + " at x " + fmtLen(o.x - f.x0) + ", " + fmtLen(Math.abs(o.depth || 0)) + ((o.depth || 0) >= 0 ? " upstage" : " downstage")).join("; ")] : []),
     ...(doors.length ? ["Doors (back wall: centre x from grid left edge; side walls: centre from the back wall; on the room floor): " + doors.slice().sort((a, b) => a.x - b.x).map(d => (d.dbl ? "double " : "") + Math.round(d.w) + "\" x " + Math.round(d.h) + "\" " + (pwallSide(d) && proom() ? "in the " + d.wall + " wall, " + fmtLen(proom().back - (d.along || 0)) + " from the back wall" : "at " + fmtLen(d.x - f.x0)) + (d.exit ? ", exit sign" : "")).join("; ")] : []),
     ...(wins.length ? ["Windows: " + wins.map(o => Math.round(o.w) + "\" x " + Math.round(o.h) + "\", sill " + Math.round(o.sill || 0) + "\", at x " + fmtLen(o.x - f.x0)).join("; ")] : []),
