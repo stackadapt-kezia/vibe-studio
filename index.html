@@ -1345,12 +1345,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.94";  // Depth Bounce and Random; rigs off the stage; doors and windows on any wall in the Plan
+const APP_VERSION = "0.9.95";  // Beads: varied sizes and holes, fused where they touch, matte cut faces with blade marks
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.95", "Beads look more like real ironed perler beads: every bead is its own size with its own size of hole, they sit close enough that many touch, and where two meet they melt into each other the way fused beads do. The cut top is matte now, with only a faint sheen (Shine still adds a little), and carries fine parallel score lines from the blade at a different angle on every bead, which fade out when the beads are too small to show them cleanly."],
   ["0.9.94", "Depth: two more Motions for a model. Bounce shrinks it and sends it travelling round the inside of the frame, coming off the edges and the front and back like a ball in a box; every beat kicks it faster, and it settles back to its cruising speed. Random wanders it along a path that doesn\u2019t repeat for a long while, tumbling loosely as it goes. Speed sets the pace of both. Multi-screen: a scaffold, truss or pipe grid stands on the stage while it\u2019s on the stage and drops to the room floor when dragged off it, in either view. Doors and windows can be dragged in the Plan along any wall of the room, back, left or right, so the entrances read clearly; the selection box has a Wall choice too. Side-wall doors show in the Plan and the spec, not in the elevation, which looks at the back wall."],
   ["0.9.93", "Multi-screen: Elements is split into Stage elements (screens, speakers, cameras, people, rigs), Wall elements (doors and the new Window, with its own width, height and sill) and Room elements (islands, delay TVs, SVG symbols). The Room card comes first, right after Output. Elevation and Plan sit in their own View box with the Grid underlay. Groups is now Screen Groups. The stage\u2019s apron note is an (i) to hover. Backdrops hang to the room floor, behind the stage, instead of starting at stage level. Speaker cabinets and cameras now show in the Plan by their footprint and can be dragged to any depth; one placed downstage of the screens is drawn in front of them in the elevation. AV layout lists every screen with its glass size, pixels and aspect ratio, and the AV spec includes the list. Depth: the Bloat style switch is gone; Bloat (each face domes) and Swell (the whole shape grows) are separate reactivity targets, so either or both can be routed."],
   ["0.9.92", "Depth: Bloat now inflates each face of a model like a pillow, its middle doming out while its edges, the seams, stay exactly where they are, so a cube becomes a soft cushion instead of a bigger cube. Big faces dome more than small ones. The old behaviour, the whole shape swelling outward with a ripple, is still there as Bloat style: Swell. Faces shows best on low-poly models; a very dense model (over about 400,000 triangles) can\u2019t be split finely enough, so it swells instead, and the note under the loader says so."],
@@ -3184,7 +3185,21 @@ void main() {
     vec2 cuv = c / n / vec2(ca, 1.0) + 0.5;
     float l = fld(cuv, T);
     float r = length(cf);
-    float ro = 0.46, ri = 0.165, px = n / u_res.y;    // one screen pixel, in cells
+    // no two beads alike: each has its own outer size and hole, and they sit close enough that many touch
+    float ro = 0.475 + (hash2(c * 3.9 + 1.3) - 0.5) * 0.11, ri = 0.165 + (hash2(c * 5.3 + 7.1) - 0.5) * 0.07, px = n / u_res.y;   // one screen pixel, in cells
+    // the neighbour this point leans toward: where two beads meet, ironing melts them into one another
+    vec2 nb;
+    if (u_beadBoard == 1) {
+      const vec2 A2 = vec2(1.0, 1.73205);
+      vec2 d1 = floor(q / A2 + 0.5) * A2, d2 = floor((q - A2 * 0.5) / A2 + 0.5) * A2 + A2 * 0.5;
+      nb = dot(c - d1, c - d1) < 0.01 ? d2 : d1;
+    } else nb = c + (abs(cf.x) > abs(cf.y) ? vec2(sign(cf.x), 0.0) : vec2(0.0, sign(cf.y)));
+    vec2 njit = (vec2(hash2(nb * 1.7 + 3.1), hash2(nb * 2.3 + 9.7)) - 0.5) * 0.04;
+    float rn = length(q - nb - njit), ron = 0.475 + (hash2(nb * 3.9 + 1.3) - 0.5) * 0.11;
+    float da = r - ro, db = rn - ron, kf = 0.07;
+    float hm = clamp(0.5 + 0.5 * (db - da) / kf, 0.0, 1.0);
+    float sd = mix(db, da, hm) - kf * hm * (1.0 - hm);   // smooth union: a melted bridge where they meet
+    r = ro + sd;                                     // from here on the bead's edge is the fused outline
     vec2 ld = vec2(-0.625, 0.78);                     // where the light is, on the board
     vec2 view = vec2(0.18, -0.26);                    // the eye sits a little below and right of straight above
     vec2 dirc = r > 0.001 ? cf / r : vec2(0.0);
@@ -3196,9 +3211,13 @@ void main() {
     if (u_bands >= 2.0) plastic = pal((1.0 - l) * u_palEnd);   // Bands set: posterise the ramp instead
     vec3 milk = mix(plastic, vec3(1.0), 0.14);        // the plastic is milky, not solid
     // the top face: translucent, paler toward the rim and the hole where the wall glows, a soft gloss toward the light
-    float glow = smoothstep(ro - 0.14, ro, r) * 0.22 + smoothstep(ri + 0.1, ri, r) * 0.16;
-    float gloss = pow(max(0.0, 1.0 - length(cf - ld * 0.17) / 0.45), 3.0) * (0.1 + 0.45 * u_warp);
-    vec3 face = milk * (0.86 + 0.14 * clamp(dot(cf / ro, ld), -1.0, 1.0)) + plastic * glow + vec3(gloss);
+    float glow = smoothstep(ro - 0.14, ro, r) * 0.14 + smoothstep(ri + 0.1, ri, r) * 0.1;
+    float gloss = pow(max(0.0, 1.0 - length(cf - ld * 0.17) / 0.45), 3.0) * (0.03 + 0.16 * u_warp);   // the cut face is matte: only a faint sheen
+    vec3 face = milk * (0.88 + 0.12 * clamp(dot(cf / ro, ld), -1.0, 1.0)) + plastic * glow + vec3(gloss);
+    // blade marks: fine parallel scores across the cut face, at each bead's own angle
+    float ha = hash2(c * 7.7 + 2.9) * 3.14159, hf = min(70.0, 2.2 / px);
+    float hatch = abs(sin(dot(cf, vec2(cos(ha), sin(ha))) * hf + hash2(c * 4.1) * 6.28));
+    face *= 1.0 - 0.07 * smoothstep(0.75, 1.0, hatch) * smoothstep(1.6, 3.5, 6.28 / hf / px);   // faded out before the lines would alias
     // hard edges: a dark line at the rim and at the hole, one pixel and a half wide
     float rimLine = 1.0 - smoothstep(0.0, 1.5 * px, abs(r - ro));
     float holeLine = 1.0 - smoothstep(0.0, 1.5 * px, abs(r - ri));
