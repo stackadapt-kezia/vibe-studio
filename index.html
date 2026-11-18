@@ -1345,12 +1345,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.93";  // Elements in sections with windows, View box, Room first, backdrop to the floor, speakers in plan, Bloat and Swell routes
+const APP_VERSION = "0.9.94";  // Depth Bounce and Random; rigs off the stage; doors and windows on any wall in the Plan
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.94", "Depth: two more Motions for a model. Bounce shrinks it and sends it travelling round the inside of the frame, coming off the edges and the front and back like a ball in a box; every beat kicks it faster, and it settles back to its cruising speed. Random wanders it along a path that doesn\u2019t repeat for a long while, tumbling loosely as it goes. Speed sets the pace of both. Multi-screen: a scaffold, truss or pipe grid stands on the stage while it\u2019s on the stage and drops to the room floor when dragged off it, in either view. Doors and windows can be dragged in the Plan along any wall of the room, back, left or right, so the entrances read clearly; the selection box has a Wall choice too. Side-wall doors show in the Plan and the spec, not in the elevation, which looks at the back wall."],
   ["0.9.93", "Multi-screen: Elements is split into Stage elements (screens, speakers, cameras, people, rigs), Wall elements (doors and the new Window, with its own width, height and sill) and Room elements (islands, delay TVs, SVG symbols). The Room card comes first, right after Output. Elevation and Plan sit in their own View box with the Grid underlay. Groups is now Screen Groups. The stage\u2019s apron note is an (i) to hover. Backdrops hang to the room floor, behind the stage, instead of starting at stage level. Speaker cabinets and cameras now show in the Plan by their footprint and can be dragged to any depth; one placed downstage of the screens is drawn in front of them in the elevation. AV layout lists every screen with its glass size, pixels and aspect ratio, and the AV spec includes the list. Depth: the Bloat style switch is gone; Bloat (each face domes) and Swell (the whole shape grows) are separate reactivity targets, so either or both can be routed."],
   ["0.9.92", "Depth: Bloat now inflates each face of a model like a pillow, its middle doming out while its edges, the seams, stay exactly where they are, so a cube becomes a soft cushion instead of a bigger cube. Big faces dome more than small ones. The old behaviour, the whole shape swelling outward with a ripple, is still there as Bloat style: Swell. Faces shows best on low-poly models; a very dense model (over about 400,000 triangles) can\u2019t be split finely enough, so it swells instead, and the note under the loader says so."],
   ["0.9.91", "Multi-screen: Elements adds AV island, Camera island and Delay TV, as many of each as you like. They live in the plan and go anywhere in the room, including far off the stage at the back of the house: drag to place, drag the edges to size, name each one in its box, and Option-drag or Duplicate to copy. A Delay TV is a screen on a stand for the back rows, drawn with its bright face towards them. Seats under an island (with 18 inches round it) are taken out and the same number added back at the back of the seating, a row at a time, so the count holds; banquet and cabaret rounds move whole tables. The plan and the spec say how many seats moved. The AV island field in the Room card is gone: a layout that had an island keeps it as an element."],
@@ -1585,7 +1586,7 @@ const LOOK = [
   ["dFlow", "Colour flow", 0, 1, 0.01, v => v.toFixed(2)],
   ["dSweep", "Light sweep", 0, 1, 0.01, v => v.toFixed(2)],
   ["dPar", "Parallax", 0, 1, 0.01, v => v.toFixed(2)],
-  ["dMotion", "Motion", 0, 3, 1, v => MESH_MOTIONS[v] || "Spin"],
+  ["dMotion", "Motion", 0, 5, 1, v => MESH_MOTIONS[v] || "Spin"],
   ["dTilt", "Tilt", -60, 60, 1, v => v + "\u00b0"],
   ["dAngle", "Angle", -180, 180, 1, v => v + "\u00b0"],
   ["dZoom", "Zoom", 0.6, 1.6, 0.01, v => v.toFixed(2) + "\u00d7"],
@@ -1607,7 +1608,7 @@ const TARGETS = {
   distort: "Distort", warp: "Warp", trails: "Trails", push: "Push", spin: "Spin", echo: "Echo",
   zoom: "Zoom", fringe: "Fringe", screen: "Screen", texture: "Texture", blur: "Blur", geo: "Geometry", weight: "Weight", focus: "Focus", bloat: "Bloat", swell: "Swell",
 };
-const MESH_MOTIONS = ["Spin", "Swing", "Step to beat", "Tumble"];
+const MESH_MOTIONS = ["Spin", "Swing", "Step to beat", "Tumble", "Bounce", "Random"];
 // Size and Warp say what they mean for the pattern on stage (Bead size, Shine, Yarn...)
 function targetLabels() {
   const s = state.style, out = { ...TARGETS };
@@ -4862,6 +4863,9 @@ const m4rotZ = a => new Float32Array([Math.cos(a), Math.sin(a), 0, 0, -Math.sin(
 const m4trans = (x, y, z) => new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1]);
 // Step to beat: each beat turns the model a further eighth, eased in
 let meshYaw = 0, meshStep = 0, meshBeat = 0;
+// Bounce: the model, scaled down, travels inside the frame's box and comes off its walls; a beat kicks it
+let meshP = [0, 0, 0], meshV = [0.62, 0.41, 0.27], meshNow = 0;
+const m4scale = k => new Float32Array([k, 0, 0, 0, 0, k, 0, 0, 0, 0, k, 0, 0, 0, 0, 1]);
 function renderMeshDepth() {
   if (!meshProg) {
     meshProg = program(MESH_FRAG, MESH_VERT);
@@ -4891,6 +4895,22 @@ function renderMeshDepth() {
     if (meshStep > 40) { meshStep -= 8 * Math.PI; meshYaw -= 8 * Math.PI; }                            // keep the angles small over hours
     model = m4mul(m4rotX(tilt), m4rotY(meshYaw));
   } else if (mo === 3) model = m4mul(m4rotX(tilt), m4mul(m4rotY(T * 0.3), m4mul(m4rotX(T * 0.21), m4rotZ(Math.sin(T * 0.13) * 0.6))));   // Tumble
+  else if (mo === 4 || mo === 5) {                                                                    // Bounce and Random travel inside the frame
+    const sc = 0.42, hy = D * Math.tan(0.36), hx = hy * MESH_W / MESH_H, bx = Math.max(0.05, hx - sc), by = Math.max(0.05, hy - sc), bz = 0.55;
+    let pos;
+    if (mo === 4) {
+      const now = performance.now(), dt = Math.min(0.05, Math.max(0, (now - (meshNow || now)) / 1000)) * Math.max(0.1, state.speed || 1); meshNow = now;
+      if (lastBeat !== meshBeat) { meshBeat = lastBeat; meshV = meshV.map(v => v * 1.8); }          // a beat kicks it
+      const sp = Math.hypot(...meshV) || 1; meshV = meshV.map(v => v * (1 + (0.8 / sp - 1) * 0.03));   // and it settles back to its cruising speed
+      const lim = [bx, by, bz];
+      for (let k = 0; k < 3; k++) { meshP[k] += meshV[k] * dt; if (meshP[k] > lim[k]) { meshP[k] = lim[k]; meshV[k] = -Math.abs(meshV[k]); } if (meshP[k] < -lim[k]) { meshP[k] = -lim[k]; meshV[k] = Math.abs(meshV[k]); } }
+      pos = meshP;
+      model = m4mul(m4trans(pos[0], pos[1], pos[2]), m4mul(m4rotX(tilt), m4mul(m4rotY(T * 0.4), m4scale(sc))));
+    } else {                                                                                           // Random: a wandering path and a loose tumble, never repeating soon
+      pos = [bx * (0.7 * Math.sin(T * 0.31) + 0.3 * Math.sin(T * 0.83 + 1.3)), by * (0.6 * Math.sin(T * 0.27 + 2.1) + 0.4 * Math.sin(T * 0.71)), bz * Math.sin(T * 0.19 + 0.7)];
+      model = m4mul(m4trans(pos[0], pos[1], pos[2]), m4mul(m4rotX(tilt + Math.sin(T * 0.29) * 1.2), m4mul(m4rotY(T * 0.37 + Math.sin(T * 0.21) * 2), m4mul(m4rotZ(Math.sin(T * 0.17 + 2) * 0.8), m4scale(sc)))));
+    }
+  }
   else model = m4mul(m4rotX(tilt), m4rotY(T * 0.3));                                                  // Spin: the turntable
   model = m4mul(model, m4rotY(ang));
   const mv = m4mul(m4trans(0, 0, -D), model);
@@ -7168,6 +7188,8 @@ const pdepth = it => it.depth || 0;
 // plan elements: footprints that live in the plan only, anywhere in the room (SVG symbols, and islands)
 const ISLANDS = { av: ["AV island", 144, 96], cam: ["Camera island", 96, 96], tv: ["Delay TV", 66, 24] };   // name, width, depth in inches
 const planEl = it => it.type === "svg" || it.type === "island";
+// a rig stands on the deck while it is over it (across and, in the plan, front to back), else on the room floor
+const ponDeck = it => !(pstageH() > 0) || (Math.abs(it.x - pstageCX()) + it.w / 2 <= pstageW() / 2 + 1 && pdepth(it) >= pdeckFront() - 1 && pdepth(it) <= pdeckBack() + 1);
 const planBox = it => it.type === "cab" || it.type === "camera";   // drawn in the elevation and, by their footprint, in the plan
 const pfootL = it => it.type === "cab" ? Math.max(12, Math.round(it.w * 0.9)) : 10;   // how deep a cabinet or camera is, front to back
 // in front of the screens: a cabinet or camera downstage of every screen draws over them in the elevation
@@ -7248,7 +7270,7 @@ function pserialize() {
     groups: P.groups.map(g => ({ id: g.id, name: g.name, mapping: g.mapping, direct: !!g.direct, source: g.source, presets: g.presets })),   // source ids are per session
     maps: P.maps, pitch: P.pitch, play: P.play, plan: P.plan, room: P.room,
     items: P.items.map(it => it.type === "camera" ? { type: "camera", x: pr1(it.x), y: pr1(it.y), depth: it.depth ? Math.round(it.depth) : undefined } : it.type === "person" ? { type: "person", x: pr1(it.x), y: 0, ht: it.ht, col: it.col || PERSON_COL } : it.type === "door" ? { type: "door", x: pr1(it.x), y: 0, w: pr1(it.w), h: pr1(it.h), dbl: !!it.dbl, exit: !!it.exit, win: it.win ? true : undefined, sill: it.win ? it.sill : undefined, wall: it.wall && it.wall !== "back" ? it.wall : undefined, along: it.wall && it.wall !== "back" ? pr1(it.along || 0) : undefined }
-      : it.type === "rig" ? { type: "rig", kind: it.kind, x: pr1(it.x), y: 0, w: pr1(it.w), h: pr1(it.h), pitch: it.pitch, rail: it.rail, thick: rigThick(it), depth: it.depth ? Math.round(it.depth) : undefined }
+      : it.type === "rig" ? { type: "rig", kind: it.kind, x: pr1(it.x), y: pr1(it.y || 0), w: pr1(it.w), h: pr1(it.h), pitch: it.pitch, rail: it.rail, thick: rigThick(it), depth: it.depth ? Math.round(it.depth) : undefined }
       : it.type === "svg" ? { type: "svg", media: it.media, name: it.name, x: pr1(it.x), y: 0, depth: Math.round(it.depth || 0), w: pr1(it.w), l: pr1(it.l) }
       : it.type === "island" ? { type: "island", kind: it.kind, name: it.name, x: pr1(it.x), y: 0, depth: Math.round(it.depth || 0), w: pr1(it.w), l: pr1(it.l) } : it.type === "cab"
       ? { type: "cab", x: pr1(it.x), y: pr1(it.y), w: pr1(it.w), h: pr1(it.h), wood: !!it.wood, depth: it.depth ? Math.round(it.depth) : undefined }
@@ -7315,7 +7337,7 @@ function pmigrateAv() {
 function psettle() {
   for (const it of P.items) if (it.type === "door") it.y = -pstageH() + (it.win ? it.sill || 0 : 0);   // a door on the room floor, a window at its sill
   P.frame.thick = rigSnap(P.frame.kind, rigThick(P.frame));                      // a rig's structure is always a standard section
-  for (const it of P.items) if (it.type === "rig") it.thick = rigSnap(it.kind, rigThick(it));
+  for (const it of P.items) if (it.type === "rig") { it.thick = rigSnap(it.kind, rigThick(it)); it.y = ponDeck(it) ? 0 : -pstageH(); }
   papronSync(); if (typeof pclampAll === "function") pclampAll(); }
 function psave() { try { localStorage.setItem(PSTORE, pserialize()); } catch (e) { /* storage blocked */ } }
 function pcommit() {
@@ -7403,7 +7425,7 @@ function pfit() {
   pInsetKey = Math.round(ins.l) + "," + Math.round(ins.b);
   if (pview === "plan") { pfitPlan(ins); return; }
   const B = pbounds(), o = P.bg.backdrop !== "none" ? P.bg.overhang : 0, bdx = pbdX();
-  const people = P.items.filter(i => i.type === "person" || i.type === "door");   // framed, though not measured
+  const people = P.items.filter(i => i.type === "person" || (i.type === "door" && !pwallSide(i)));   // framed, though not measured
   const pMin = Math.min(Infinity, ...people.map(i => i.x - pdims(i).w / 2)), pMax = Math.max(-Infinity, ...people.map(i => i.x + pdims(i).w / 2));
   const sMin = pstageH() > 0 ? pstageCX() - pstageW() / 2 - 12 : Infinity, sMax = pstageH() > 0 ? pstageCX() + pstageW() / 2 + 12 : -Infinity;
   const RW = proom();                                 // the room's walls stay in frame too
@@ -7530,6 +7552,35 @@ function drawPileBg() {
   if (P.vis.devices) for (const it of pdrawOrder()) if (!pinFront(it) && !pwallSide(it)) pdrawElevItem(c, it, dim);
 }
 const pwallSide = it => it.type === "door" && it.wall && it.wall !== "back";   // on a side wall: only the plan shows it
+// a door or window under a plan point, by the wall it is set in (a room is needed for walls)
+function pwallAt(w) {
+  const R = proom(); if (!R || !P.vis.devices) return null;
+  const t = Math.max(12, 8 * pdpr / psc);
+  return P.items.find(d => {
+    if (d.type !== "door") return false;
+    const wl = d.wall || "back";
+    if (wl === "back") return Math.abs(w.y - R.back) <= t && Math.abs(w.x - d.x) <= d.w / 2;
+    const wx = wl === "left" ? R.x0 : R.x1;
+    return Math.abs(w.x - wx) <= t && Math.abs(w.y - (d.along || 0)) <= d.w / 2;
+  }) || null;
+}
+// drag along the walls: the nearest wall to the pointer takes it
+function pwallSel(it) {
+  const el = $("selWall"); if (!el) return;
+  el.value = it.wall || "back";
+  el.onchange = e => {
+    const R = proom(); it.wall = e.target.value;
+    if (it.wall !== "back" && R && !(it.along > R.front && it.along < R.back)) it.along = Math.round((R.front + R.back) / 2);   // into the middle of that wall
+    if (it.wall !== "back" && pview !== "plan") { pview = "plan"; try { localStorage.setItem("vibe.pileView", "plan"); } catch (x) { /* storage blocked */ } pzoomReset(); }
+    pcommit(); psyncSel(true);
+  };
+}
+function pmoveWall(d, w) {
+  const R = proom(); if (!R) return;
+  const db = Math.abs(w.y - R.back), dl = Math.abs(w.x - R.x0), dr = Math.abs(w.x - R.x1), hw = d.w / 2;
+  if (db <= dl && db <= dr) { d.wall = "back"; d.x = Math.round(pwithin(w.x, R.x0 + hw, R.x1 - hw) * 2) / 2; }
+  else { d.wall = dl < dr ? "left" : "right"; d.along = Math.round(pwithin(w.y, R.front + hw, R.back - hw) * 2) / 2; }
+}
 function pdrawElevItem(c, it, dim) {
   {
     const d = pdims(it), x = PX(it.x - d.w / 2), y = PY(it.y + d.h), w = d.w * psc, h = d.h * psc;
@@ -7557,7 +7608,7 @@ function pdrawElevItem(c, it, dim) {
     } else if (it.type === "door") {
       drawDoor(c, it, x, y, w, h);
     } else if (it.type === "rig") {
-      drawRig(c, dim, prigF(it));
+      const pf = pfloor; pfloor -= (it.y || 0) * psc; drawRig(c, dim, prigF(it)); pfloor = pf;   // on the floor, off the stage: drawn that much lower
     } else if (planEl(it)) {
       // a plan symbol or island: see drawPlan
     } else if (it.type === "camera") {                 // a small box with a lens
@@ -8462,19 +8513,21 @@ function drawPlan() {
   if (R) {
     const x = PX(R.x0), y = PY(R.back), w = (R.x1 - R.x0) * psc, h = (R.back - R.front) * psc, wall = Math.max(3 * pdpr, 6 * psc);
     c.strokeStyle = "#9AA0AC"; c.lineWidth = wall; c.strokeRect(x, y, w, h);
-    for (const dr of P.items) if (dr.type === "door" && dr.win) {   // a window: glass lines along the wall
-      const dx = PX(dr.x - dr.w / 2), dw = dr.w * psc;
-      c.fillStyle = "#0E1016"; c.fillRect(dx, y - wall / 2, dw, wall);
-      c.strokeStyle = "#9FC3E8"; c.lineWidth = pdpr; c.beginPath(); c.moveTo(dx, y - wall / 4); c.lineTo(dx + dw, y - wall / 4); c.moveTo(dx, y + wall / 4); c.lineTo(dx + dw, y + wall / 4); c.stroke();
-      c.strokeStyle = "#9AA0AC";
-    }
-    for (const dr of P.items) if (dr.type === "door" && !dr.win) {        // a gap in the back wall and a swing arc into the room
-      const dx = PX(dr.x - dr.w / 2), dw = dr.w * psc;
-      c.fillStyle = "#0E1016"; c.fillRect(dx, y - wall, dw, wall * 2);
-      c.strokeStyle = "rgba(154,160,172,0.6)"; c.lineWidth = pdpr; c.beginPath();
-      if (dr.dbl) { c.arc(dx, y, dw / 2, Math.PI / 2, 0, true); c.moveTo(dx + dw, y); c.arc(dx + dw, y, dw / 2, Math.PI / 2, Math.PI); }
-      else c.arc(dx, y, dw, Math.PI / 2, 0, true);
-      c.stroke();
+    for (const dr of P.items) if (dr.type === "door") {        // doors and windows, set into whichever wall they are on
+      const wl = dr.wall || "back", dw = dr.w * psc, isSel = pselHas(dr);
+      const ax = wl === "back" ? PX(dr.x) : PX(wl === "left" ? R.x0 : R.x1), ay = wl === "back" ? y : PY(dr.along || 0);
+      c.save(); c.translate(ax, ay); c.rotate(wl === "left" ? -Math.PI / 2 : wl === "right" ? Math.PI / 2 : 0);   // local x along the wall, local y into the room
+      c.fillStyle = "#0E1016"; c.fillRect(-dw / 2, -wall, dw, wall * 2);
+      if (dr.win) {
+        c.strokeStyle = "#9FC3E8"; c.lineWidth = pdpr; c.beginPath(); c.moveTo(-dw / 2, -wall / 4); c.lineTo(dw / 2, -wall / 4); c.moveTo(-dw / 2, wall / 4); c.lineTo(dw / 2, wall / 4); c.stroke();
+      } else {
+        c.strokeStyle = "rgba(154,160,172,0.6)"; c.lineWidth = pdpr; c.beginPath();
+        if (dr.dbl) { c.arc(-dw / 2, 0, dw / 2, Math.PI / 2, 0, true); c.moveTo(dw / 2, 0); c.arc(dw / 2, 0, dw / 2, Math.PI / 2, Math.PI); }
+        else c.arc(-dw / 2, 0, dw, Math.PI / 2, 0, true);
+        c.stroke();
+      }
+      if (isSel || phover === dr) { c.strokeStyle = isSel ? "#7FDFFD" : "rgba(127,223,253,0.55)"; c.lineWidth = 2 * pdpr; c.strokeRect(-dw / 2, -wall * 1.5, dw, wall * 3); }
+      c.restore();
       c.strokeStyle = "#9AA0AC";
     }
     plabel("Room " + fmtLen(R.x1 - R.x0) + " wide \u00d7 " + fmtLen(R.back - R.front) + " deep" + (P.bg.ceiling > 0 ? " \u00d7 " + fmtLen(P.bg.ceiling) + " high" : "") + (pstageOn() ? " \u00b7 stage " : " \u00b7 screens ") + fmtLen(R.back - pdeckBack()) + " off the back wall", x + w / 2, y + h - 14 * pdpr, font);
@@ -8551,7 +8604,7 @@ function pitemAt(w) {
   const hit = it => { const d = pdims(it); return Math.abs(w.x - it.x) <= d.w / 2 && w.y >= it.y && w.y <= it.y + d.h; };
   const ord = pdrawOrder();                         // the last drawn is in front
   for (let i = ord.length - 1; i >= 0; i--) if (ord[i].type === "person" && hit(ord[i])) return ord[i];   // people stand in front of everything
-  for (let i = ord.length - 1; i >= 0; i--) if (ord[i].type !== "person" && ord[i].type !== "rig" && !planEl(ord[i]) && hit(ord[i])) return ord[i];
+  for (let i = ord.length - 1; i >= 0; i--) if (ord[i].type !== "person" && ord[i].type !== "rig" && !planEl(ord[i]) && !pwallSide(ord[i]) && hit(ord[i])) return ord[i];
   for (let i = ord.length - 1; i >= 0; i--) if (ord[i].type === "rig" && hit(ord[i])) return ord[i];   // a rig is behind whatever hangs on it
   return null;
 }
@@ -8578,7 +8631,7 @@ function pcopySelection(it) {
 // dragging the deck carries the build: the grid and everything standing on the deck (not the room's doors) ride with it
 function pstageDrag(w) {
   const cx = pstageCX(), hw = pstageW() / 2;
-  const riders = P.items.filter(it => it.type !== "door" && Math.abs(it.x - cx) <= hw + pdims(it).w / 2).map(it => ({ it, x0: it.x }));
+  const riders = P.items.filter(it => it.type !== "door" && !planEl(it) && !(it.type === "rig" && it.y < 0) && Math.abs(it.x - cx) <= hw + pdims(it).w / 2).map(it => ({ it, x0: it.x }));
   return { type: "stage-move", w0: w, cx0: cx, f0: P.frame.x0, riders };
 }
 // the picked item comes to the front: selecting is how overlaps are ordered
@@ -8596,8 +8649,9 @@ const pinFrame = w => w.x >= P.frame.x0 - 2 && w.x <= P.frame.x0 + P.frame.w + 2
 pileFg.addEventListener("pointerdown", e => {
   const { px, py } = pev(e), w = pworld(px, py), h = phandleAt(px, py);
   if (pview === "plan") {                            // in the plan: screens move sideways and in depth, the deck's edges resize it, the island and the seating drag
-    const it = pplanAt(w);
-    if (h && psel && psel.kind === "item" && planEl(psel.it)) { const o = psel.it; pdrag = { type: "plan-sym-edge", k: h.k, it: o, x0: o.x - o.w / 2, x1: o.x + o.w / 2, d0: pdepth(o), d1: pdepth(o) + o.l }; }
+    const it = pplanAt(w), wd = h ? null : pwallAt(w);
+    if (wd && !it) { if (!pselHas(wd)) psel = { kind: "item", it: wd, more: [] }; pdrag = { type: "plan-wall", it: wd }; }
+    else if (h && psel && psel.kind === "item" && planEl(psel.it)) { const o = psel.it; pdrag = { type: "plan-sym-edge", k: h.k, it: o, x0: o.x - o.w / 2, x1: o.x + o.w / 2, d0: pdepth(o), d1: pdepth(o) + o.l }; }
     else if (h && psel && psel.kind === "av") pdrag = { type: "plan-av-edge", k: h.k, r0: pavRect() };
     else if (h) pdrag = { type: "plan-stage-edge", k: h.k, w0: pstageW(), x0: P.bg.stageX || 0, d0: pstageD(), front0: pdeckFront(), bc0: P.bg.backClear || 48 };
     else if (it && e.shiftKey) { if (!pselToggle(it)) { psyncSel(); return; } pdrag = { type: "plan-move", it, w0: w, x0: it.x, d0: pdepth(it), others: pothers(it) }; }
@@ -8705,6 +8759,8 @@ pileFg.addEventListener("pointermove", e => {
     P.plan.avX = Math.round(psnapCentre(want) - pstageCX());
     P.plan.avD = Math.max(0, Math.round(pdrag.d0 - (w.y - pdrag.w0.y)));                // dragging downstage (down the canvas) puts it further behind the row
     pileFg.style.cursor = "grabbing";
+  } else if (pdrag.type === "plan-wall") {
+    pmoveWall(pdrag.it, w); pileFg.style.cursor = "grabbing";
   } else if (pdrag.type === "plan-sym-edge") {
     const k = pdrag.k, o = pdrag.it, cx = (pdrag.x0 + pdrag.x1) / 2, cd = (pdrag.d0 + pdrag.d1) / 2;
     let { x0, x1, d0, d1 } = pdrag;
@@ -8741,12 +8797,13 @@ pileFg.addEventListener("pointermove", e => {
     }
     if (ny * psc < 10 * pdpr) ny = 0;
     if (it.type === "door") ny = -pstageH() + (it.win ? it.sill || 0 : 0);   // a door is part of the room: it stays on the room floor (a window at its sill)
+    if (it.type === "rig") ny = ponDeck({ ...it, x: nx }) ? 0 : -pstageH();     // a rig drops to the floor off the stage
     const centred = psnapCentre(nx) !== nx; if (centred) nx = psnapCentre(nx);   // across the room's centre line: settle on it
     it.x = centred ? Math.round(nx * 10) / 10 : Math.round(nx * 2) / 2; it.y = Math.round(ny * 2) / 2;
     const dx = it.x - pdrag.x0, dy = it.y - pdrag.y0;                        // the rest of the selection follows by the same step
     for (const o of pdrag.others || []) {
       o.it.x = Math.round((o.x0 + dx) * 2) / 2;
-      o.it.y = o.it.type === "door" ? -pstageH() + (o.it.win ? o.it.sill || 0 : 0) : Math.max(0, Math.round((o.y0 + dy) * 2) / 2);
+      o.it.y = o.it.type === "door" ? -pstageH() + (o.it.win ? o.it.sill || 0 : 0) : o.it.type === "rig" ? (ponDeck(o.it) ? 0 : -pstageH()) : Math.max(0, Math.round((o.y0 + dy) * 2) / 2);
     }
     pileFg.style.cursor = "grabbing";
   } else if (pdrag.type === "resize") {
@@ -8885,7 +8942,7 @@ function pselTitle() {
     : it.type === "person" ? ["Person", fmtLen(it.ht) + " tall"]
     : it.type === "door" && it.win ? ["Window", Math.round(it.w) + "\u2033 \u00d7 " + Math.round(it.h) + "\u2033", "sill " + Math.round(it.sill || 0) + "\u2033 off the floor"]
     : it.type === "door" ? [(it.dbl ? "Double door" : "Door"), Math.round(it.w) + "\u2033 \u00d7 " + Math.round(it.h) + "\u2033", "on the room floor"]
-    : it.type === "rig" ? [(RIGS[it.kind] || RIGS.pipe)[0], fmtLen(it.w) + " wide", fmtLen(it.h) + " tall", rigSizeName(rigThick(it)) + " deep", pdepth(it) ? ftHint(Math.abs(it.depth)) + (it.depth > 0 ? " upstage" : " downstage") : ""]
+    : it.type === "rig" ? [(RIGS[it.kind] || RIGS.pipe)[0] + (it.y < 0 ? " \u00b7 on the room floor" : ""), fmtLen(it.w) + " wide", fmtLen(it.h) + " tall", rigSizeName(rigThick(it)) + " deep", pdepth(it) ? ftHint(Math.abs(it.depth)) + (it.depth > 0 ? " upstage" : " downstage") : ""]
     : it.type === "svg" ? [it.name || "Symbol", fmtLen(it.w) + " \u00d7 " + fmtLen(it.l), "plan symbol"]
     : it.type === "island" ? [it.name || ISLANDS[it.kind][0], fmtLen(it.w) + " \u00d7 " + fmtLen(it.l), fmtLen(Math.abs(pdepth(it))) + (pdepth(it) >= 0 ? " upstage" : " downstage")]
     : ["Camera", ftHint(it.y) + " up"];
@@ -9003,20 +9060,24 @@ function psyncSel(full = true) {
     box.innerHTML = '<div class="t"></div>'
       + '<div class="row"><label for="selW">Width (in)</label><input type="number" class="num wide" id="selW" min="12" max="600" value="' + Math.round(it.w) + '"></div>'
       + '<div class="row"><label for="selH">Height (in)</label><input type="number" class="num wide" id="selH" min="12" max="240" value="' + Math.round(it.h) + '"></div>'
+      + '<div class="row"><label for="selWall">Wall</label><select id="selWall"' + (proom() ? "" : ' disabled title="Set the room\u2019s width and depth to use the side walls"') + '><option value="back">Back</option><option value="left">Left</option><option value="right">Right</option></select></div>'
       + '<div class="row"><label for="selSill">Sill (in)</label><input type="number" class="num wide" id="selSill" min="0" max="240" value="' + Math.round(it.sill || 0) + '"></div>'
       + '<div class="btnrow"><button class="pill" id="selDup">Duplicate</button><button class="pill" id="selDel">Remove</button></div>';
     $("selW").onchange = e => { it.w = Math.max(12, Math.min(600, Math.round(+e.target.value) || it.w)); pcommit(); };
     $("selH").onchange = e => { it.h = Math.max(12, Math.min(240, Math.round(+e.target.value) || it.h)); pcommit(); };
+    pwallSel(it);
     $("selSill").onchange = e => { it.sill = Math.max(0, Math.min(240, Math.round(+e.target.value) || 0)); pcommit(); };
   } else if (it.type === "door") {
     box.innerHTML = '<div class="t"></div>'
       + '<div class="row"><label for="selW">Width (in)</label><input type="number" class="num wide" id="selW" min="18" max="240" value="' + Math.round(it.w) + '"></div>'
       + '<div class="row"><label for="selH">Height (in)</label><input type="number" class="num wide" id="selH" min="60" max="240" value="' + Math.round(it.h) + '"></div>'
+      + '<div class="row"><label for="selWall">Wall</label><select id="selWall"' + (proom() ? "" : ' disabled title="Set the room\u2019s width and depth to use the side walls"') + '><option value="back">Back</option><option value="left">Left</option><option value="right">Right</option></select></div>'
       + '<label class="check"><input type="checkbox" id="selDbl"' + (it.dbl ? " checked" : "") + "> Double door</label>"
       + '<label class="check"><input type="checkbox" id="selExit"' + (it.exit ? " checked" : "") + "> Exit sign above</label>"
       + '<div class="btnrow"><button class="pill" id="selDup">Duplicate</button><button class="pill" id="selDel">Remove</button></div>';
     $("selW").onchange = e => { it.w = Math.max(18, Math.min(240, Math.round(+e.target.value) || it.w)); pcommit(); };
     $("selH").onchange = e => { it.h = Math.max(60, Math.min(240, Math.round(+e.target.value) || it.h)); pcommit(); };
+    pwallSel(it);
     $("selDbl").onchange = e => { it.dbl = e.target.checked; if (it.dbl && it.w < 60) it.w = 72; pcommit(); psyncSel(true); };
     $("selExit").onchange = e => { it.exit = e.target.checked; pcommit(); };
   } else if (it.type === "person") {
@@ -9444,7 +9505,7 @@ $("copySpec").addEventListener("click", () => {
     ...(P.items.some(i => i.type === "rig") ? ["Further rigs (centre x from grid left edge): " + P.items.filter(i => i.type === "rig").map(r => (RIGS[r.kind] || RIGS.pipe)[0].toLowerCase() + " " + fmtLen(r.w) + " x " + fmtLen(r.h) + ", " + rigSizeName(rigThick(r)) + " deep, at " + fmtLen(r.x - f.x0) + (pdepth(r) ? ", " + fmtLen(Math.abs(r.depth)) + (r.depth > 0 ? " upstage" : " downstage") : "")).join("; ")] : []),
     ...(pislands().length ? ["Islands and delay screens: " + pislands().map(o => (o.name || ISLANDS[o.kind][0]) + " " + fmtLen(o.w) + " x " + fmtLen(o.l) + " at x " + fmtLen(o.x - f.x0) + ", " + fmtLen(Math.abs(o.depth || 0)) + ((o.depth || 0) >= 0 ? " upstage" : " downstage")).join("; ") + (phouseOn() && pseating().moved ? "; " + pseating().moved + " seats moved from under them to the back rows" : "")] : []),
     ...(P.items.some(i => i.type === "svg") ? ["Plan symbols: " + P.items.filter(i => i.type === "svg").map(o => (o.name || "symbol") + " " + fmtLen(o.w) + " x " + fmtLen(o.l) + " at x " + fmtLen(o.x - f.x0) + ", " + fmtLen(Math.abs(o.depth || 0)) + ((o.depth || 0) >= 0 ? " upstage" : " downstage")).join("; ")] : []),
-    ...(doors.length ? ["Doors in the back wall (centre x from grid left edge, on the room floor): " + doors.slice().sort((a, b) => a.x - b.x).map(d => (d.dbl ? "double " : "") + Math.round(d.w) + "\" x " + Math.round(d.h) + "\" at " + fmtLen(d.x - f.x0) + (d.exit ? ", exit sign" : "")).join("; ")] : []),
+    ...(doors.length ? ["Doors (back wall: centre x from grid left edge; side walls: centre from the back wall; on the room floor): " + doors.slice().sort((a, b) => a.x - b.x).map(d => (d.dbl ? "double " : "") + Math.round(d.w) + "\" x " + Math.round(d.h) + "\" " + (pwallSide(d) && proom() ? "in the " + d.wall + " wall, " + fmtLen(proom().back - (d.along || 0)) + " from the back wall" : "at " + fmtLen(d.x - f.x0)) + (d.exit ? ", exit sign" : "")).join("; ")] : []),
     ...(wins.length ? ["Windows: " + wins.map(o => Math.round(o.w) + "\" x " + Math.round(o.h) + "\", sill " + Math.round(o.sill || 0) + "\", at x " + fmtLen(o.x - f.x0)).join("; ")] : []),
     ...(pscreens().length ? ["Screens (glass, pixels, aspect): " + pscreenRows().map(r => r.n + ". " + r.name + " " + r.w.toFixed(1) + "\" x " + r.h.toFixed(1) + "\", " + r.px[0] + " x " + r.px[1] + " px, " + r.ar).join("; ")] : []),
     "Backdrop: " + bdName + (P.bg.backdrop === "none" ? "" : P.bg.bdW > 0 || P.bg.bdH > 0 ? ", " + fmtLen(pbdX().r - pbdX().l) + " wide x " + fmtLen(pbdH() + pstageH()) + " tall from the room floor" + (P.bg.bdX ? ", centre " + fmtLen(Math.abs(P.bg.bdX)) + (P.bg.bdX > 0 ? " right" : " left") + " of the grid centre" : "") : ", " + P.bg.overhang + "\" past the grid on sides and top"),
