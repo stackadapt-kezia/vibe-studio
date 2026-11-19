@@ -211,19 +211,28 @@
   .info { display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 12px; margin-left: 6px; border-radius: 50%;
     border: 1px solid rgba(255,255,255,.5); color: rgba(255,255,255,.5); font: normal 600 8.5px/1 "Source Sans 3", sans-serif; cursor: help; flex: none;
     letter-spacing: 0; text-transform: none; vertical-align: middle; }
-  .tri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .tri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
   .tri > label { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 11px; color: var(--muted); }
   .tri > label > span:first-child { display: flex; align-items: center; }
   .numu { display: flex; align-items: baseline; gap: 4px; flex: 1; min-width: 0; border-bottom: 1px solid var(--line); }
   .numu:focus-within { border-bottom-color: #fff; }
-  .numu .num, .row .numu .num.wide, .gfields .numu .num { flex: 1; width: auto; min-width: 0; border-bottom: 0; text-align: left; }
-  .numu .unit { color: var(--muted); font-size: 11px; flex: none; margin: 0; }
+  .numu .num, .row .numu .num.wide, .gfields .numu .num { flex: 0 1 auto; width: auto; min-width: 2.5ch; max-width: 100%; border-bottom: 0; text-align: left; field-sizing: content; }   /* the unit sits right after its number */
+  .numu { cursor: text; }
+  .numu .unit { color: var(--muted); font-size: 11px; flex: none; margin: 0 0 0 1px; }
   .gfields .numu .unit { text-transform: none; letter-spacing: 0; }
   .numu input.num, input.len.num { background: none !important; border: 0 !important; border-radius: 0 !important; padding: 4px 0 !important; box-shadow: none !important; }
-  .row > .numu { margin-left: auto; max-width: 60%; }
+  .row > .numu { margin-left: auto; min-width: 64px; max-width: 60%; flex: 0 1 auto; }
+  #aisleRow > .numu { min-width: 0; max-width: 34%; }
+  #aisleRow > .numu + .numu { margin-left: 10px; }
   #roomCard .row, #seatCard .row, #stageCard .row { margin-top: 4px !important; }
   #seatCard .row { min-height: 26px; }
-  .elsub.witheye { display: flex; align-items: center; }
+  .elsub.witheye { display: flex; align-items: center; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 16px; }   /* the mounting grid, set off from the elements above */
+  fieldset > legend { color: #fff !important; }
+  fieldset.collapsed > :not(legend) { display: none !important; }   /* a collapsed card hides everything, whatever display its parts ask for */
+  .legval { display: none; margin-left: auto; padding-left: 10px; color: var(--muted); font: 400 12px/1 "Source Sans 3", sans-serif; letter-spacing: 0; text-transform: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55%; }
+  fieldset.collapsed > legend > .legval { display: inline; }
+  fieldset.collapsed > legend > .legval ~ .eye, fieldset.collapsed > legend > .legval ~ .headctl { margin-left: 8px; }
+  .pill .info { margin-left: 8px; }
   .info:hover { border-color: #fff; color: #fff; }
   #previewSeg button { padding-left: 4px; padding-right: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .seg button, .pill {
@@ -631,7 +640,7 @@
   .eye[aria-pressed="true"] .eye-off, .eye[aria-pressed="false"] .eye-on { display: none; }
   .eye[aria-pressed="false"] { color: #5c6070; }   /* closed: greyed out */
   /* mounting grid fields in one row that follows the panel width */
-  .gfields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .gfields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
   .gfields label { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
   .gfields span { font: 500 10px/1.3 "Space Grotesk", sans-serif; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
   .gfields .num { width: 100%; flex: none; text-align: left; }
@@ -962,7 +971,7 @@
           <button data-style="15">Shapes</button>
           <button data-style="16">Stipple</button>
           <button data-style="17">Mesh</button>
-          <button data-style="18" title="Edge-to-edge polygon tiles, each one flat colour from the picture beneath, with grout between">Tiles</button>
+          <button data-style="23" title="Thousands of particles that fly in to form the picture, burst on the beat and settle back">Particles</button>
           <button data-style="19">Textile</button>
           <button data-style="22" title="A depth map, white near and black far, coloured through the palette by distance">Depth</button>
         </div>
@@ -1212,10 +1221,10 @@
         <div class="row" style="margin-top:8px"><label for="rowDFt">First row</label><input type="number" class="num wide" id="rowDFt" min="0" max="200" step="0.5" title="Distance from the stage's front edge to the first seating row, in feet"><span class="unit">ft</span></div>
         <div class="row" style="margin-top:8px"><label for="rowWFt">Row width</label><input type="number" class="num wide" id="rowWFt" min="2" max="400" step="1" title="How wide the seating is, in feet; the sightline rays start along the first row"><span class="unit">ft</span></div>
         <div class="row" style="margin-top:8px"><label for="seatRows">Rows</label><input type="number" class="num wide" id="seatRows" min="1" max="60" step="1" title="Rows of seats, or rows of tables"><span class="unit" id="seatCount"></span></div>
-        <div class="row" style="margin-top:8px"><label for="seatPitch">Row spacing</label><input type="number" class="num wide" id="seatPitch" min="24" max="240" step="1" title="Row to row (36 inches is a comfortable theatre pitch); for rounds, table centre to centre"><span class="unit">in</span></div>
-        <div class="row" id="seatWRow" style="margin-top:8px"><label for="seatW">Seat width</label><input type="number" class="num wide" id="seatW" min="12" max="48" step="1" title="Centre to centre along the row"><span class="unit">in</span></div>
+        <div class="row" style="margin-top:8px"><label for="seatPitch">Row spacing</label><input type="number" class="num wide" id="seatPitch" min="30" max="240" step="1" title="Row to row (36 inches is a comfortable theatre pitch); for rounds, table centre to centre"><span class="unit">in</span></div>
+        <div class="row" id="seatWRow" style="margin-top:8px"><label for="seatW">Seat width</label><input type="number" class="num wide" id="seatW" min="20" max="48" step="1" title="Centre to centre along the row"><span class="unit">in</span></div>
         <div class="row" id="taperRow" style="margin-top:8px"><label for="seatTaper">Taper</label><input type="number" class="num wide" id="seatTaper" min="-120" max="120" step="1" title="Inches each row grows from the one in front, so the rows fan out towards the back; a minus narrows them"><span class="unit">in/row</span></div>
-        <div class="row" id="aisleRow" style="margin-top:8px"><label for="seatAisles">Aisles</label><input type="number" class="num wide" id="seatAisles" min="0" max="8" step="1" title="How many aisles cut the rows; Chevron needs at least one"><span class="unit">of</span><input type="number" class="num wide" id="seatAisleW" min="24" max="120" step="1" title="Aisle width in inches" aria-label="Aisle width"><span class="unit">in</span></div>
+        <div class="row" id="aisleRow" style="margin-top:8px"><label for="seatAisles">Aisles</label><input type="number" class="num wide" id="seatAisles" min="0" max="8" step="1" title="How many aisles cut the rows; Chevron needs at least one"><span class="unit">of</span><input type="number" class="num wide" id="seatAisleW" min="45" max="120" step="1" title="Aisle width in inches" aria-label="Aisle width"><span class="unit">in</span></div>
         <div class="row" style="margin-top:8px"><label for="seatAttendees">Expected</label><input type="number" class="num wide" id="seatAttendees" min="0" max="20000" step="1" placeholder="none" title="How many attendees are expected; the count then says how many seats are short or spare"><span class="unit">people</span></div>
           </div>
       </fieldset>
@@ -1256,7 +1265,7 @@
         <div class="chips"><button class="chip add" id="addCab">Speaker cabinet</button><button class="chip add" id="addCamera">Camera</button><button class="chip add" id="addPerson" title="A standing figure for scale; set its height once selected">Person</button><button class="chip add" id="addConf" title="A wedge monitor on the stage\u2019s front edge, facing the presenter">Confidence monitor</button></div>
         <div class="chips"><button class="chip add" id="addRigPipe" title="Another pipe grid beside the mounting grid; size and space it once selected">Pipe grid</button><button class="chip add" id="addRigScaffold" title="A scaffold build beside the mounting grid">Scaffold</button><button class="chip add" id="addRigTruss" title="A truss build beside the mounting grid">Truss</button></div>
         <div class="chips"><button class="chip add" id="addAv" title="Front of house mixing position; seats under it move to the back rows">AV island</button><button class="chip add" id="addCamIsl" title="A camera riser, anywhere in the room">Camera island</button></div>
-        <div class="row" style="margin-top:8px;justify-content:flex-start"><label class="pill" style="flex:none">Add SVG symbol<input type="file" id="svgFile" accept=".svg,image/svg+xml" multiple hidden></label><span class="info" tabindex="0" title="Lecterns, tables, risers: each SVG becomes a plan element you place, size and name. Kept in this browser.">i</span></div>
+        <div class="row" style="margin-top:8px;justify-content:flex-start"><label class="pill" style="flex:none">Add SVG symbol<input type="file" id="svgFile" accept=".svg,image/svg+xml" multiple hidden><span class="info" onclick="event.preventDefault();event.stopPropagation()" tabindex="0" title="Lecterns, tables, risers: each SVG becomes a plan element you place, size and name. Kept in this browser.">i</span></label></div>
         <p class="elsub">Wall elements</p>
         <div class="chips"><button class="chip add" id="addDoor" title="A door in the back wall, standing on the room floor; set its size once selected">Door</button><button class="chip add" id="addDoor2" title="A pair of doors, 72\u2033 wide, in the back wall">Double door</button><button class="chip add" id="addWindow" title="A window in the back wall; set its size and sill height once selected">Window</button></div>
         <p class="elsub witheye">Mounting grid<button class="eye" type="button" data-vis="grid" aria-pressed="true" aria-label="Show or hide the mounting grid" title="Show or hide the mounting grid"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></p>
@@ -1362,12 +1371,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.97";  // Round of 50 notes: panel reorganised, Tiles, rotation, Shift lock, grid snap, Tab clean view, extruded symbols
+const APP_VERSION = "0.9.98";  // Particles; SVG facades; handles in each item's colour; small items drag by their body; seating minimums
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.98", "A new pattern, Particles, takes the place Tiles had (Tiles is gone: too many holes). Thousands of particles fly in from all over to form the picture, each one coloured by the picture where it belongs; a beat bursts them out from the middle and they settle back. Particle size sets their size, Swirl how hard a current sweeps them (harder on the bass), Burst how far a beat throws them, Pull how quickly they come home, and Count how many there are, from about 9,000 to 65,000. Multi-screen: a speaker or any small item now drags by its body in the Plan instead of catching a resize handle (which is why one could end up off centre); edge handles appear only on items big enough to keep their middle free. The turn knob shows only while the pointer is just outside a corner, as a filled dot. A selected item is outlined boldly in its own colour (AV islands blue, camera islands green like their view lines, confidence monitors orange, symbols their own colour, screens their group), with handles to match and no blue rims. SVG symbols arrive as facades: the outline stands up in the elevation in its own colour, and from above it is a thin bar, ready for cut-outs and set pieces; the box switches a symbol between a facade and a footprint. A symbol over the mounting grid or a scaffold can be raised to hang on it. Seats are drawn as rounded squares, and Seating keeps at least a 30 in row, a 20 in seat and a 45 in aisle (fire code). Panels: card headers are white; a collapsed card shows its chosen option at the right of its header; Swatch sets and Elements collapse fully, and a line sets the mounting grid apart; units sit right after their numbers, with wider gaps between columns; Aisles lines up with the other fields; the (i) for SVG symbols is inside its button."],
   ["0.9.97", "A big tidy-up. Multi-screen: the cards run Output, Mapping presets, Room, Seating, Stage, Background, Elements, Screen Groups, AV layout. Room is Width, Depth and Height on one row (the ceiling moved here); Seating has its own card with an eye; Stage is Height, Width, Depth on one row with a Colour, and the offset and back-wall controls are gone (the stage and room centre on the grid, so the plan and the elevation agree on the middle). Background drops the light switch (always event dim), the wall buttons and Select backdrop: Wall photo is a choice in the backdrop list. Elements holds everything placeable in one list, the mounting grid\u2019s settings, and a new Confidence monitor that sits on the stage edge facing the presenter; Delay TV sits with the screen sizes, takes real TV sizes and a screen group, and plays that group\u2019s picture. Speakers, cameras, people and SVG symbols stand on the stage while over it and on the floor off it, and anything downstage of the screens (rigs too) draws in front of them. SVG symbols are solid now: they show in the elevation as a block of their own height and colour, set in their box. Floor-plan items turn with a round knob (15\u00b0 steps, Alt for free), and size from their edges. Hold Shift while dragging to keep to one axis; Snap to grid under the Grid underlay; Tab hides every label, grid and guide, and Tab again brings them back. Clicking something on the stage opens its settings in the panel. Camera islands draw their view lines. Units sit inside the number boxes. Controls are calmer: selected buttons are a white outline, closed eyes grey, checkboxes grey until ticked. Look: Beads is gone and Tiles takes its place (edge-to-edge polygon tiles with grout); Depth\u2019s Motion is a grid of named buttons, first in the list, and the second Zoom is gone; Lines gains a Zoom into the picture; ASCII starts on Ember; Texture is Overlay, and Print dots moved to Screen; the font list adds Special Gothic and Special Gothic Expanded One; Earthrise starts and ends on black with none in the middle; the Reactivity meters are taller with flat faders and more room under their labels."],
   ["0.9.96", "Multi-screen: Delay TVs now play the show. Each one takes the full frame, like a Mirror screen, three to a splitter feed, and they count in the Outputs and machines and in the AV spec. In the Plan, every delay TV shows a live preview of what it plays, laid just in front of its face."],
   ["0.9.95", "Beads look more like real ironed perler beads: every bead is its own size with its own size of hole, they sit close enough that many touch, and where two meet they melt into each other the way fused beads do. The cut top is matte now, with only a faint sheen (Shine still adds a little), and carries fine parallel score lines from the blade at a different angle on every bead, which fade out when the beads are too small to show them cleanly."],
@@ -1581,7 +1591,8 @@ const state = {
   weights: [...PRESET_WEIGHTS["core-horizon"]],
   scale: 1, speed: 1, warp: 0.4, blobs: 5,
   dFocus: 0.7, dLens: 0.35, dRange: 0.5, dFlow: 0.15, dSweep: 0.45, dPar: 0.3, dInvert: 0,   // Depth
-  dMotion: 0, dTilt: 16, dAngle: 0, dZoom: 1, picZoom: 1,   // picZoom: Lines' zoom into the picture     // Depth, for a 3-D model: how it moves, the camera's tilt and the model's turn in degrees, and zoom
+  dMotion: 0, dTilt: 16, dAngle: 0, dZoom: 1, picZoom: 1,   // picZoom: Lines' zoom into the picture
+  pBurst: 0.5, pPull: 0.5, pCount: 3,             // Particles: how hard a beat scatters them, how fast they come home, how many (96 to 256 a side)     // Depth, for a 3-D model: how it moves, the camera's tilt and the model's turn in degrees, and zoom
   trails: 0.45, fbZoom: 0.004, fbSpin: 0.002,
   grain: 0.08, bands: 0, blur: 0,
   dist: 0, distort: 0.5,
@@ -1608,6 +1619,9 @@ const LOOK = [
   ["dSweep", "Light sweep", 0, 1, 0.01, v => v.toFixed(2)],
   ["dPar", "Parallax", 0, 1, 0.01, v => v.toFixed(2)],
   ["picZoom", "Zoom", 1, 4, 0.01, v => v.toFixed(2) + "\u00d7"],
+  ["pBurst", "Burst", 0, 1, 0.01, v => v.toFixed(2)],
+  ["pPull", "Pull", 0, 1, 0.01, v => v.toFixed(2)],
+  ["pCount", "Count", 1, 4, 1, v => (PART_N[v] ? Math.round(PART_N[v] * PART_N[v] / 1000) + "k" : "")],
   ["dTilt", "Tilt", -60, 60, 1, v => v + "\u00b0"],
   ["dAngle", "Angle", -180, 180, 1, v => v + "\u00b0"],
   ["warp", "Warp", 0, 1, 0.01, v => v.toFixed(2)],
@@ -1670,8 +1684,8 @@ const TEX_ROWS = [
 ];
 // what Scale and Warp mean in each pattern, so the Look rows say so
 const SCALE_LABELS = { 0: "Blob size", 1: "Zoom", 2: "Zoom", 3: "Zoom", 4: "Amplitude", 5: "Contrast", 6: "Block size",
-  7: "Dot pitch", 8: "Offset", 9: "Detail", 10: "Detail", 11: "Line pitch", 12: "Line pitch", 13: "Cell size", 14: "Grain", 15: "Cell size", 16: "Dot pitch", 17: "Grid", 18: "Tile size", 19: "Stitch size", 22: "Zoom" };
-const WARP_LABELS = { 3: "Growth", 1: "Warp", 2: "Warp", 4: "Trace", 5: "Cycle", 6: "Dither", 7: "Angle", 8: "Direction", 10: "Light", 11: "Lift", 12: "Angle", 14: "Smear", 15: "Dither", 16: "Dot size", 17: "Depth", 18: "Scatter", 19: "Thread" };
+  7: "Dot pitch", 8: "Offset", 9: "Detail", 10: "Detail", 11: "Line pitch", 12: "Line pitch", 13: "Cell size", 14: "Grain", 15: "Cell size", 16: "Dot pitch", 17: "Grid", 18: "Tile size", 23: "Particle size", 19: "Stitch size", 22: "Zoom" };
+const WARP_LABELS = { 3: "Growth", 1: "Warp", 2: "Warp", 4: "Trace", 5: "Cycle", 6: "Dither", 7: "Angle", 8: "Direction", 10: "Light", 11: "Lift", 12: "Angle", 14: "Smear", 15: "Dither", 16: "Dot size", 17: "Depth", 18: "Scatter", 23: "Swirl", 19: "Thread" };
 const FABRIC_WARP = ["Thread", "Gap", "Yarn"];
 const AUDIO_ROWS = [
   ["gain", "Gain", 0.2, 4, 0.05, v => v.toFixed(2)],
@@ -2236,6 +2250,7 @@ function syncControls() {
   ["dFocus", "dLens", "dRange", "dFlow", "dSweep", "dPar"].forEach(k => show(k, s === 22));
   ["dTilt", "dAngle"].forEach(k => show(k, s === 22 && !!depthMesh));
   show("picZoom", s === 11);
+  ["pBurst", "pPull", "pCount"].forEach(k => show(k, s === 23));
   $("motionRow").hidden = !(s === 22 && depthMesh); if (typeof segMotion === "function") segMotion();   // only a model can turn
   ["trails", "fbZoom", "fbSpin"].forEach(k => show(k, s !== 22));   // Depth never feeds back: ghosts of the last map pile up
   $("depthRow").hidden = s !== 22;
@@ -2425,6 +2440,8 @@ uniform float u_scale, u_warp, u_grain, u_bands, u_blobs;
 uniform float u_palEnd;      // where the palette's wrap-around segment starts
 uniform float u_shift;       // palette rotation from the Colour route
 uniform sampler2D u_dtex;    // Depth: the loaded depth map, white near and black far
+uniform sampler2D u_part;    // Particles: each dot's home in rg, its speed in b, coverage in a
+uniform float u_partOn;
 uniform float u_hasDepth, u_dAspect, u_invert, u_dscale;
 uniform float u_focus, u_lens, u_spread, u_flowOff, u_push, u_sweepPos, u_sweep, u_bloat;
 uniform vec2 u_wobble;
@@ -3189,27 +3206,15 @@ void main() {
     float idx = clamp(floor(pick), 0.0, u_shapeN - 1.0);
     ink = texture2D(u_shapes, vec2((idx + cf.x) / u_shapeN, cf.y)).r;
     v = (1.0 - l) * u_palEnd;
-  } else if (u_style == 18) {
-    // tiles: jittered-grid Voronoi cells, edge to edge, each filled flat with
-    // the picture beneath its seed, with grout between. Scale sets the tile
-    // size, Warp scatters them from a clean grid into shards; they drift.
-    float ca = u_res.x / u_res.y;
-    float n = 14.0 / u_scale;
-    vec2 g = uv * vec2(ca, 1.0) * n;
-    vec2 gi = floor(g);
-    float d1 = 9.0, d2 = 9.0;
-    vec2 seed = gi + 0.5;
-    for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
-      vec2 c = gi + vec2(float(x), float(y));
-      vec2 j = vec2(hash2(c), hash2(c + 7.1)) - 0.5;
-      vec2 sd = c + 0.5 + j * u_warp * 0.9 + u_warp * 0.1 * vec2(sin(T + c.y * 1.7), cos(T * 1.3 + c.x * 1.1));
-      float d = length(sd - g);
-      if (d < d1) { d2 = d1; d1 = d; seed = sd; } else if (d < d2) d2 = d;
-    }
-    vec2 suv = seed / (n * vec2(ca, 1.0));
-    v = field(suv, (suv - 0.5) * vec2(ca, 1.0), T) * u_palEnd;
-    float grout = smoothstep(0.0, 0.06, d2 - d1);
-    colv = pal(v) * mix(0.12, 1.0, grout);
+  } else if (u_style == 23) {
+    // particles: a simulation (see partStep) draws each particle as a dot that
+    // carries its home position; the dot shows the picture's colour at that
+    // home, so the picture assembles as they arrive and scatters as they fly.
+    if (u_partOn > 0.5) {
+      vec4 pt = texture2D(u_part, gl_FragCoord.xy / u_res);
+      if (pt.a < 0.02) colv = vec3(0.0);
+      else { v = fld(pt.rg, T) * u_palEnd; colv = pal(v) * (0.45 + 0.55 * pt.a) * (1.0 + 0.5 * pt.b); }
+    } else v = fld(uv, T) * u_palEnd;                 // no float render targets on this machine: the picture plain
   } else if (u_style == 19) {
     // textile: the picture worked in thread. Fabric picks the construction;
     // every kind colours its thread from the palette by the picture's
@@ -4937,6 +4942,150 @@ function renderMeshDepth() {
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 
+/* ================= particles ================= */
+// A GPU simulation: a float texture holds every particle's position and
+// velocity, one texel each. Each frame an update pass pulls each particle
+// toward its home (a jittered grid over the frame), sweeps it along a curl
+// noise current (Swirl, stronger on the bass) and, on a beat, kicks it out
+// from the middle (Burst); then every particle is drawn as a point into a
+// small target that remembers its home, which the scene pass colours from
+// the picture. A new look starts them scattered, so the picture flies together.
+const PART_N = [0, 96, 128, 192, 256];
+const PART = { ok: null, fmt: null, upd: null, drw: null, S: [], i: 0, nx: 0, ny: 0, ids: null, out: null, fresh: true, beat: 0 };
+const PART_UPD = `
+precision highp float;
+uniform sampler2D u_state;
+uniform vec2 u_n;
+uniform float u_dt, u_t, u_pull, u_swirl, u_kick, u_init, u_bass, u_ar;
+float ph(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+float sn(vec2 p, float t) { return sin(p.x * 2.1 + t) * cos(p.y * 2.7 - t * 0.8) + 0.6 * sin((p.x + p.y) * 3.3 + t * 0.6) + 0.4 * cos(p.x * 5.1 - p.y * 4.3 - t * 1.1); }
+vec2 curl(vec2 p, float t) { float e = 0.02; return vec2(sn(p + vec2(0.0, e), t) - sn(p - vec2(0.0, e), t), -(sn(p + vec2(e, 0.0), t) - sn(p - vec2(e, 0.0), t))) / (2.0 * e); }
+void main() {
+  vec2 id = gl_FragCoord.xy / u_n;
+  vec2 home = id + (vec2(ph(id * 91.7), ph(id * 37.3)) - 0.5) / u_n;
+  vec4 st = texture2D(u_state, id);
+  vec2 p = st.xy, v = st.zw;
+  if (u_init > 0.5 || p.x != p.x || abs(p.x) > 4.0 || abs(p.y) > 4.0) { p = vec2(ph(id * 13.1 + u_t), ph(id * 7.7 + u_t * 1.3)) * 1.6 - 0.3; v = vec2(0.0); }   // scattered (and any runaway reset)
+  vec2 q = (p - 0.5) * vec2(u_ar, 1.0);
+  vec2 f = (home - p) * (3.0 + 22.0 * u_pull);                          // the spring home
+  f += curl(q * 1.6, u_t * 0.35) / vec2(u_ar, 1.0) * u_swirl * (0.08 + 0.25 * u_bass);   // the current
+  float r = length(q) + 0.001;
+  v += (q / r) / vec2(u_ar, 1.0) * u_kick * (0.4 + ph(id * 3.3));      // a beat: out from the middle
+  v += f * u_dt;
+  v *= exp(-u_dt * (2.0 + 3.0 * u_pull));
+  p += v * u_dt;
+  gl_FragColor = vec4(p, v);
+}`;
+const PART_VS = `
+attribute vec2 a_id;
+uniform sampler2D u_state;
+uniform vec2 u_n;
+uniform float u_size;
+varying vec2 v_home;
+varying float v_sp;
+float ph(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+void main() {
+  vec4 st = texture2D(u_state, a_id);
+  v_home = clamp(a_id + (vec2(ph(a_id * 91.7), ph(a_id * 37.3)) - 0.5) / u_n, 0.0, 1.0);
+  v_sp = clamp(length(st.zw) * 1.5, 0.0, 1.0);
+  gl_Position = vec4(st.xy * 2.0 - 1.0, 0.0, 1.0);
+  gl_PointSize = u_size;
+}`;
+const PART_FS = `
+precision mediump float;
+varying vec2 v_home;
+varying float v_sp;
+void main() {
+  float a = 1.0 - smoothstep(0.32, 0.5, length(gl_PointCoord - 0.5));
+  if (a < 0.02) discard;
+  gl_FragColor = vec4(v_home, v_sp, a);
+}`;
+function partSupport() {
+  if (PART.ok !== null) return PART.ok;
+  const g2 = typeof WebGL2RenderingContext !== "undefined" && gl instanceof WebGL2RenderingContext;
+  if (g2 && gl.getExtension("EXT_color_buffer_float")) PART.fmt = { internal: gl.RGBA32F, type: gl.FLOAT };
+  else if (!g2 && gl.getExtension("OES_texture_float") && gl.getExtension("WEBGL_color_buffer_float")) PART.fmt = { internal: gl.RGBA, type: gl.FLOAT };
+  PART.ok = !!PART.fmt && gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) > 0;
+  if (PART.ok) { PART.upd = program(PART_UPD); PART.drw = program(PART_FS, PART_VS); }
+  return PART.ok;
+}
+function partBuild(nx, ny) {
+  for (const t of PART.S) { gl.deleteTexture(t.tex); gl.deleteFramebuffer(t.fb); }
+  PART.S = [];
+  for (let k = 0; k < 2; k++) {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, PART.fmt.internal, nx, ny, 0, gl.RGBA, PART.fmt.type, null);
+    for (const [k2, v2] of [[gl.TEXTURE_MIN_FILTER, gl.NEAREST], [gl.TEXTURE_MAG_FILTER, gl.NEAREST], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k2, v2);
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) PART.ok = false;
+    PART.S.push({ tex, fb });
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.bindTexture(gl.TEXTURE_2D, null);
+  const ids = new Float32Array(nx * ny * 2);
+  for (let j = 0, o = 0; j < ny; j++) for (let i = 0; i < nx; i++) { ids[o++] = (i + 0.5) / nx; ids[o++] = (j + 0.5) / ny; }
+  if (!PART.ids) PART.ids = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, PART.ids); gl.bufferData(gl.ARRAY_BUFFER, ids, gl.STATIC_DRAW);
+  PART.nx = nx; PART.ny = ny; PART.fresh = true;
+}
+function partStep(dt) {
+  if (!partSupport() || !A) return;
+  const ar = A.w / A.h, N = PART_N[Math.max(1, Math.min(4, state.pCount | 0))] || 192;
+  const nx = Math.max(8, Math.round(N * Math.sqrt(ar))), ny = Math.max(8, Math.round(N / Math.sqrt(ar)));
+  if (nx !== PART.nx || ny !== PART.ny) partBuild(nx, ny);
+  if (!PART.out || PART.out.w !== A.w || PART.out.h !== A.h) {
+    if (PART.out) { gl.deleteTexture(PART.out.tex); gl.deleteFramebuffer(PART.out.fb); }
+    PART.out = makeTarget(A.w, A.h);
+    gl.bindTexture(gl.TEXTURE_2D, PART.out.tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);   // a dot's home must not blend with the empty frame
+    gl.bindTexture(gl.TEXTURE_2D, null);
+  }
+  if (!PART.ok) return;
+  let kick = 0;
+  if (lastBeat !== PART.beat) { PART.beat = lastBeat; kick = state.pBurst * 1.1; }
+  // update: read S[i], write S[1 - i]
+  const src = PART.S[PART.i], dst = PART.S[1 - PART.i];
+  gl.bindFramebuffer(gl.FRAMEBUFFER, dst.fb);
+  gl.viewport(0, 0, nx, ny);
+  gl.useProgram(PART.upd);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  gl.vertexAttribPointer(gl.getAttribLocation(PART.upd, "a"), 2, gl.FLOAT, false, 0, 0);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, src.tex);
+  const UU = n => gl.getUniformLocation(PART.upd, n);
+  gl.uniform1i(UU("u_state"), 0);
+  gl.uniform2f(UU("u_n"), nx, ny);
+  gl.uniform1f(UU("u_dt"), Math.min(0.05, Math.max(0.001, dt)) * Math.max(0.15, state.speed || 1));
+  gl.uniform1f(UU("u_t"), T);
+  gl.uniform1f(UU("u_pull"), state.pPull);
+  gl.uniform1f(UU("u_swirl"), state.warp);
+  gl.uniform1f(UU("u_kick"), kick);
+  gl.uniform1f(UU("u_init"), PART.fresh ? 1 : 0);
+  gl.uniform1f(UU("u_bass"), band.bass);
+  gl.uniform1f(UU("u_ar"), ar);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  PART.i = 1 - PART.i; PART.fresh = false;
+  // draw: every particle a point into the dot target
+  gl.bindFramebuffer(gl.FRAMEBUFFER, PART.out.fb);
+  gl.viewport(0, 0, PART.out.w, PART.out.h);
+  gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.useProgram(PART.drw);
+  gl.bindBuffer(gl.ARRAY_BUFFER, PART.ids);
+  const loc = gl.getAttribLocation(PART.drw, "a_id");
+  gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, PART.S[PART.i].tex);
+  const UD = n => gl.getUniformLocation(PART.drw, n);
+  gl.uniform1i(UD("u_state"), 0);
+  gl.uniform2f(UD("u_n"), nx, ny);
+  const maxPt = (gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE) || [1, 64])[1];
+  gl.uniform1f(UD("u_size"), Math.max(1, Math.min(maxPt, 0.95 * Math.min(PART.out.w / nx, PART.out.h / ny) * (state.scale || 1))));
+  gl.drawArrays(gl.POINTS, 0, nx * ny);
+  if (loc !== 0) gl.disableVertexAttribArray(loc);
+  else { gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0); }   // slot 0 back to the full-screen quad
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+
 const DEPTH_DECODERS = { exr: decodeEXR, hdr: decodeHDR, pic: decodeHDR, rgbe: decodeHDR, tif: decodeTIFF, tiff: decodeTIFF, tga: decodeTGA, pfm: decodePNM, pgm: decodePNM, ppm: decodePNM, npy: decodeNPY };
 
 /* ================= text in ================= */
@@ -6035,7 +6184,7 @@ const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom
                    "dist", "distort", "screen", "screenAmt", "tex", "texAmt", "distSize", "screenSize", "texSize",
                    "glass", "glassAngle", "glassSeam", "glassSeamW", "gsAngle", "gsRand", "echoSpread", "echoDecay", "echoAngle", "echoDrift", "slitAngle", "sortMode",
                    "geo", "geoN", "geoSpin", "geoGap", "geoTile", "lineW", "fracSeed", "fracKind", "dotKind", "beadBoard", "fabric", "asciiKind",
-                   "dFocus", "dLens", "dRange", "dFlow", "dSweep", "dPar", "dInvert", "dMotion", "dTilt", "dAngle", "dZoom", "picZoom"];
+                   "dFocus", "dLens", "dRange", "dFlow", "dSweep", "dPar", "dInvert", "dMotion", "dTilt", "dAngle", "dZoom", "picZoom", "pBurst", "pPull", "pCount"];
 const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
 // Groups (the library's categories), in display order. presets/library.json
 // may ship its own list; renames, additions and deletions made here are kept
@@ -6410,7 +6559,7 @@ function syncSliders() {
 // Looks saved before 0.9.29 may name a pattern that is gone (Waves, Edges,
 // Relief, Hatch) or Mirror and Grid as Distort kinds; map them onto what
 // replaced them so an old look still loads as something close.
-const GONE_STYLES = { 2: 1, 8: 5, 9: 5, 10: 5, 12: 7 };
+const GONE_STYLES = { 2: 1, 8: 5, 9: 5, 10: 5, 12: 7, 18: 23 };   // Beads, then Tiles, became Particles
 function migrateLook(L) {
   const o = Object.assign({}, L);
   if (o.style === 8 && !o.screen) { o.screen = 6; o.screenAmt = 0.6; }   // Prism's colour split lives on as Fringe
@@ -7192,6 +7341,8 @@ const planEl = it => it.type === "svg" || it.type === "island";
 const ponDeck = it => !(pstageH() > 0) || (Math.abs(it.x - pstageCX()) + pdims(it).w / 2 <= pstageW() / 2 + 1 && pdepth(it) >= pdeckFront() - 1 && pdepth(it) <= pdeckBack() + 1);
 const planBox = it => it.type === "cab" || it.type === "camera" || it.type === "person";
 // what stands on the stage while it is over it, else on the room floor
+// over the mounting grid or a rig: something here may hang on it rather than stand on the floor
+const poverRig = it => (P.frame.show && it.x >= P.frame.x0 && it.x <= P.frame.x0 + P.frame.w) || P.items.some(r => r.type === "rig" && Math.abs(it.x - r.x) <= r.w / 2);
 const pstands = it => it.type === "cab" || it.type === "camera" || it.type === "person" || it.type === "svg";
 // a plan footprint can turn: rot in degrees, counterclockwise from above
 const prad = o => (o.rot || 0) * Math.PI / 180;
@@ -7284,7 +7435,7 @@ function pserialize() {
     maps: P.maps, pitch: P.pitch, play: P.play, plan: P.plan, room: P.room,
     items: P.items.map(it => it.type === "camera" ? { type: "camera", x: pr1(it.x), y: pr1(it.y), depth: it.depth ? Math.round(it.depth) : undefined, rot: it.rot || undefined } : it.type === "person" ? { type: "person", x: pr1(it.x), y: pr1(it.y || 0), ht: it.ht, col: it.col || PERSON_COL, depth: it.depth ? Math.round(it.depth) : undefined, rot: it.rot || undefined } : it.type === "door" ? { type: "door", x: pr1(it.x), y: 0, w: pr1(it.w), h: pr1(it.h), dbl: !!it.dbl, exit: !!it.exit, win: it.win ? true : undefined, sill: it.win ? it.sill : undefined, wall: it.wall && it.wall !== "back" ? it.wall : undefined, along: it.wall && it.wall !== "back" ? pr1(it.along || 0) : undefined }
       : it.type === "rig" ? { type: "rig", kind: it.kind, x: pr1(it.x), y: pr1(it.y || 0), w: pr1(it.w), h: pr1(it.h), pitch: it.pitch, rail: it.rail, thick: rigThick(it), depth: it.depth ? Math.round(it.depth) : undefined }
-      : it.type === "svg" ? { type: "svg", media: it.media, name: it.name, x: pr1(it.x), y: pr1(it.y || 0), depth: Math.round(it.depth || 0), w: pr1(it.w), l: pr1(it.l), rot: it.rot || undefined, ht: it.ht, col: it.col }
+      : it.type === "svg" ? { type: "svg", media: it.media, name: it.name, x: pr1(it.x), y: pr1(it.y || 0), depth: Math.round(it.depth || 0), w: pr1(it.w), l: pr1(it.l), rot: it.rot || undefined, ht: it.ht, col: it.col, face: it.face }
       : it.type === "island" ? { type: "island", kind: it.kind, name: it.name, x: pr1(it.x), y: 0, depth: Math.round(it.depth || 0), w: pr1(it.w), l: pr1(it.l), rot: it.rot || undefined, diag: it.diag || undefined, g: it.kind === "tv" ? it.g : undefined } : it.type === "cab"
       ? { type: "cab", x: pr1(it.x), y: pr1(it.y), w: pr1(it.w), h: pr1(it.h), wood: !!it.wood, depth: it.depth ? Math.round(it.depth) : undefined, rot: it.rot || undefined }
       : { type: "screen", diag: it.diag, portrait: !!it.portrait, x: pr1(it.x), y: pr1(it.y), dead: !!it.dead, g: it.g, cw: it.cw || undefined, ch: it.ch || undefined, depth: it.depth ? Math.round(it.depth) : undefined }),
@@ -7321,6 +7472,7 @@ function papply(d, keepSources) {
     if (d.plan.attendees >= 0) P.plan.attendees = Math.round(+d.plan.attendees);
     if (typeof d.plan.avX === "number") P.plan.avX = Math.round(d.plan.avX);
     if (SEAT_LAYOUTS[d.plan.layout] || d.plan.layout === "none") P.plan.layout = d.plan.layout;
+    P.plan.pitch = Math.max(30, P.plan.pitch); P.plan.seat = Math.max(20, P.plan.seat); P.plan.aisleW = Math.max(45, P.plan.aisleW);   // a 30 in row, a 20 in seat, a 45 in aisle at the least (fire code)
     if (d.vis && d.vis.house === false) P.plan.layout = "none";                 // the old house eye, closed, is No seating now
   }
   if (!(P.bg.stageD >= 0)) P.bg.stageD = 0; if (!(P.bg.backClear > 0)) P.bg.backClear = 48;
@@ -7356,7 +7508,7 @@ function psettle() {
   for (const it of P.items) if (it.type === "rig") { it.thick = rigSnap(it.kind, rigThick(it)); it.y = ponDeck(it) ? 0 : -pstageH(); }
   for (const it of P.items) if (pstands(it)) {         // on the stage while over it, else on the room floor; anything flown above keeps its height
     const base = ponDeck(it) ? 0 : -pstageH();
-    if (it.type === "svg" || it.type === "person") it.y = base; else if (base === 0 ? it.y < 0 : it.y <= 0) it.y = base;
+    if (it.type === "person") it.y = base; else if (it.type === "svg") it.y = poverRig(it) ? Math.max(base, it.y || 0) : base; else if (base === 0 ? it.y < 0 : it.y <= 0) it.y = base;
   }
   papronSync(); if (typeof pclampAll === "function") pclampAll(); }
 function psave() { try { localStorage.setItem(PSTORE, pserialize()); } catch (e) { /* storage blocked */ } }
@@ -7601,6 +7753,15 @@ function pmoveWall(d, w) {
   if (db <= dl && db <= dr) { d.wall = "back"; d.x = Math.round(pwithin(w.x, R.x0 + hw, R.x1 - hw) * 2) / 2; }
   else { d.wall = dl < dr ? "left" : "right"; d.along = Math.round(pwithin(w.y, R.front + hw, R.back - hw) * 2) / 2; }
 }
+// an SVG filled with its colour, at the size it is drawn, kept until the colour or size changes
+function svgTinted(it, w, h) {
+  const im = svgImgFor(it); if (!im || !(im.naturalWidth > 0)) return null;
+  const W = Math.max(1, Math.round(w)), H = Math.max(1, Math.round(h)), key = (it.col || "") + W + "x" + H + it.media;
+  if (it._tint && it._tint.key === key) return it._tint.cv;
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const x = cv.getContext("2d"); x.drawImage(im, 0, 0, W, H); x.globalCompositeOperation = "source-in"; x.fillStyle = it.col || "#8a8f9c"; x.fillRect(0, 0, W, H);
+  it._tint = { key, cv }; return cv;
+}
 function pdrawElevItem(c, it, dim) {
   {
     const d = pdims(it), x = PX(it.x - d.w / 2), y = PY(it.y + d.h), w = d.w * psc, h = d.h * psc;
@@ -7629,6 +7790,8 @@ function pdrawElevItem(c, it, dim) {
       drawDoor(c, it, x, y, w, h);
     } else if (it.type === "rig") {
       const pf = pfloor; pfloor -= (it.y || 0) * psc; drawRig(c, dim, prigF(it)); pfloor = pf;   // on the floor, off the stage: drawn that much lower
+    } else if (it.type === "svg" && it.face === "front" && svgTinted(it, w, h)) {   // a facade: the SVG's own outline, standing up, in its colour
+      c.drawImage(svgTinted(it, w, h), x, y, w, h);
     } else if (it.type === "svg") {                       // an SVG symbol, extruded: a solid block of its colour, lit on top
       c.fillStyle = it.col || "#8a8f9c"; c.fillRect(x, y, w, h);
       c.fillStyle = "rgba(255,255,255,0.18)"; c.fillRect(x, y, w, Math.max(pdpr, 2 * psc));
@@ -8004,14 +8167,24 @@ function drawPileScreens() {
 }
 
 /* ---- overlay: selection, handles, labels, dimension lines ---- */
+let protHot = null;                                    // the corner the pointer is just outside of, on the selected plan item
+// the colour an item is labelled in: islands by kind, screens by group, symbols by their own colour
+function pselColor(it) {
+  if (!it) return "#7FDFFD";
+  if (it.type === "island") return ({ av: "#3D84FF", cam: "#B0E64B", conf: "#FFB37A", tv: P.groups.length > 1 ? gcol(gof(it)) : "#ECEEF4" })[it.kind] || "#7FDFFD";
+  if (it.type === "svg") return it.col || "#8a8f9c";
+  if (it.type === "screen" && P.groups.length > 1) return gcol(gof(it));
+  return "#7FDFFD";
+}
 function phandles() {
   if (!psel) return [];
   if (pview === "plan") {                            // in the plan the deck, the AV island and the symbols have edge handles
     if (psel.kind === "item" && (planEl(psel.it) || planBox(psel.it)) && !(psel.more && psel.more.length)) {   // edges to size it, a corner knob to turn it
       const o = psel.it, q = pfootOf(o), at = (k, lx, ly) => ({ k, ...pfromLocal(o, lx, ly, q.l) }), off = 14 * pdpr / psc;
-      const hs = [at("rot", q.w / 2 + off, q.l / 2 + off)];
-      if (planEl(o)) hs.push(at("l", -q.w / 2, 0), at("r", q.w / 2, 0), at("t", 0, q.l / 2), at("b", 0, -q.l / 2));
-      else if (o.type === "cab") hs.push(at("l", -q.w / 2, 0), at("r", q.w / 2, 0));
+      const hs = protHot && protHot.it === o ? [at("rot", protHot.sx * (q.w / 2 + off), protHot.sy * (q.l / 2 + off))] : [];   // the turn knob: only while the pointer is just outside a corner
+      const roomW = q.w * psc > 26 * pdpr, roomL = q.l * psc > 26 * pdpr;                              // edge handles only where the item is big enough to keep its body free
+      if (planEl(o) || o.type === "cab") { if (roomW) hs.push(at("l", -q.w / 2, 0), at("r", q.w / 2, 0)); }
+      if (planEl(o) && roomL) hs.push(at("t", 0, q.l / 2), at("b", 0, -q.l / 2));
       return hs;
     }
     if (psel.kind === "av" && P.plan.avD > 0) { const a = pavRect(); return [{ k: "l", x: a.x0, y: a.cd }, { k: "r", x: a.x1, y: a.cd }, { k: "t", x: a.cx, y: a.d1 }, { k: "b", x: a.cx, y: a.d0 }]; }
@@ -8089,7 +8262,7 @@ function drawPileFg() {
   if (P.vis.devices) for (const it of pdrawOrder()) {
     const d = pdims(it), isSel = pselHas(it), isHov = phover === it;
     if (isSel || isHov) {
-      c.strokeStyle = isSel ? "#7FDFFD" : "rgba(127,223,253,0.55)"; c.lineWidth = 2 * pdpr;
+      c.strokeStyle = isSel ? pselColor(it) : "rgba(127,223,253,0.55)"; c.lineWidth = (isSel ? 3 : 2) * pdpr;
       if (it.type !== "person") c.strokeRect(PX(it.x - d.w / 2), PY(it.y + d.h), d.w * psc, d.h * psc);   // a person's halo is drawn above
     }
     if (it.type === "screen" && (P.groups.length > 1 || gpaint !== null) && !isSel) {   // group colour on the bezel
@@ -8114,8 +8287,8 @@ function drawPileFg() {
   }
   for (const h of phandles()) {
     const s = 9 * pdpr;
-    c.fillStyle = "#fff"; c.strokeStyle = "#0061FF"; c.lineWidth = 2 * pdpr;
-    c.fillRect(PX(h.x) - s / 2, PY(h.y) - s / 2, s, s); c.strokeRect(PX(h.x) - s / 2, PY(h.y) - s / 2, s, s);
+    c.fillStyle = pselColor(psel && psel.it);
+    c.fillRect(PX(h.x) - s / 2, PY(h.y) - s / 2, s, s);
   }
   // overall width under the pile, height up the left side
   const B = pbounds(), x1 = PX(B.minX), x2 = PX(B.maxX), yTop = PY(B.maxY), yRoom = pfloor + pdeckPx(), y = yRoom + 20 * pdpr;
@@ -8482,14 +8655,15 @@ function drawPlan() {
   const outline = (o, isSel, isHov) => {
     if (!(isSel || isHov) || pui.clean) return;
     const q = pfootOf(o); f.save(); prot(f, o, q.l);
-    f.strokeStyle = isSel ? "#7FDFFD" : "rgba(127,223,253,0.55)"; f.lineWidth = 2 * pdpr; f.strokeRect(PX(o.x - q.w / 2), PY(pdepth(o) + q.l), q.w * psc, q.l * psc);
+    f.strokeStyle = isSel ? pselColor(o) : "rgba(127,223,253,0.55)"; f.lineWidth = (isSel ? 3 : 2) * pdpr; f.strokeRect(PX(o.x - q.w / 2), PY(pdepth(o) + q.l), q.w * psc, q.l * psc);
     f.restore();
   };
   if (P.vis.devices) for (const o of P.items) if (o.type === "svg") {      // plan symbols: the SVG fitted inside its footprint, over its colour
     const x = PX(o.x - o.w / 2), w = o.w * psc, y = PY(pdepth(o) + o.l), h = o.l * psc, isSel = pselHas(o), isHov = phover === o, im = svgImgFor(o);
     c.save(); prot(c, o, o.l);
-    c.fillStyle = o.col || "rgba(236,238,244,0.06)"; c.globalAlpha = o.col ? 0.4 : 1; c.fillRect(x, y, w, h); c.globalAlpha = 1;
-    if (im) { const ia = im.naturalWidth > 0 && im.naturalHeight > 0 ? im.naturalWidth / im.naturalHeight : w / h, ra = w / h; let dw = w, dh = h; if (ia > ra) dh = w / ia; else dw = h * ia; c.drawImage(im, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh); }
+    c.fillStyle = o.col || "rgba(236,238,244,0.06)"; c.globalAlpha = o.face === "front" ? 1 : o.col ? 0.4 : 1; c.fillRect(x, y, w, h); c.globalAlpha = 1;
+    if (o.face === "front") { /* a facade seen from above is just its thickness */ }
+    else if (im) { const ia = im.naturalWidth > 0 && im.naturalHeight > 0 ? im.naturalWidth / im.naturalHeight : w / h, ra = w / h; let dw = w, dh = h; if (ia > ra) dh = w / ia; else dw = h * ia; c.drawImage(im, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh); }
     else { c.strokeStyle = "rgba(236,238,244,0.35)"; c.lineWidth = pdpr; c.strokeRect(x, y, w, h); }
     c.restore(); outline(o, isSel, isHov);
     if (pui.labels || isSel || isHov) plabel((o.name || "Symbol") + " \u00b7 " + fmtLen(o.w) + " \u00d7 " + fmtLen(o.l), PX(o.x), y - 12 * pdpr, lf);
@@ -8563,7 +8737,7 @@ function drawPlan() {
   }
   c.fillStyle = seatSel ? "#7FDFFD" : "#4A5062";
   const sr = Math.max(1.5 * pdpr, 8 * psc);
-  for (const st of S.seats) { c.beginPath(); c.arc(PX(st.x), PY(st.d), sr, 0, 7); c.fill(); }
+  for (const st of S.seats) { prr(c, PX(st.x) - sr, PY(st.d) - sr, 2 * sr, 2 * sr, sr * 0.4); c.fill(); }   // seats as rounded squares
   if (seatSel) { const hw2 = (Math.max(S.maxW, P.plan.rowW) / 2 + 24) * psc; c.setLineDash([6 * pdpr, 5 * pdpr]); c.strokeStyle = "#7FDFFD"; c.lineWidth = 1.5 * pdpr; c.strokeRect(PX(cx) - hw2, rowY - 18 * psc, 2 * hw2, (E.row - S.backD) * psc + 18 * psc); c.setLineDash([]); }
   const over = pseatOverflow();
   plabel(SEAT_LAYOUTS[P.plan.layout] + " \u00b7 " + S.count + " seats" + (S.moved ? " \u00b7 " + S.moved + " moved back from under islands" + (S.extra ? " (+" + S.extra + (S.extra === 1 ? " row)" : " rows)") : "") : "") + " \u00b7 first row " + fmtLen(P.plan.rowD) + (pstageOn() ? " from the stage" : " from the screens") + (P.plan.taper ? " \u00b7 taper " + P.plan.taper + "\u2033 a row" : "") + (over ? " \u00b7 runs " + fmtLen(over) + " past the front wall" : ""), (rl + rr) / 2, PY(S.backD) + 16 * pdpr, font);
@@ -8628,9 +8802,9 @@ function drawPlan() {
   }
   if (!pui.clean) for (const h of phandles()) {
     const sz = 9 * pdpr;
-    f.fillStyle = "#fff"; f.strokeStyle = "#0061FF"; f.lineWidth = 2 * pdpr;
-    if (h.k === "rot") { f.beginPath(); f.arc(PX(h.x), PY(h.y), sz / 2 + pdpr, 0, 7); f.fill(); f.stroke(); continue; }   // the turn knob is round
-    f.fillRect(PX(h.x) - sz / 2, PY(h.y) - sz / 2, sz, sz); f.strokeRect(PX(h.x) - sz / 2, PY(h.y) - sz / 2, sz, sz);
+    f.fillStyle = pselColor(psel && psel.it);
+    if (h.k === "rot") { f.beginPath(); f.arc(PX(h.x), PY(h.y), sz / 2 + pdpr, 0, 7); f.fill(); continue; }   // the turn knob: a filled dot
+    f.fillRect(PX(h.x) - sz / 2, PY(h.y) - sz / 2, sz, sz);
   }
   if (pdrag && pdrag.held) plabel("Held at the room wall", pW / 2, pH - Math.max(ins.b, 120 * pdpr) - 40 * pdpr, font);
   if (phouseOn()) { const sight = psightline(); plabel("Sightlines \u00b7 " + sight.text, (ins.l + pW) / 2, 20 * pdpr, font); }
@@ -8719,7 +8893,12 @@ function phandleAt(px, py) {
 const pinFrame = w => w.x >= P.frame.x0 - 2 && w.x <= P.frame.x0 + P.frame.w + 2 && w.y >= 0 && w.y <= P.frame.h + 2;
 
 pileFg.addEventListener("pointerdown", e => {
-  const { px, py } = pev(e), w = pworld(px, py), h = phandleAt(px, py);
+  const { px, py } = pev(e), w = pworld(px, py);
+  let h = phandleAt(px, py);
+  if (h && h.k !== "rot" && pview === "plan" && psel && psel.kind === "item" && (planEl(psel.it) || planBox(psel.it))) {   // a press inside the body moves it, even where an edge handle reaches in
+    const o = psel.it, q = pfootOf(o), lp = plocal(o, w, q.l), m = 5 * pdpr / psc;
+    if (Math.abs(lp.x) < q.w / 2 - m && Math.abs(lp.y) < q.l / 2 - m) h = null;
+  }
   if (pview === "plan") {                            // in the plan: screens move sideways and in depth, the deck's edges resize it, the island and the seating drag
     const it = pplanAt(w), wd = h ? null : pwallAt(w);
     if (gpaint !== null && it && it.type === "island" && it.kind === "tv") { it.g = gpaint; psel = { kind: "item", it, more: [] }; pdrag = null; pcommit(); return; }
@@ -8793,6 +8972,14 @@ pileFg.addEventListener("pointermove", e => {
   }
   if (!pdrag) {
     if (pview === "plan") {
+      let hot = null;                                    // just outside a corner of the selected item: offer the turn knob
+      if (psel && psel.kind === "item" && (planEl(psel.it) || planBox(psel.it)) && !(psel.more && psel.more.length)) {
+        const o = psel.it, q = pfootOf(o), lp = plocal(o, w, q.l), sx = Math.sign(lp.x) || 1, sy = Math.sign(lp.y) || 1;
+        const dx = (Math.abs(lp.x) - q.w / 2) * psc / pdpr, dy = (Math.abs(lp.y) - q.l / 2) * psc / pdpr;
+        if (dx > -6 && dy > -6 && dx < 30 && dy < 30 && (dx > 0 || dy > 0)) hot = { it: o, sx, sy };
+      }
+      if (protHot && (!hot || hot.sx !== protHot.sx || hot.sy !== protHot.sy)) protHot = null;
+      if (hot && !protHot) protHot = hot;
       const hh = phandleAt(px, py); phover = hh ? null : pplanAt(w);
       pileFg.style.cursor = hh ? PCURS[hh.k] : phover || pinAvPlan(w) || pinSeatsPlan(w) ? "grab" : pinDeckPlan(w) ? "move" : "default";
       return;
@@ -8888,7 +9075,7 @@ pileFg.addEventListener("pointermove", e => {
       if (Math.abs(sx - nx) * psc < 14 * pdpr) nx = sx;
     }
     if ((ny - base) * psc < 10 * pdpr) ny = base;
-    if (it.type === "svg" || it.type === "person") ny = base;
+    if (it.type === "person" || (it.type === "svg" && !poverRig({ ...it, x: nx }))) ny = base;   // a symbol over a rig hangs where it is put
     if (it.type === "door") ny = -pstageH() + (it.win ? it.sill || 0 : 0);   // a door is part of the room: it stays on the room floor (a window at its sill)
     if (it.type === "rig") ny = ponDeck({ ...it, x: nx }) ? 0 : -pstageH();     // a rig drops to the floor off the stage
     const centred = psnapCentre(nx) !== nx; if (centred) nx = psnapCentre(nx);   // across the room's centre line: settle on it
@@ -9169,10 +9356,13 @@ function psyncSel(full = true) {
       $("selTvG").onchange = e => { it.g = +e.target.value; pcommit(); };
     }
     if (it.type === "svg") {
-      extra('<div class="row"><label for="selHt">Height (in)</label><input type="number" class="num wide" id="selHt" min="1" max="240" value="' + Math.round(it.ht || 36) + '"></div>'
-        + '<div class="row"><label for="selCol">Colour</label><input type="color" id="selCol" value="' + (it.col || "#8a8f9c") + '"></div>');
+      extra('<div class="row"><label for="selFace">Shape is</label><select id="selFace"><option value="front">A facade (stands up)</option><option value="top">A footprint (from above)</option></select></div>'
+        + '<div class="row"><label for="selHt">Height (in)</label><input type="number" class="num wide" id="selHt" min="1" max="240" value="' + Math.round(it.ht || 36) + '"></div>'
+        + '<div class="row"><label for="selCol">Colour</label><input type="color" id="selCol" value="' + (it.col || "#8a8f9c") + '" title="The symbol\u2019s colour, in both views"></div>');
+      $("selFace").value = it.face === "front" ? "front" : "top";
+      $("selFace").onchange = e => { it.face = e.target.value; if (it.face === "front" && it.l > 12) it.l = 4; if (it.face === "top" && it.l < 12) it.l = it.w; pcommit(); psyncSel(true); };
       $("selHt").onchange = e => { it.ht = Math.max(1, Math.min(240, Math.round(+e.target.value) || 36)); pcommit(); };
-      $("selCol").oninput = e => { it.col = e.target.value; };
+      $("selCol").oninput = e => { it.col = e.target.value; roomDirty = true; };
       $("selCol").onchange = () => pcommit();
     }
   } else if (it.type === "door" && it.win) {
@@ -9303,7 +9493,7 @@ $("svgFile").addEventListener("change", e => {                       // each SVG
   files.forEach((file, i) => {
     const id = "svg-" + Date.now().toString(36) + "-" + i, name = file.name.replace(/\.svg$/i, "").slice(0, 24);
     mediaPut({ id, name, type: file.type || "image/svg+xml", blob: file, added: Date.now(), svg: true }).catch(() => {});
-    P.items.push(pmk({ type: "svg", media: id, name, x: pstageCX() + (i - (files.length - 1) / 2) * 60, y: 0, depth: pminDepth() - 108, w: 48, l: 48, ht: 36, col: "#8a8f9c" }));
+    P.items.push(pmk({ type: "svg", media: id, name, x: pstageCX() + (i - (files.length - 1) / 2) * 60, y: 0, depth: pminDepth() - 108, w: 48, l: 4, ht: 48, col: "#8a8f9c", face: "front" }));   // a facade: the outline stands up, 4 in thick
   });
   if (!files.length) return;
   psel = { kind: "item", it: P.items[P.items.length - 1], more: [] };   // it stands in both views now, so the view stays as it is
@@ -9358,6 +9548,7 @@ function parseLen(str, fieldIn) {
   while ((m = re.exec(t))) { const k = m[2] ? LEN_IN[m[2]] : prevFt ? 1 : fieldIn; total += +m[1] * k; prevFt = k === 12; }
   return (t.startsWith("-") ? -total : total) / fieldIn;
 }
+document.addEventListener("mousedown", e => { const u = e.target.closest && e.target.closest(".numu"); if (u && e.target === u || (u && e.target.classList.contains("unit"))) { e.preventDefault(); u.querySelector("input").focus(); } });
 document.querySelectorAll("#pileUI .row > input.num, #settingsDlg .row > input.num").forEach(el => {   // the unit sits inside the box
   const nx = el.nextElementSibling; if (!nx || !nx.classList.contains("unit")) return;
   const w = document.createElement("span"); w.className = "numu"; el.before(w); w.append(el, nx);
@@ -9589,7 +9780,7 @@ $("seatLayout").addEventListener("change", e => {
 });
 $("seatTaper").addEventListener("change", e => { P.plan.taper = Math.max(-120, Math.min(120, Math.round(+e.target.value) || 0)); pcommit(); });
 $("seatAttendees").addEventListener("change", e => { P.plan.attendees = Math.max(0, Math.min(20000, Math.round(+e.target.value) || 0)); pcommit(); });
-[["seatRows", "rows", 1, 60], ["seatPitch", "pitch", 24, 240], ["seatW", "seat", 12, 48], ["seatAisles", "aisles", 0, 8], ["seatAisleW", "aisleW", 24, 120]].forEach(([id, key, min, max]) =>
+[["seatRows", "rows", 1, 60], ["seatPitch", "pitch", 30, 240], ["seatW", "seat", 20, 48], ["seatAisles", "aisles", 0, 8], ["seatAisleW", "aisleW", 45, 120]].forEach(([id, key, min, max]) =>
   $(id).addEventListener("change", e => { P.plan[key] = Math.max(min, Math.min(max, Math.round(+e.target.value) || min)); pcommit(); }));
 seg("viewSeg", "view", () => pview, v => { pview = v; psel = null; try { localStorage.setItem("vibe.pileView", v); } catch (e) { /* storage blocked */ } pzoomReset(); prefresh(); });
 $("photoFt").addEventListener("change", e => { P.bg.photoFt = Math.max(4, Math.min(200, +e.target.value || 20)); pcommit(); });
@@ -9774,6 +9965,7 @@ function frame(now) {
   T += dt * state.speed * (1 + m("motion") * 4);   // Motion: up to four times the speed
 
   if (depthMesh && (state.style === 22 || (fade && fade.look.style === 22))) renderMeshDepth();   // the OBJ's depth pass, into the depth texture
+  if (state.style === 23 || (fade && fade.look.style === 23)) partStep(dt); else PART.fresh = true;   // the particles move, then the scene reads them
   gl.useProgram(scene);
   gl.bindBuffer(gl.ARRAY_BUFFER, quad);
   gl.vertexAttribPointer(gl.getAttribLocation(scene, "a"), 2, gl.FLOAT, false, 0, 0);
@@ -9802,6 +9994,10 @@ function frame(now) {
   gl.bindTexture(gl.TEXTURE_2D, stampTex);
   updateStamp();
   gl.uniform1i(U("u_stamp"), 6);
+  gl.activeTexture(gl.TEXTURE8);
+  gl.bindTexture(gl.TEXTURE_2D, PART.out ? PART.out.tex : depthTex);
+  gl.uniform1i(U("u_part"), 8);
+  gl.uniform1f(U("u_partOn"), PART.out && PART.ok ? 1 : 0);
   gl.activeTexture(gl.TEXTURE7);
   gl.bindTexture(gl.TEXTURE_2D, depthTex);
   if (state.style === 22 || (fade && fade.look.style === 22)) uploadDepth();
@@ -10011,6 +10207,19 @@ $("recBtn").addEventListener("click", () => {
   $("recBtn").innerHTML = 'Stop<span class="key">R</span>';
   $("recBtn").classList.add("on");
 });
+
+/* a collapsed card shows its chosen option at the right of its header */
+function syncLegVals() {
+  document.querySelectorAll("fieldset > legend").forEach(lg => {
+    const fs = lg.parentElement, act = [...fs.querySelectorAll("button.active")].find(b => !lg.contains(b) && b.offsetParent !== null || (!lg.contains(b) && fs.classList.contains("collapsed")));
+    let sp = lg.querySelector(":scope > .legval");
+    const txt = act ? act.textContent.trim() : "";
+    if (!txt) { if (sp) sp.textContent = ""; return; }
+    if (!sp) { sp = document.createElement("span"); sp.className = "legval"; lg.insertBefore(sp, lg.querySelector(":scope > .eye, :scope > .headctl")); }
+    if (sp.textContent !== txt) sp.textContent = txt;
+  });
+}
+setInterval(syncLegVals, 600);
 
 /* drag any number box left or right to scrub its value (Shift: ten times the
    step); a plain click still edits it by typing */
