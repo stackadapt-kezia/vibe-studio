@@ -309,6 +309,16 @@ The NM2 MIDI controller addresses the **master only**, never a node.
 
 The point is eyes-free operation in a dark venue, not feature count.
 
+**Built in 0.9.99** as generic MIDI learn rather than an NM2 profile, since
+the NM2's configurator lets the operator choose what every button, encoder
+and tilt axis sends. The MIDI button (M) connects over Web MIDI (Chrome or
+Edge, https or localhost); Learn ties any look, set list slot, slider or
+button to a note or controller, and endless encoders are taken as relative.
+Tilt and knobs can be learned as MIDI A to D, Reactivity sources beside the
+audio bands. Pad lights send the mapped note back at 127 or 0, the common
+convention; whether the NM2 lights from MIDI is unconfirmed. Not built yet:
+Banks (one set of pads addressing a chosen group) and per-group pad recall.
+
 ## Hardware
 
 **If LED tiles: one machine, driving one output into the processor.** A single

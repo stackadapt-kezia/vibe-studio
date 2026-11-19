@@ -233,6 +233,17 @@
   fieldset.collapsed > legend > .legval { display: inline; }
   fieldset.collapsed > legend > .legval ~ .eye, fieldset.collapsed > legend > .legval ~ .headctl { margin-left: 8px; }
   .pill .info { margin-left: 8px; }
+  #midiBanner { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 1003; max-width: min(560px, 90vw); padding: 10px 16px;
+    background: var(--panel); border: 1px solid #fff; border-radius: 10px; font-size: 13px; color: var(--text); text-align: center; box-shadow: 0 8px 28px rgba(0,0,0,.5); }
+  body.midi-learn .ptile, body.midi-learn .tslot.filled, body.midi-learn input[type=range], body.midi-learn .panel button, body.midi-learn .dock button:not(#midiBtn) { outline: 1px dashed rgba(255,255,255,.45); outline-offset: 1px; }
+  body.midi-learn .midi-pick { outline: 2px solid #fff !important; }
+  .mmap { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+  .mmap .mctl { color: var(--muted); flex: none; width: 92px; font-variant-numeric: tabular-nums; }
+  .mmap .mname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mmap button { background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); border-radius: 999px; font: inherit; font-size: 11px; padding: 2px 8px; cursor: pointer; }
+  .mmap button.on { color: #fff; border-color: #fff; }
+  #midiBtn.live .key { color: #B0E64B; }
+  #midiDlg label.check { display: flex; flex-direction: row; align-items: center; gap: 0; text-align: left; }
   .info:hover { border-color: #fff; color: #fff; }
   #previewSeg button { padding-left: 4px; padding-right: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .seg button, .pill {
@@ -785,6 +796,23 @@
     <p class="note"><b>Shortcuts</b> · F fullscreen · H hide panel · P presets · S settings · R record · 1–8 set list · Space play or pause · Esc show the panel</p>
   </div>
 </dialog>
+<dialog id="midiDlg" class="changelog pubdlg">
+  <div class="clhead">
+    <span class="title">MIDI</span>
+    <button class="ovclose" id="midiClose" type="button" aria-label="Close">×</button>
+  </div>
+  <div class="pubbody">
+    <p class="note" id="midiStatus" style="margin-top:0">Not connected. Plug the controller in (USB or Bluetooth MIDI), then Connect.</p>
+    <div class="btnrow"><button class="pill" id="midiConnect" type="button">Connect</button><button class="pill" id="midiLearnBtn" type="button" title="Click a look, a set list slot, a slider or a button, then press or turn a control">Learn</button></div>
+    <p class="seglabel" style="margin-top:14px">Reactivity sources</p>
+    <p class="note" style="margin-top:0">Learn a knob or the tilt as MIDI A to D; they then appear beside Bass, Mids and Highs in Reactivity, to route to any control.</p>
+    <div class="btnrow"><button class="pill" type="button" data-msrc="midiA">MIDI A</button><button class="pill" type="button" data-msrc="midiB">MIDI B</button><button class="pill" type="button" data-msrc="midiC">MIDI C</button><button class="pill" type="button" data-msrc="midiD">MIDI D</button></div>
+    <label class="check" style="margin-top:12px"><input type="checkbox" id="midiLight" checked> Light the pad of the look that is playing</label>
+    <p class="seglabel" style="margin-top:14px">Mappings</p>
+    <div id="midiList"></div>
+  </div>
+</dialog>
+<div id="midiBanner" hidden></div>
 <dialog id="changelog" class="changelog">
   <div class="clhead">
     <span class="title">What’s new</span>
@@ -1328,6 +1356,7 @@
     <button class="mini" id="hideBtn" title="Hide or show the panel (H)">Hide panel<span class="key">H</span></button>
     <button class="mini" id="setBtn" title="Presets and set list (P)">Presets<span class="key">P</span></button>
     <button class="mini" id="settingsBtn" title="Settings (S)">Settings<span class="key">S</span></button>
+    <button class="mini" id="midiBtn" title="MIDI controller: connect, map and learn (M)">MIDI<span class="key">M</span></button>
     <button class="mini" id="recBtn" title="Record the performance (R)">Record<span class="key">R</span></button>
   </div>
   <main class="stage" id="stage">
@@ -1371,12 +1400,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.98";  // Particles; SVG facades; handles in each item's colour; small items drag by their body; seating minimums
+const APP_VERSION = "0.9.99";  // MIDI: connect a controller, learn mappings, MIDI A-D as reactivity sources, pad lights
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.99", "MIDI. The new MIDI button (M) in the show controls connects a controller over USB or Bluetooth MIDI (Chrome or Edge, on the deployed https address or localhost; the browser asks once and reconnects by itself after that). Press Learn, click what you want to control (a look in the library, a set list slot, any slider, or any button, such as a pattern, a Screen mode, Fullscreen or Record), then press or turn a control on the controller, and they are tied together; keep clicking and pressing to map more, Esc to finish. Pads and buttons fire looks, slots and buttons, whether they send notes or controller messages; knobs and faders move sliders, and endless encoders are recognised and move them in relative steps (switch any mapping between Absolute and Relative in the list). MIDI A to D are new Reactivity sources: learn a knob, a fader or the controller\u2019s tilt as one, then route it to any control like an audio band. The pad of the look that is playing lights up on controllers that light pads from MIDI. Mappings stay in this browser and show in the MIDI panel, each with a button to remove it."],
   ["0.9.98", "A new pattern, Particles, takes the place Tiles had (Tiles is gone: too many holes). Thousands of particles fly in from all over to form the picture, each one coloured by the picture where it belongs; a beat bursts them out from the middle and they settle back. Particle size sets their size, Swirl how hard a current sweeps them (harder on the bass), Burst how far a beat throws them, Pull how quickly they come home, and Count how many there are, from about 9,000 to 65,000. Multi-screen: a speaker or any small item now drags by its body in the Plan instead of catching a resize handle (which is why one could end up off centre); edge handles appear only on items big enough to keep their middle free. The turn knob shows only while the pointer is just outside a corner, as a filled dot. A selected item is outlined boldly in its own colour (AV islands blue, camera islands green like their view lines, confidence monitors orange, symbols their own colour, screens their group), with handles to match and no blue rims. SVG symbols arrive as facades: the outline stands up in the elevation in its own colour, and from above it is a thin bar, ready for cut-outs and set pieces; the box switches a symbol between a facade and a footprint. A symbol over the mounting grid or a scaffold can be raised to hang on it. Seats are drawn as rounded squares, and Seating keeps at least a 30 in row, a 20 in seat and a 45 in aisle (fire code). Panels: card headers are white; a collapsed card shows its chosen option at the right of its header; Swatch sets and Elements collapse fully, and a line sets the mounting grid apart; units sit right after their numbers, with wider gaps between columns; Aisles lines up with the other fields; the (i) for SVG symbols is inside its button."],
   ["0.9.97", "A big tidy-up. Multi-screen: the cards run Output, Mapping presets, Room, Seating, Stage, Background, Elements, Screen Groups, AV layout. Room is Width, Depth and Height on one row (the ceiling moved here); Seating has its own card with an eye; Stage is Height, Width, Depth on one row with a Colour, and the offset and back-wall controls are gone (the stage and room centre on the grid, so the plan and the elevation agree on the middle). Background drops the light switch (always event dim), the wall buttons and Select backdrop: Wall photo is a choice in the backdrop list. Elements holds everything placeable in one list, the mounting grid\u2019s settings, and a new Confidence monitor that sits on the stage edge facing the presenter; Delay TV sits with the screen sizes, takes real TV sizes and a screen group, and plays that group\u2019s picture. Speakers, cameras, people and SVG symbols stand on the stage while over it and on the floor off it, and anything downstage of the screens (rigs too) draws in front of them. SVG symbols are solid now: they show in the elevation as a block of their own height and colour, set in their box. Floor-plan items turn with a round knob (15\u00b0 steps, Alt for free), and size from their edges. Hold Shift while dragging to keep to one axis; Snap to grid under the Grid underlay; Tab hides every label, grid and guide, and Tab again brings them back. Clicking something on the stage opens its settings in the panel. Camera islands draw their view lines. Units sit inside the number boxes. Controls are calmer: selected buttons are a white outline, closed eyes grey, checkboxes grey until ticked. Look: Beads is gone and Tiles takes its place (edge-to-edge polygon tiles with grout); Depth\u2019s Motion is a grid of named buttons, first in the list, and the second Zoom is gone; Lines gains a Zoom into the picture; ASCII starts on Ember; Texture is Overlay, and Print dots moved to Screen; the font list adds Special Gothic and Special Gothic Expanded One; Earthrise starts and ends on black with none in the middle; the Reactivity meters are taller with flat faders and more room under their labels."],
   ["0.9.96", "Multi-screen: Delay TVs now play the show. Each one takes the full frame, like a Mirror screen, three to a splitter feed, and they count in the Outputs and machines and in the AV spec. In the Plan, every delay TV shows a live preview of what it plays, laid just in front of its face."],
@@ -1636,7 +1666,7 @@ const LOOK = [
   ["fracSeed", "Seed", 0, 99, 1, v => String(v)],
 ];
 // Reactivity routing: each route sends one audio band to one control.
-const SOURCES = { bass: "Bass", mid: "Mids", high: "Highs", beat: "Beat", presence: "Face: presence", near: "Face: near", crowd: "Face: crowd", spread: "Face: spread" };
+const SOURCES = { bass: "Bass", mid: "Mids", high: "Highs", beat: "Beat", presence: "Face: presence", near: "Face: near", crowd: "Face: crowd", spread: "Face: spread", midiA: "MIDI A", midiB: "MIDI B", midiC: "MIDI C", midiD: "MIDI D" };
 const TARGETS = {
   size: "Size", motion: "Motion", colour: "Colour", grain: "Grain", flash: "Flash",
   distort: "Distort", warp: "Warp", trails: "Trails", push: "Push", spin: "Spin", echo: "Echo",
@@ -1700,7 +1730,7 @@ function buildFaders(host, spec) {
     cell.className = "fader";
     const input = document.createElement("input");
     input.type = "range"; input.className = "vfader"; input.min = min; input.max = max; input.step = step; input.value = state[key];
-    input.setAttribute("aria-label", label);
+    input.setAttribute("aria-label", label); input.id = "f_" + key;   // a stable id, so a MIDI mapping finds it again
     const lb = document.createElement("label"); lb.textContent = label;
     const out = document.createElement("output"); out.textContent = fmt(state[key]);
     input.addEventListener("input", () => { state[key] = +input.value; out.textContent = fmt(state[key]); touch(); });
@@ -6279,7 +6309,8 @@ function palFor(P) {
 // the reactivity routes summed into per-target amounts, from the live bands
 function modsFor(routes) {
   const lvl = { bass: band.bass, mid: band.mid, high: band.high, beat: beatEnv,
-                presence: FACE.presence, near: FACE.largest * 2.5, crowd: FACE.occupancy * 4, spread: FACE.spread };
+                presence: FACE.presence, near: FACE.largest * 2.5, crowd: FACE.occupancy * 4, spread: FACE.spread,
+                ...(typeof MIDI !== "undefined" ? MIDI.src : {}) };   // MIDI A-D: knobs, faders or the tilt, 0 to 1
   const mod = {};
   for (const r of routes) mod[r.dst] = (mod[r.dst] || 0) + (lvl[r.src] || 0) * r.amt;
   const m = k => mod[k] || 0;
@@ -6848,6 +6879,7 @@ function renderSetlist() {
       const pr = document.createElement("i"); pr.className = "prog";
       el.append(cv, num, name, hold, rm, pr);
       attachDrag(el, { id: p.id, from: "tl", index: i, onClick: () => applySlot(i) });
+      el.dataset.slot = String(i);
       el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); applySlot(i); } });
     } else {
       name.textContent = "drop a preset here";
@@ -10166,6 +10198,7 @@ addEventListener("keydown", e => {
   if (e.key === "r") $("recBtn").click();
   if (e.key === "p") toggleOverlay();
   if (e.key === "s") toggleSettings();
+  if (e.key === "m") toggleMidi();
   if (/^[1-8]$/.test(e.key)) applySlot(+e.key - 1);
   if (e.key === " ") {
     if (srcMode === "music") { e.preventDefault(); togglePlay(); }
@@ -10259,6 +10292,176 @@ setInterval(syncLegVals, 600);
   });
   requestAnimationFrame(barLoop);
 })();
+
+/* ================= MIDI ================= */
+// Web MIDI, no library: Connect asks the browser for the controller (it needs
+// https or localhost). Learn: click a look, a set list slot, a slider or a
+// button, then press or turn a control, and the two are tied. Notes and
+// controller messages both work: a press (note on, or a controller crossing
+// half way) fires a look, a slot or a button; a controller moves a slider,
+// absolutely or, for endless encoders, in relative steps; MIDI A-D feed the
+// Reactivity routes like an audio band. Mappings are kept in this browser.
+// The pad of the playing look is lit by sending its own note (or controller)
+// back at full velocity, the convention most controllers follow.
+var MIDI = { access: null, maps: [], src: { midiA: 0, midiB: 0, midiC: 0, midiD: 0 }, last: {}, learn: false, pending: null, light: true };
+try { MIDI.maps = (JSON.parse(localStorage.getItem("vibe.midi") || "[]") || []).filter(m => m && m.key && m.target); MIDI.light = localStorage.getItem("vibe.midiLight") !== "0"; } catch (e) { /* none yet */ }
+const midiSave = () => { try { localStorage.setItem("vibe.midi", JSON.stringify(MIDI.maps.map(({ _lit, ...m }) => m))); } catch (e) { /* no storage */ } };
+const midiCtl = k => { const [t, ch, n] = k.split(":"); return (t === "cc" ? "CC " : "Note ") + n + (ch !== "1" ? " \u00b7 ch " + ch : ""); };
+function toggleMidi() { const d = $("midiDlg"); if (d.open) d.close(); else { midiRender(); d.showModal(); } }
+$("midiBtn").addEventListener("click", () => { if (MIDI.learn) midiLearn(false); else toggleMidi(); });
+$("midiClose").addEventListener("click", () => $("midiDlg").close());
+$("midiDlg").addEventListener("click", e => { if (e.target === $("midiDlg")) $("midiDlg").close(); });
+$("midiLight").checked = MIDI.light;
+$("midiLight").addEventListener("change", e => { MIDI.light = e.target.checked; try { localStorage.setItem("vibe.midiLight", MIDI.light ? "1" : "0"); } catch (x) { /* no storage */ } MIDI.maps.forEach(m => { m._lit = undefined; }); });
+function midiStatus() {
+  const ins = MIDI.access ? [...MIDI.access.inputs.values()] : [];
+  $("midiStatus").textContent = !MIDI.access ? "Not connected. Plug the controller in (USB or Bluetooth MIDI), then Connect."
+    : ins.length ? "Connected: " + ins.map(i => i.name).join(", ") + "." : "MIDI is on, but no controller is plugged in.";
+  $("midiBtn").classList.toggle("live", ins.length > 0);
+  $("midiConnect").textContent = MIDI.access ? "Reconnect" : "Connect";
+}
+async function midiConnect(quiet) {
+  if (!navigator.requestMIDIAccess) { if (!quiet) $("midiStatus").textContent = "This browser has no Web MIDI. Use Chrome or Edge."; return; }
+  try {
+    MIDI.access = await navigator.requestMIDIAccess({ sysex: false });
+    const hook = () => { for (const i of MIDI.access.inputs.values()) i.onmidimessage = e => midiIn(e.data); midiStatus(); MIDI.maps.forEach(m => { m._lit = undefined; }); };
+    MIDI.access.onstatechange = hook; hook();
+  } catch (e) { if (!quiet) $("midiStatus").textContent = "MIDI was not allowed (" + (e.message || e.name) + "). It needs https or localhost, and the browser\u2019s permission."; }
+}
+$("midiConnect").addEventListener("click", () => midiConnect(false));
+try { navigator.permissions && navigator.permissions.query({ name: "midi" }).then(st => { if (st.state === "granted") midiConnect(true); }, () => {}); } catch (e) { /* no permissions API */ }
+
+// learn: what was clicked, as something a mapping can find again after a reload
+function midiSel(b) {
+  if (b.id) return "#" + CSS.escape(b.id);
+  const host = b.parentElement && b.parentElement.closest("[id]");
+  const attr = [...b.attributes].find(a => a.name.startsWith("data-"));
+  if (!host || !attr) return null;
+  const sel = "#" + CSS.escape(host.id) + " [" + attr.name + '="' + CSS.escape(attr.value) + '"]';
+  return document.querySelectorAll(sel).length === 1 ? sel : null;
+}
+function midiTargetFor(el) {
+  const tile = el.closest(".ptile[data-id]");
+  if (tile) { const p = findPreset(tile.dataset.id); return p ? { kind: "preset", id: p.id, name: "Look: " + p.name } : null; }
+  const slot = el.closest(".tslot[data-slot]");
+  if (slot) return { kind: "slot", i: +slot.dataset.slot, name: "Set list slot " + (+slot.dataset.slot + 1) };
+  const r = el.closest("input[type=range]");
+  if (r) {
+    if (!r.id) return { bad: "That slider can\u2019t be found again after a reload; pick another." };
+    const lab = (r.closest(".row") && r.closest(".row").querySelector("label")) || (r.closest(".fader") && r.closest(".fader").querySelector("label"));
+    return { kind: "range", id: r.id, name: "Slider: " + ((lab && lab.textContent.trim()) || r.getAttribute("aria-label") || r.id) };
+  }
+  const b = el.closest("button");
+  if (b && !b.closest("#midiDlg") && b.id !== "midiBtn") {
+    const sel = midiSel(b);
+    return sel ? { kind: "button", sel, name: "Button: " + ((b.childNodes[0] && b.childNodes[0].textContent.trim()) || b.title || b.getAttribute("aria-label") || sel).slice(0, 40) } : { bad: "That button can\u2019t be found again after a reload; pick another." };
+  }
+  return null;
+}
+function midiBanner(txt) { const b = $("midiBanner"); b.textContent = txt || ""; b.hidden = !txt; }
+function midiLearn(on) {
+  MIDI.learn = on; MIDI.pending = null;
+  document.body.classList.toggle("midi-learn", on);
+  document.querySelectorAll(".midi-pick").forEach(x => x.classList.remove("midi-pick"));
+  $("midiLearnBtn").classList.toggle("on", on);
+  midiBanner(on ? "MIDI learn: click a look, a set list slot, a slider or a button, then press or turn a control. Esc or MIDI to finish." : "");
+  if (on && $("midiDlg").open) $("midiDlg").close();
+}
+$("midiLearnBtn").addEventListener("click", () => midiLearn(!MIDI.learn));
+document.querySelectorAll("[data-msrc]").forEach(b => b.addEventListener("click", () => {
+  MIDI.pending = { kind: "source", src: b.dataset.msrc, name: "Reactivity: " + SOURCES[b.dataset.msrc] };
+  $("midiDlg").close(); midiLearn(true); MIDI.pending = { kind: "source", src: b.dataset.msrc, name: "Reactivity: " + SOURCES[b.dataset.msrc] };
+  midiBanner("Now turn the knob, move the fader or tilt the controller for " + SOURCES[b.dataset.msrc] + ".");
+}));
+const midiPick = e => {
+  if (!MIDI.learn || e.target.closest("#midiBanner, #midiDlg, #midiBtn")) return;
+  const t = midiTargetFor(e.target); if (!t) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  if (e.type !== "pointerdown") return;
+  if (t.bad) { midiBanner(t.bad); return; }
+  document.querySelectorAll(".midi-pick").forEach(x => x.classList.remove("midi-pick"));
+  (e.target.closest(".ptile, .tslot, input[type=range], button") || e.target).classList.add("midi-pick");
+  MIDI.pending = t; midiBanner("Now press or turn a control for " + t.name + ".");
+};
+["pointerdown", "mousedown", "click", "input", "change"].forEach(t => addEventListener(t, midiPick, true));
+addEventListener("keydown", e => { if (MIDI.learn && e.key === "Escape") { e.stopImmediatePropagation(); midiLearn(false); } }, true);
+
+// incoming messages
+function midiIn(data) {
+  const st = data[0] & 0xf0, ch = (data[0] & 0x0f) + 1;
+  let kind, num = data[1], v = data[2] || 0;
+  if (st === 0x90 || st === 0x80) { kind = "note"; if (st === 0x80) v = 0; } else if (st === 0xb0) kind = "cc"; else return;
+  const key = kind + ":" + ch + ":" + num, prev = MIDI.last[key]; MIDI.last[key] = v;
+  if (MIDI.learn && MIDI.pending) {
+    if (kind === "note" && v === 0) return;                     // learn on the press, not the release
+    const t = MIDI.pending;
+    const rel = kind === "cc" && t.kind === "range" && (v <= 3 || v >= 125 || v === 63 || v === 65);   // an endless encoder sends small steps either side of 0 or 64
+    MIDI.maps = MIDI.maps.filter(m => m.key !== key && !(m.target.kind === t.kind && JSON.stringify({ ...m.target, name: 0 }) === JSON.stringify({ ...t, name: 0 })));
+    MIDI.maps.push({ key, target: t, mode: rel ? "rel" : "abs" });
+    midiSave(); MIDI.pending = null;
+    document.querySelectorAll(".midi-pick").forEach(x => x.classList.remove("midi-pick"));
+    midiBanner(midiCtl(key) + " \u2192 " + t.name + (rel ? " (relative)" : "") + ". Click another, or Esc to finish.");
+    if (t.kind === "source") setTimeout(() => midiLearn(false), 1200);
+    return;
+  }
+  for (const m of MIDI.maps) if (m.key === key) midiApply(m, kind, v, prev);
+}
+function midiApply(m, kind, v, prev) {
+  const t = m.target, press = kind === "note" ? v > 0 : v >= 64 && !((prev || 0) >= 64);
+  if (t.kind === "source") { MIDI.src[t.src] = v / 127; return; }
+  if (t.kind === "range") {
+    const el = document.getElementById(t.id); if (!el) return;
+    const mn = el.min === "" ? 0 : +el.min, mx = el.max === "" ? 100 : +el.max, step = +el.step || (mx - mn) / 127;
+    let nv;
+    if (kind === "note") { if (!press) return; nv = +el.value > (mn + mx) / 2 ? mn : mx; }     // a pad flips it end to end
+    else if (m.mode === "rel") nv = +el.value + (v < 64 ? v : v - 128) * step;
+    else nv = mn + (mx - mn) * v / 127;
+    nv = Math.max(mn, Math.min(mx, mn + Math.round((nv - mn) / step) * step));
+    el.value = String(+nv.toFixed(5));
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    clearTimeout(m._ch); m._ch = setTimeout(() => el.dispatchEvent(new Event("change", { bubbles: true })), 250);
+    return;
+  }
+  if (!press) return;
+  if (t.kind === "preset") { const p = findPreset(t.id); if (p) applyPreset(p); }
+  else if (t.kind === "slot") applySlot(t.i);
+  else if (t.kind === "button") { const el = document.querySelector(t.sel); if (el) el.click(); }
+}
+// the mapping list
+function midiRender() {
+  midiStatus();
+  const host = $("midiList"); host.innerHTML = "";
+  if (!MIDI.maps.length) { host.innerHTML = '<p class="note" style="margin:0">None yet. Press Learn.</p>'; return; }
+  MIDI.maps.forEach(m => {
+    const row = document.createElement("div"); row.className = "mmap";
+    const c = document.createElement("span"); c.className = "mctl"; c.textContent = midiCtl(m.key);
+    const n = document.createElement("span"); n.className = "mname"; n.textContent = m.target.name; n.title = m.target.name;
+    row.append(c, n);
+    if (m.key.startsWith("cc:") && m.target.kind === "range") {
+      const md = document.createElement("button"); md.type = "button"; md.textContent = m.mode === "rel" ? "Relative" : "Absolute";
+      md.title = "Absolute: the knob's position is the value. Relative: an endless encoder nudges it up or down.";
+      md.addEventListener("click", () => { m.mode = m.mode === "rel" ? "abs" : "rel"; midiSave(); midiRender(); });
+      row.append(md);
+    }
+    const x = document.createElement("button"); x.type = "button"; x.textContent = "\u00d7"; x.title = "Remove this mapping";
+    x.addEventListener("click", () => { MIDI.maps = MIDI.maps.filter(y => y !== m); midiSave(); midiRender(); });
+    row.append(x); host.append(row);
+  });
+}
+// pad lights: the playing look's pad lit, the rest dark, sent only when it changes
+setInterval(() => {
+  if (!MIDI.access || !MIDI.light) return;
+  const outs = [...MIDI.access.outputs.values()]; if (!outs.length) return;
+  for (const m of MIDI.maps) {
+    const t = m.target; if (t.kind !== "preset" && t.kind !== "slot") continue;
+    const lit = t.kind === "preset" ? activeId === t.id : !!(setlist[t.i] && activeId === setlist[t.i].id);
+    if (m._lit === lit) continue;
+    m._lit = lit;
+    const [k, ch, n] = m.key.split(":");
+    const msg = [(k === "cc" ? 0xb0 : 0x90) | (+ch - 1), +n, lit ? 127 : 0];
+    for (const o of outs) try { o.send(msg); } catch (e) { /* a port that went away */ }
+  }
+}, 200);
 
 /* Dev mode (?dev in the address): press D, click anything, and leave a
    numbered flag with a note. Flags stay pinned to the control they were
