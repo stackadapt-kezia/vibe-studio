@@ -79,7 +79,7 @@
     transition: background-color .45s ease, color .15s, border-color .15s;
   }
   .rail button:hover { color: var(--text); border-color: var(--muted); }
-  .rail button.active { color: #fff; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .rail button.active { color: #fff; border-color: #fff; box-shadow: 0 0 0 1px #fff; }
   .rail button:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
   .scrolls[hidden] { display: none; }
   .scrolls { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 12px 84px 0; scrollbar-width: none; }
@@ -114,7 +114,7 @@
   .dock.show, .dock:focus-within { opacity: 1; pointer-events: auto; }
   .dock.show.dim { opacity: .3; }
   .dock .mini { background: rgba(11, 11, 13, .88); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-  .mini.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .mini.on { background: var(--panel-2); border-color: #fff; color: #fff; }
   @media (hover: none) { .dock { opacity: 1; pointer-events: auto; } }
   fieldset {
     border: 0; padding: 0; margin: 0 0 20px;
@@ -146,7 +146,7 @@
     padding: 5px 10px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
   }
   legend .headctl button:not(.active):hover { color: var(--text); background: var(--panel-2); border-color: var(--accent); }
-  legend .headctl button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  legend .headctl button.active { background: var(--panel-2); color: #fff; border-color: #fff; }
   legend .headctl button.add::before { content: "+ "; color: var(--accent); }
   fieldset.fixed > legend { flex-wrap: wrap; row-gap: 8px; }
   fieldset.fixed > legend > .headctl { flex-basis: 100%; margin-left: 0; justify-content: flex-start; }
@@ -208,15 +208,29 @@
   .scrlist th { color: var(--muted); font-size: 11px; }
   .elsub { margin: 14px 0 6px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
   .elsub:first-of-type { margin-top: 4px; }
-  .info { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; margin-left: 6px; border-radius: 50%;
-    border: 1px solid rgba(255,255,255,.5); color: rgba(255,255,255,.5); font: italic 600 10px/1 Georgia, serif; cursor: help; flex: none; }
+  .info { display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 12px; margin-left: 6px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.5); color: rgba(255,255,255,.5); font: normal 600 8.5px/1 "Source Sans 3", sans-serif; cursor: help; flex: none;
+    letter-spacing: 0; text-transform: none; vertical-align: middle; }
+  .tri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .tri > label { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 11px; color: var(--muted); }
+  .tri > label > span:first-child { display: flex; align-items: center; }
+  .numu { display: flex; align-items: baseline; gap: 4px; flex: 1; min-width: 0; border-bottom: 1px solid var(--line); }
+  .numu:focus-within { border-bottom-color: #fff; }
+  .numu .num, .row .numu .num.wide, .gfields .numu .num { flex: 1; width: auto; min-width: 0; border-bottom: 0; text-align: left; }
+  .numu .unit { color: var(--muted); font-size: 11px; flex: none; margin: 0; }
+  .gfields .numu .unit { text-transform: none; letter-spacing: 0; }
+  .numu input.num, input.len.num { background: none !important; border: 0 !important; border-radius: 0 !important; padding: 4px 0 !important; box-shadow: none !important; }
+  .row > .numu { margin-left: auto; max-width: 60%; }
+  #roomCard .row, #seatCard .row, #stageCard .row { margin-top: 4px !important; }
+  #seatCard .row { min-height: 26px; }
+  .elsub.witheye { display: flex; align-items: center; }
   .info:hover { border-color: #fff; color: #fff; }
   #previewSeg button { padding-left: 4px; padding-right: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .seg button, .pill {
     background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
     padding: 9px 10px; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer;
   }
-  .seg button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .seg button.active { background: var(--panel-2); color: #fff; border-color: #fff; }   /* selected: a plain white outline */
   /* mode selectors as a table: hairlines only between cells, none on the
      outside edges. Each cell carries a right and a bottom rule; the last
      column and the last row drop theirs (marked by gridTable()). */
@@ -230,7 +244,7 @@
   .gridseg > .lastcol { border-right: 0; }
   .gridseg > .lastrow { border-bottom: 0; }
   .gridseg > button:not(.active):hover { color: var(--text); background: rgba(255, 255, 255, .03); }
-  .gridseg > button.active { color: var(--text); background: rgba(61, 132, 255, .14); }
+  .gridseg > button.active { color: #fff; background: none; box-shadow: inset 0 0 0 1px #fff; }
   .gridseg > button:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
   .seglabel {
     font: 500 10px/1 "Space Grotesk", sans-serif; letter-spacing: .12em; text-transform: uppercase;
@@ -359,29 +373,34 @@
   }
   .swatch button:hover { color: var(--text); background: var(--panel-2); }
   .sep { height: 1px; background: var(--line); margin: 12px 0 0; }
-  .meters { display: flex; gap: 6px; margin: 0 0 12px; padding-top: 20px; }
+  .meters { display: flex; gap: 6px; margin: 0 0 12px; padding-top: 26px; align-items: flex-start; }
   .meter { flex: 1; position: relative; min-width: 0; }
-  .meter .bar { height: 26px; background: var(--panel-2); border-radius: 4px; position: relative; overflow: hidden; }
+  .meter .bar { height: 34px; background: var(--panel-2); border-radius: 4px; position: relative; overflow: hidden; }
   .meter i {
     position: absolute; left: 0; right: 0; bottom: 0; border-radius: 4px;
-    background: var(--accent); height: 0%; display: block;
+    background: var(--bar-fill); height: 0%; display: block;
   }
-  .spark { display: block; width: 100%; height: 30px; margin-top: 4px; background: var(--panel-2); border-radius: 4px; }
+  .spark { display: block; width: 100%; height: 34px; margin-top: 4px; background: var(--panel-2); border-radius: 4px; }
   /* Gain and Smoothing stand beside the band meters, as tall as meter plus waveform */
   .faders { display: flex; gap: 12px; flex: 0 0 auto; margin-left: 8px; }
   .fader { position: relative; display: flex; flex-direction: column; align-items: center; width: 40px; }
   .fader input[type=range] {
-    writing-mode: vertical-lr; direction: rtl; width: 22px; height: 60px; margin: 0;   /* meter 26 + gap 4 + waveform 30 */
-    accent-color: var(--accent);
+    writing-mode: vertical-lr; direction: rtl; width: 16px; height: 72px; margin: 0;   /* meter 34 + gap 4 + waveform 34: the same height as the band boxes */
+    -webkit-appearance: none; appearance: none; border-radius: 3px; cursor: ns-resize; --fill: 50%;
+    background: linear-gradient(to top, var(--bar-fill) 0 var(--fill), var(--bar-track) var(--fill) 100%);
   }
+  .fader input[type=range]::-webkit-slider-runnable-track { background: transparent; }
+  .fader input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 2px; background: var(--bar-fill); border: 0; }
+  .fader input[type=range]::-moz-range-thumb { width: 16px; height: 2px; border: 0; border-radius: 0; background: var(--bar-fill); }
+  .fader input[type=range]:focus { outline: none; }
   .fader label {
-    position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 10px;
+    position: absolute; top: -22px; left: 50%; transform: translateX(-50%); font-size: 10px;
     letter-spacing: .1em; text-transform: uppercase; color: var(--muted); white-space: nowrap;
   }
-  .fader output { position: absolute; top: 64px; font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .fader output { position: absolute; top: 76px; font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .meters { margin-bottom: 26px; }   /* room for the fader readouts below */
   .meter span {
-    position: absolute; top: -16px; left: 0; font-size: 10px; color: var(--muted);
+    position: absolute; top: -22px; left: 0; font-size: 10px; color: var(--muted);
     letter-spacing: .1em; text-transform: uppercase;
   }
   .note { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
@@ -607,9 +626,10 @@
   /* eye toggles on the pile headings */
   .eye { margin-left: auto; background: none; border: 0; color: var(--muted); cursor: pointer; padding: 0 2px; display: flex; letter-spacing: 0; }
   .eye svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-  .eye:hover { color: var(--text); }
+  .eye { color: #fff; }
+  .eye:hover { color: #fff; opacity: .8; }
   .eye[aria-pressed="true"] .eye-off, .eye[aria-pressed="false"] .eye-on { display: none; }
-  .eye[aria-pressed="false"] { color: var(--accent); }
+  .eye[aria-pressed="false"] { color: #5c6070; }   /* closed: greyed out */
   /* mounting grid fields in one row that follows the panel width */
   .gfields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
   .gfields label { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
@@ -655,14 +675,18 @@
     padding: 5px 10px; border-radius: 999px; font: inherit; font-size: 12px; cursor: pointer;
   }
   .chip:hover { border-color: var(--accent); }
-  .chip.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); color: #fff; }
+  .chip.on { border-color: #fff; box-shadow: 0 0 0 1px #fff; color: #fff; }
   .chip .x { margin-left: 7px; color: var(--muted); }
   .chip .x:hover { color: #fff; }
   .gmaprow input { flex: 1; min-width: 0; }
   .gmaprow .pill { flex: 0 0 auto; }
   .chip.add::before { content: "+ "; color: var(--accent); }
   .check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); margin: 6px 0; cursor: pointer; }
-  .check input { accent-color: var(--accent); }
+  .check input { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; margin: 0 6px 0 0; flex: none; cursor: pointer;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 3px; display: inline-grid; place-content: center; vertical-align: -2px; }
+  .check input:hover { border-color: #5c6070; }
+  .check input:checked { background: #fff; border-color: #fff; }
+  .check input:checked::before { content: ""; width: 8px; height: 4px; border: 2px solid #0b0b0d; border-top: 0; border-right: 0; transform: translateY(-1px) rotate(-45deg); }
   .pstats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
   .pstat { background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; min-width: 0; }
   .pstat span { display: block; font-size: 11px; color: var(--muted); }
@@ -938,7 +962,7 @@
           <button data-style="15">Shapes</button>
           <button data-style="16">Stipple</button>
           <button data-style="17">Mesh</button>
-          <button data-style="18">Beads</button>
+          <button data-style="18" title="Edge-to-edge polygon tiles, each one flat colour from the picture beneath, with grout between">Tiles</button>
           <button data-style="19">Textile</button>
           <button data-style="22" title="A depth map, white near and black far, coloured through the palette by distance">Depth</button>
         </div>
@@ -958,13 +982,6 @@
           <option value="1">Eroded</option>
           <option value="2">Matrix</option>
           <option value="3">Binary</option>
-        </select>
-      </div>
-      <div class="row" id="beadRow" hidden>
-        <label for="beadSel">Board</label>
-        <select id="beadSel" aria-label="Bead board lattice">
-          <option value="0">Square</option>
-          <option value="1">Hexagon</option>
         </select>
       </div>
       <div class="row" id="fabricRow" hidden>
@@ -1003,6 +1020,17 @@
         <input type="file" id="shapeReplace" accept=".svg,image/svg+xml" hidden>
       </div>
       <div id="depthRow" hidden>
+        <div id="motionRow" hidden style="margin-bottom:12px">
+          <p class="seglabel">Motion</p>
+          <div class="gridseg" id="motionSeg" data-cols="3">
+            <button data-motion="0" title="A turntable">Spin</button>
+            <button data-motion="1" title="Rocks back and forth">Swing</button>
+            <button data-motion="2" title="Turns an eighth on every beat">Step to beat</button>
+            <button data-motion="3" title="Turns over on more than one axis">Tumble</button>
+            <button data-motion="4" title="Travels round the frame like a ball in a box; beats kick it">Bounce</button>
+            <button data-motion="5" title="A wandering path and a loose tumble">Random</button>
+          </div>
+        </div>
         <div class="row">
           <label title="A black-and-white picture or video where white is near and black is far">Depth map</label>
           <button class="mini" id="depthLoad" type="button" title="A picture or video the browser can show, an EXR, HDR, TIFF, TGA, PFM, PGM or NumPy depth file, or an OBJ model">Load depth image or video</button>
@@ -1082,6 +1110,7 @@
         <button data-screen="9">Motion study</button>
         <button data-screen="10">Tilt blur</button>
         <button data-screen="11">Ghost</button>
+        <button data-screen="12" title="A fine rotated dot screen in ink over the picture, with toner speckle in the shadows">Print dots</button>
       </div>
       <div class="row" id="sortRow" style="margin-top:10px" hidden>
         <label for="sortSel">Sort</label>
@@ -1095,11 +1124,10 @@
     </fieldset>
 
     <fieldset>
-      <legend>Texture</legend>
+      <legend>Overlay</legend>
       <div class="gridseg" id="texSeg" data-cols="4">
         <button data-tex="0">None</button>
         <button data-tex="1">Scratches</button>
-        <button data-tex="2">Print dots</button>
         <button data-tex="3">Stamp</button>
       </div>
       <div id="stampRow" hidden style="margin-top:10px">
@@ -1149,19 +1177,35 @@
         <div class="row" style="margin-top:8px"><label for="gridUnder">Grid underlay</label><select id="gridUnder" aria-label="Grid underlay" title="A measuring grid behind the drawing, in both views">
           <option value="0">Off</option><option value="6">6 in</option><option value="12">1 ft</option><option value="24">2 ft</option><option value="60">5 ft</option>
           <option value="3.937">10 cm</option><option value="19.685">50 cm</option><option value="39.37">1 m</option></select></div>
+        <label class="check" style="margin-top:8px"><input type="checkbox" id="gridSnap"> Snap to grid</label>
       </div>
       <p class="note warn" id="outNote" hidden></p>
     </fieldset>
     <div id="dockPad" style="height:72px" aria-hidden="true"></div>
 
     <div id="pileUI" hidden>
+      <fieldset>
+        <legend>Mapping presets</legend>
+        <div class="chips" id="gmapList"></div>
+        <p class="note" id="gmapNote">Save the groups as they are now: which screens, which mapping, which source and set list. Press a pad to bring a setup back.</p>
+        <div class="btnrow gmaprow">
+          <input type="text" id="gmapName" maxlength="24" spellcheck="false" placeholder="Name this mapping" aria-label="Mapping preset name">
+          <button class="pill" id="gmapSave">Save</button>
+        </div>
+      </fieldset>
+
       <fieldset id="roomCard">
         <legend>Room</legend>
-        <div class="row"><label for="roomWFt">Room width</label><input type="number" class="num wide" id="roomWFt" min="0" max="600" step="1" placeholder="none" title="The room, wall to wall across, in feet; with a depth it is drawn around the plan"><span class="unit">ft</span></div>
-        <div class="row" style="margin-top:8px"><label for="roomDFt">Room depth</label><input type="number" class="num wide" id="roomDFt" min="0" max="600" step="1" placeholder="none" title="The room front to back, in feet"><span class="unit">ft</span></div>
-        <div class="row" style="margin-top:8px"><label for="roomXFt">Room offset</label><input type="number" class="num wide" id="roomXFt" min="-300" max="300" step="0.5" title="How far the room's centre sits right of the grid's centre as it stands, in feet; negative is left. The room then stays put while the build moves inside it and snaps to its centre."><span class="unit">ft</span></div>
-        <div id="seatBlock">
-        <div class="row" style="margin-top:14px"><label for="seatLayout">Seating</label><select id="seatLayout" aria-label="Seating layout" title="How the house is laid out; the block is centred on the stage">
+        <div class="tri">
+          <label><span>Width</span><span class="numu"><input type="number" class="num" id="roomWFt" min="0" max="600" step="1" placeholder="none" title="The room, wall to wall across, in feet; with a depth it is drawn around the plan"><span class="unit">ft</span></span></label>
+          <label><span>Depth</span><span class="numu"><input type="number" class="num" id="roomDFt" min="0" max="600" step="1" placeholder="none" title="The room front to back, in feet"><span class="unit">ft</span></span></label>
+          <label><span>Height</span><span class="numu"><input type="number" class="num" id="ceilFt" min="0" max="80" step="0.5" placeholder="none" title="Ceiling height in feet from the room floor; blank or 0 for none"><span class="unit">ft</span></span></label>
+        </div>
+      </fieldset>
+
+      <fieldset id="seatCard">
+        <legend>Seating<span class="info" tabindex="0" title="The plan draws sightline rays from the front row past the ends of the front screens: green where they land on a screen behind, red where they see into the gap. Drag the seating or the AV island to place them.">i</span><button class="eye" type="button" data-vis="seats" aria-pressed="true" aria-label="Show or hide the seating" title="Show or hide the seating"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
+        <div class="row"><label for="seatLayout">Layout</label><select id="seatLayout" aria-label="Seating layout" title="How the house is laid out; the block is centred on the stage">
           <option value="none">No seating</option><option value="theatre">Theatre rows</option><option value="chevron">Chevron (angled sections)</option><option value="curved">Curved rows</option>
           <option value="classroom">Classroom (tables)</option><option value="banquet">Banquet rounds (10)</option><option value="cabaret">Cabaret rounds (6)</option></select></div>
           <div id="seatDetail">
@@ -1173,48 +1217,49 @@
         <div class="row" id="taperRow" style="margin-top:8px"><label for="seatTaper">Taper</label><input type="number" class="num wide" id="seatTaper" min="-120" max="120" step="1" title="Inches each row grows from the one in front, so the rows fan out towards the back; a minus narrows them"><span class="unit">in/row</span></div>
         <div class="row" id="aisleRow" style="margin-top:8px"><label for="seatAisles">Aisles</label><input type="number" class="num wide" id="seatAisles" min="0" max="8" step="1" title="How many aisles cut the rows; Chevron needs at least one"><span class="unit">of</span><input type="number" class="num wide" id="seatAisleW" min="24" max="120" step="1" title="Aisle width in inches" aria-label="Aisle width"><span class="unit">in</span></div>
         <div class="row" style="margin-top:8px"><label for="seatAttendees">Expected</label><input type="number" class="num wide" id="seatAttendees" min="0" max="20000" step="1" placeholder="none" title="How many attendees are expected; the count then says how many seats are short or spare"><span class="unit">people</span></div>
-            <p class="note">The plan draws sightline rays from the front row past the ends of the front screens: green where they land on a screen behind, red where they see into the gap. Drag the seating or the AV island to place them.</p>
           </div>
+      </fieldset>
+
+      <fieldset id="stageCard">
+        <legend>Stage<button class="eye" type="button" data-vis="stage" aria-pressed="true" aria-label="Show or hide the stage" title="Show or hide the stage; hidden, everything stands on the room floor"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
+        <div class="tri">
+          <label><span>Height</span><span class="numu"><input type="number" class="num" id="stageHFt" min="0" max="20" step="0.25" placeholder="none" title="A raised stage the screens stand on, in feet; blank or 0 for none"><span class="unit">ft</span></span></label>
+          <label><span>Width</span><span class="numu"><input type="number" class="num" id="stageWFt" min="0" max="200" step="0.5" placeholder="grid" title="Stage width in feet; blank for the grid's width"><span class="unit">ft</span></span></label>
+          <label><span>Depth<span class="info" tabindex="0" title="The apron is automatic: the stage’s back edge keeps a service gap behind the deepest screen (4′ to start; drag it in the plan) and the rest is apron, never less than 6′ so a person can always walk in front of the screens.">i</span></span><span class="numu"><input type="number" class="num" id="stageDFt" min="0" max="100" step="0.5" placeholder="none" title="Stage depth in feet, front edge to back; shown in the Plan view and the spec"><span class="unit">ft</span></span></label>
         </div>
+        <div class="row" style="margin-top:10px"><label for="stageCol">Colour</label><input type="color" id="stageCol" value="#17181d" title="The stage deck\u2019s colour, in both views"></div>
       </fieldset>
 
       <fieldset>
-        <legend>Screen Groups</legend>
-        <div id="gList"></div>
-        <div class="btnrow"><button class="pill" id="gAdd">+ Group</button></div>
-        <label class="check"><input type="checkbox" id="chaosAuto"> Keep shuffling Chaos groups (one screen every 6 s)</label>
-      </fieldset>
-
-      <fieldset>
-        <legend>Mapping presets</legend>
-        <div class="chips" id="gmapList"></div>
-        <p class="note" id="gmapNote">Save the groups as they are now: which screens, which mapping, which source and set list. Press a pad to bring a setup back.</p>
-        <div class="btnrow gmaprow">
-          <input type="text" id="gmapName" maxlength="24" spellcheck="false" placeholder="Name this mapping" aria-label="Mapping preset name">
-          <button class="pill" id="gmapSave">Save</button>
+        <legend>Background<button class="eye" type="button" data-vis="bg" aria-pressed="true" aria-label="Show or hide the background" title="Show or hide the background"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
+        <select id="bdSel" aria-label="Backdrop behind the grid" >
+          <option value="none">No backdrop</option>
+          <option value="drape">Black drape</option>
+          <option value="gradient">Fabric: palette gradient</option>
+          <option value="tiles">Fabric: palette tiles</option>
+          <option value="solid">Solid colour</option>
+          <option value="image">Fabric: custom artwork</option>
+          <option value="photo">Wall photo</option>
+        </select>
+        <div id="photoOpts" hidden style="margin-top:8px">
+          <label class="pill">Load wall photo<input type="file" id="photoFile" accept="image/*" hidden></label>
+          <div class="row" style="margin-top:8px"><label for="photoFt">Photo shows</label><span class="numu"><input type="number" class="num" id="photoFt" min="4" max="200"><span class="unit">ft</span></span></div>
         </div>
+        <div class="row" id="solidRow" hidden style="margin-top:8px"><label for="solidCol">Colour</label><input type="color" id="solidCol"></div>
+        <label class="pill" id="bdImgRow" hidden>Load backdrop artwork<input type="file" id="bdFile" accept="image/*" hidden></label>
+        <div class="row" id="ohRow" style="margin-top:8px"><label for="overhang">Overhang</label><span class="numu"><input type="number" class="num" id="overhang" min="0" max="96" title="How far the backdrop runs past the grid on the sides and top, until you size it by hand (click the backdrop on the stage)"><span class="unit">in</span></span></div>
       </fieldset>
 
-      <fieldset>
+      <fieldset id="elCard">
         <legend>Elements<button class="eye" type="button" data-vis="devices" aria-pressed="true" aria-label="Show or hide the elements" title="Show or hide the elements"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
-        <p class="elsub">Stage elements</p>
         <div class="chips" id="addSizes"></div>
-        <div class="chips"><button class="chip add" id="addCab">Speaker cabinet</button><button class="chip add" id="addCamera">Camera</button><button class="chip add" id="addPerson" title="A standing figure for scale; set its height once selected">Person</button></div>
+        <div class="chips"><button class="chip add" id="addCab">Speaker cabinet</button><button class="chip add" id="addCamera">Camera</button><button class="chip add" id="addPerson" title="A standing figure for scale; set its height once selected">Person</button><button class="chip add" id="addConf" title="A wedge monitor on the stage\u2019s front edge, facing the presenter">Confidence monitor</button></div>
         <div class="chips"><button class="chip add" id="addRigPipe" title="Another pipe grid beside the mounting grid; size and space it once selected">Pipe grid</button><button class="chip add" id="addRigScaffold" title="A scaffold build beside the mounting grid">Scaffold</button><button class="chip add" id="addRigTruss" title="A truss build beside the mounting grid">Truss</button></div>
+        <div class="chips"><button class="chip add" id="addAv" title="Front of house mixing position; seats under it move to the back rows">AV island</button><button class="chip add" id="addCamIsl" title="A camera riser, anywhere in the room">Camera island</button></div>
+        <div class="row" style="margin-top:8px;justify-content:flex-start"><label class="pill" style="flex:none">Add SVG symbol<input type="file" id="svgFile" accept=".svg,image/svg+xml" multiple hidden></label><span class="info" tabindex="0" title="Lecterns, tables, risers: each SVG becomes a plan element you place, size and name. Kept in this browser.">i</span></div>
         <p class="elsub">Wall elements</p>
         <div class="chips"><button class="chip add" id="addDoor" title="A door in the back wall, standing on the room floor; set its size once selected">Door</button><button class="chip add" id="addDoor2" title="A pair of doors, 72\u2033 wide, in the back wall">Double door</button><button class="chip add" id="addWindow" title="A window in the back wall; set its size and sill height once selected">Window</button></div>
-        <label class="check"><input type="checkbox" id="snapX" checked> Snap to uprights</label>
-        <label class="check"><input type="checkbox" id="snapSize" checked> Snap to real TV sizes</label>
-        <label class="check"><input type="checkbox" id="pLabels"> Show sizes on screens</label>
-        <p class="elsub">Room elements</p>
-        <div class="chips"><button class="chip add" id="addAv" title="Front of house mixing position; seats under it move to the back rows">AV island</button><button class="chip add" id="addCamIsl" title="A camera riser, anywhere in the room">Camera island</button><button class="chip add" id="addTv" title="A screen on a stand off the stage, for the back of the house">Delay TV</button></div>
-        <label class="pill" style="margin-top:8px">Add SVG symbol<input type="file" id="svgFile" accept=".svg,image/svg+xml" multiple hidden></label>
-        <p class="note">Lecterns, tables, risers: each SVG becomes a plan element you place, size and name. Kept in this browser.</p>
-        <div class="selbox" id="pSel" hidden></div>
-      </fieldset>
-
-      <fieldset>
-        <legend>Mounting grid<button class="eye" type="button" data-vis="grid" aria-pressed="true" aria-label="Show or hide the mounting grid" title="Show or hide the mounting grid"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
+        <p class="elsub witheye">Mounting grid<button class="eye" type="button" data-vis="grid" aria-pressed="true" aria-label="Show or hide the mounting grid" title="Show or hide the mounting grid"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></p>
         <div class="row"><label>Rig</label>
           <div class="seg mini-seg" id="rigSeg" aria-label="Rig type">
             <button data-rig="pipe" title="Steel pipe uprights and horizontal rails">Pipe</button>
@@ -1224,51 +1269,23 @@
         </div>
         <div class="row" style="margin-top:8px"><label for="gD">Structure</label><select id="gD" aria-label="Structure depth" title="How deep the structure is, from the standard sections for this rig type; drawn in the plan"></select><span class="unit">deep</span></div>
         <div class="gfields" style="margin-top:10px">
-          <label><span>Width in</span><input type="number" class="num" id="gW" min="24" max="720"><output id="gWft"></output></label>
-          <label><span>Height in</span><input type="number" class="num" id="gH" min="24" max="240"><output id="gHft"></output></label>
-          <label><span id="gPLab">Uprights in</span><input type="number" class="num" id="gP" min="12" max="96"><output id="gPn"></output></label>
-          <label><span id="gRLab">Rails in</span><input type="number" class="num" id="gR" min="12" max="120"><output>spacing</output></label>
+          <label><span>Width</span><span class="numu"><input type="number" class="num" id="gW" min="24" max="720"><span class="unit">in</span></span><output id="gWft"></output></label>
+          <label><span>Height</span><span class="numu"><input type="number" class="num" id="gH" min="24" max="240"><span class="unit">in</span></span><output id="gHft"></output></label>
+          <label><span id="gPLab">Uprights</span><span class="numu"><input type="number" class="num" id="gP" min="12" max="96"><span class="unit">in</span></span><output id="gPn"></output></label>
+          <label><span id="gRLab">Rails</span><span class="numu"><input type="number" class="num" id="gR" min="12" max="120"><span class="unit">in</span></span><output>spacing</output></label>
         </div>
+        <label class="check"><input type="checkbox" id="snapX" checked> Snap to uprights</label>
+        <label class="check"><input type="checkbox" id="snapSize" checked> Snap to real TV sizes</label>
+        <label class="check"><input type="checkbox" id="pLabels"> Show sizes on screens</label>
+        <div class="selbox" id="pSel" hidden></div>
       </fieldset>
 
       <fieldset>
-        <legend>Background<button class="eye" type="button" data-vis="bg" aria-pressed="true" aria-label="Show or hide the background" title="Show or hide the background"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
-        <div class="seg" id="wallSeg">
-          <button data-wall="plain">Plain wall</button>
-          <button data-wall="photo">Wall photo</button>
-        </div>
-        <div id="photoOpts" hidden>
-          <label class="pill">Load wall photo<input type="file" id="photoFile" accept="image/*" hidden></label>
-          <div class="row" style="margin-top:8px"><label for="photoFt">Photo shows</label><input type="number" class="num wide" id="photoFt" min="4" max="200"><span class="unit">ft</span></div>
-        </div>
-        <select id="bdSel" aria-label="Backdrop behind the grid" style="margin-top:12px">
-          <option value="none">No backdrop</option>
-          <option value="drape">Black drape</option>
-          <option value="gradient">Fabric: palette gradient</option>
-          <option value="tiles">Fabric: palette tiles</option>
-          <option value="solid">Solid colour</option>
-          <option value="image">Fabric: custom artwork</option>
-        </select>
-        <div class="row" id="solidRow" hidden style="margin-top:8px"><label for="solidCol">Colour</label><input type="color" id="solidCol"></div>
-        <label class="pill" id="bdImgRow" hidden>Load backdrop artwork<input type="file" id="bdFile" accept="image/*" hidden></label>
-        <div class="btnrow" id="bdSelRow" style="margin-top:8px"><button class="pill" id="bdSelect" title="Select the backdrop on the stage to drag it and size it by its handles, even where screens cover it">Select backdrop</button></div>
-        <div class="row" id="ohRow" style="margin-top:8px"><label for="overhang">Overhang</label><input type="number" class="num wide" id="overhang" min="0" max="96" title="How far the backdrop runs past the grid on the sides and top, until you size it by hand (click the backdrop on the stage)"><span class="unit">in</span></div>
-        <div class="row" style="margin-top:8px"><label for="ceilFt">Ceiling</label><input type="number" class="num wide" id="ceilFt" min="0" max="80" step="0.5" placeholder="none" title="Ceiling height in feet from the room floor; blank or 0 for none"><span class="unit">ft</span></div>
-        <div class="seg" id="lightSeg" style="margin-top:10px">
-          <button data-light="bright">Bright lobby</button>
-          <button data-light="dim">Event dim</button>
-        </div>
+        <legend>Screen Groups</legend>
+        <div id="gList"></div>
+        <div class="btnrow"><button class="pill" id="gAdd">+ Group</button></div>
+        <label class="check"><input type="checkbox" id="chaosAuto"> Keep shuffling Chaos groups (one screen every 6 s)</label>
       </fieldset>
-
-      <fieldset id="stageCard">
-        <legend>Stage<button class="eye" type="button" data-vis="stage" aria-pressed="true" aria-label="Show or hide the stage" title="Show or hide the stage; hidden, everything stands on the room floor"><svg class="eye-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg><svg class="eye-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5z"/><path d="M2.5 2.5l11 11"/></svg></button></legend>
-        <div class="row"><label for="stageHFt">Stage height</label><input type="number" class="num wide" id="stageHFt" min="0" max="20" step="0.25" placeholder="none" title="A raised stage the screens stand on, in feet; blank or 0 for none"><span class="unit">ft</span></div>
-        <div class="row"><label for="stageWFt">Stage width</label><input type="number" class="num wide" id="stageWFt" min="0" max="200" step="0.5" placeholder="grid" title="Stage width in feet; blank for the grid's width"><span class="unit">ft</span></div>
-        <div class="row"><label for="stageDFt">Stage depth</label><input type="number" class="num wide" id="stageDFt" min="0" max="100" step="0.5" placeholder="none" title="Stage depth in feet, front edge to back; shown in the Plan view and the spec"><span class="unit">ft</span><span class="info" tabindex="0" title="The apron is automatic: the stage’s back edge keeps a service gap behind the deepest screen (4′ to start; drag it in the plan) and the rest is apron, never less than 6′ so a person can always walk in front of the screens.">i</span></div>
-        <div class="row" style="margin-top:8px"><label for="roomBackFt">To back wall</label><input type="number" class="num wide" id="roomBackFt" min="0" max="200" step="0.5" placeholder="0" title="Gap between the stage's back edge and the room's back wall, in feet (0 puts the wall on the stage's back edge); the wall then stays put while the stage is edited"><span class="unit">ft</span></div>
-        <div class="row"><label for="stageXFt">Offset</label><input type="number" class="num wide" id="stageXFt" min="-50" max="50" step="0.25" title="How far the stage\u2019s centre sits right of the grid\u2019s centre, in feet; negative is left. Dragging the stage moves the grid and everything on it; this moves the stage alone."><span class="unit">ft</span></div>
-      </fieldset>
-
 
       <fieldset>
         <legend>AV layout</legend>
@@ -1345,12 +1362,13 @@
   </main>
 </div>
 <script>
-const APP_VERSION = "0.9.96";  // Delay TVs play the full frame: counted as outputs, live preview in the Plan
+const APP_VERSION = "0.9.97";  // Round of 50 notes: panel reorganised, Tiles, rotation, Shift lock, grid snap, Tab clean view, extruded symbols
 const $ = id => document.getElementById(id);
 $("ver").textContent = "v" + APP_VERSION;
 // What's new, newest first. Plain language about what changed for the operator;
 // the version button in the header opens it.
 const CHANGELOG = [
+  ["0.9.97", "A big tidy-up. Multi-screen: the cards run Output, Mapping presets, Room, Seating, Stage, Background, Elements, Screen Groups, AV layout. Room is Width, Depth and Height on one row (the ceiling moved here); Seating has its own card with an eye; Stage is Height, Width, Depth on one row with a Colour, and the offset and back-wall controls are gone (the stage and room centre on the grid, so the plan and the elevation agree on the middle). Background drops the light switch (always event dim), the wall buttons and Select backdrop: Wall photo is a choice in the backdrop list. Elements holds everything placeable in one list, the mounting grid\u2019s settings, and a new Confidence monitor that sits on the stage edge facing the presenter; Delay TV sits with the screen sizes, takes real TV sizes and a screen group, and plays that group\u2019s picture. Speakers, cameras, people and SVG symbols stand on the stage while over it and on the floor off it, and anything downstage of the screens (rigs too) draws in front of them. SVG symbols are solid now: they show in the elevation as a block of their own height and colour, set in their box. Floor-plan items turn with a round knob (15\u00b0 steps, Alt for free), and size from their edges. Hold Shift while dragging to keep to one axis; Snap to grid under the Grid underlay; Tab hides every label, grid and guide, and Tab again brings them back. Clicking something on the stage opens its settings in the panel. Camera islands draw their view lines. Units sit inside the number boxes. Controls are calmer: selected buttons are a white outline, closed eyes grey, checkboxes grey until ticked. Look: Beads is gone and Tiles takes its place (edge-to-edge polygon tiles with grout); Depth\u2019s Motion is a grid of named buttons, first in the list, and the second Zoom is gone; Lines gains a Zoom into the picture; ASCII starts on Ember; Texture is Overlay, and Print dots moved to Screen; the font list adds Special Gothic and Special Gothic Expanded One; Earthrise starts and ends on black with none in the middle; the Reactivity meters are taller with flat faders and more room under their labels."],
   ["0.9.96", "Multi-screen: Delay TVs now play the show. Each one takes the full frame, like a Mirror screen, three to a splitter feed, and they count in the Outputs and machines and in the AV spec. In the Plan, every delay TV shows a live preview of what it plays, laid just in front of its face."],
   ["0.9.95", "Beads look more like real ironed perler beads: every bead is its own size with its own size of hole, they sit close enough that many touch, and where two meet they melt into each other the way fused beads do. The cut top is matte now, with only a faint sheen (Shine still adds a little), and carries fine parallel score lines from the blade at a different angle on every bead, which fade out when the beads are too small to show them cleanly."],
   ["0.9.94", "Depth: two more Motions for a model. Bounce shrinks it and sends it travelling round the inside of the frame, coming off the edges and the front and back like a ball in a box; every beat kicks it faster, and it settles back to its cruising speed. Random wanders it along a path that doesn\u2019t repeat for a long while, tumbling loosely as it goes. Speed sets the pace of both. Multi-screen: a scaffold, truss or pipe grid stands on the stage while it\u2019s on the stage and drops to the room floor when dragged off it, in either view. Doors and windows can be dragged in the Plan along any wall of the room, back, left or right, so the entrances read clearly; the selection box has a Wall choice too. Side-wall doors show in the Plan and the spec, not in the elevation, which looks at the back wall."],
@@ -1524,7 +1542,7 @@ const RAMP_STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
 const BRAND_GRADIENTS = [
   ["Core", null, [
     ["core-horizon",    "Horizon",    [["#0061FF",0],["#7FDFFD",.46],["#FFFFFF",.57],["#FFC6AE",.68],["#EE5714",1]], true],
-    ["core-earthrise",  "Earthrise",  [["#002BB1",0],["#0061FF",.2],["#50CEF2",.36],["#000000",.5],["#FF7742",.64],["#C83C00",.82],["#7E1200",1]], "#000000"],
+    ["core-earthrise",  "Earthrise",  [["#000000",0],["#002BB1",.13],["#0061FF",.28],["#50CEF2",.42],["#FF7742",.58],["#C83C00",.72],["#7E1200",.87],["#000000",1]], false],
     ["core-orbit",      "Orbit",      [["#0061FF",0],["#00AAFF",.5],["#7FDFFD",1]], true],
     ["core-deep-space", "Deep Space", [["#000F87",0],["#0039C1",.5],["#0061FF",1]], true],
     ["core-aurora",     "Aurora",     [["#1B1E23",0],["#0F2A61",.25],["#002BB1",.55],["#005CA2",.75],["#00809C",1]], true],
@@ -1549,6 +1567,7 @@ function gradientPreset(stops, mirror) {
   const colors = stops.map(st => st[0]);
   const gaps = stops.slice(1).map((st, i) => (st[1] - stops[i][1]) * 100);
   if (mirror === true) return { colors: [...colors, ...colors.slice(1, -1).reverse()], weights: [...gaps, ...gaps.slice().reverse()] };
+  if (mirror === false) return { colors: colors.slice(0, -1), weights: gaps };   // it already ends where it starts: loop straight round
   return { colors: [...colors, mirror], weights: [...gaps, 10, 10] };   // loop back through a named colour
 }
 const PRESET_WEIGHTS = {};
@@ -1562,7 +1581,7 @@ const state = {
   weights: [...PRESET_WEIGHTS["core-horizon"]],
   scale: 1, speed: 1, warp: 0.4, blobs: 5,
   dFocus: 0.7, dLens: 0.35, dRange: 0.5, dFlow: 0.15, dSweep: 0.45, dPar: 0.3, dInvert: 0,   // Depth
-  dMotion: 0, dTilt: 16, dAngle: 0, dZoom: 1,     // Depth, for a 3-D model: how it moves, the camera's tilt and the model's turn in degrees, and zoom
+  dMotion: 0, dTilt: 16, dAngle: 0, dZoom: 1, picZoom: 1,   // picZoom: Lines' zoom into the picture     // Depth, for a 3-D model: how it moves, the camera's tilt and the model's turn in degrees, and zoom
   trails: 0.45, fbZoom: 0.004, fbSpin: 0.002,
   grain: 0.08, bands: 0, blur: 0,
   dist: 0, distort: 0.5,
@@ -1572,7 +1591,7 @@ const state = {
   glass: 0, glassAngle: 0, glassSeam: 0.4, glassSeamW: 1, gsAngle: 0, gsRand: 0,
   echoSpread: 1, echoDecay: 0.93, echoAngle: 0, echoDrift: 0.5,
   slitAngle: 90, sortMode: 0,
-  geo: 0, geoN: 6, geoSpin: 0.1, geoGap: 0, geoTile: 0, lineW: 1.5, fracSeed: 7, fracKind: 0, dotKind: 0, beadBoard: 0, fabric: 0, asciiKind: 0,
+  geo: 0, geoN: 6, geoSpin: 0.1, geoGap: 0, geoTile: 0, lineW: 1.5, fracSeed: 7, fracKind: 0, dotKind: 0, beadBoard: 0, fabric: 0, asciiKind: 1,
   routes: [],                                   // filled from DEFAULT_ROUTES or storage below
   gain: 1.6, smooth: 0.7,
 };
@@ -1588,10 +1607,9 @@ const LOOK = [
   ["dFlow", "Colour flow", 0, 1, 0.01, v => v.toFixed(2)],
   ["dSweep", "Light sweep", 0, 1, 0.01, v => v.toFixed(2)],
   ["dPar", "Parallax", 0, 1, 0.01, v => v.toFixed(2)],
-  ["dMotion", "Motion", 0, 5, 1, v => MESH_MOTIONS[v] || "Spin"],
+  ["picZoom", "Zoom", 1, 4, 0.01, v => v.toFixed(2) + "\u00d7"],
   ["dTilt", "Tilt", -60, 60, 1, v => v + "\u00b0"],
   ["dAngle", "Angle", -180, 180, 1, v => v + "\u00b0"],
-  ["dZoom", "Zoom", 0.6, 1.6, 0.01, v => v.toFixed(2) + "\u00d7"],
   ["warp", "Warp", 0, 1, 0.01, v => v.toFixed(2)],
   ["blobs", "Blobs", 2, 8, 1, v => String(v)],
   ["trails", "Trails", 0, 0.97, 0.01, v => v.toFixed(2)],
@@ -1652,8 +1670,8 @@ const TEX_ROWS = [
 ];
 // what Scale and Warp mean in each pattern, so the Look rows say so
 const SCALE_LABELS = { 0: "Blob size", 1: "Zoom", 2: "Zoom", 3: "Zoom", 4: "Amplitude", 5: "Contrast", 6: "Block size",
-  7: "Dot pitch", 8: "Offset", 9: "Detail", 10: "Detail", 11: "Line pitch", 12: "Line pitch", 13: "Cell size", 14: "Grain", 15: "Cell size", 16: "Dot pitch", 17: "Grid", 18: "Bead size", 19: "Stitch size", 22: "Zoom" };
-const WARP_LABELS = { 3: "Growth", 1: "Warp", 2: "Warp", 4: "Trace", 5: "Cycle", 6: "Dither", 7: "Angle", 8: "Direction", 10: "Light", 11: "Lift", 12: "Angle", 14: "Smear", 15: "Dither", 16: "Dot size", 17: "Depth", 18: "Shine", 19: "Thread" };
+  7: "Dot pitch", 8: "Offset", 9: "Detail", 10: "Detail", 11: "Line pitch", 12: "Line pitch", 13: "Cell size", 14: "Grain", 15: "Cell size", 16: "Dot pitch", 17: "Grid", 18: "Tile size", 19: "Stitch size", 22: "Zoom" };
+const WARP_LABELS = { 3: "Growth", 1: "Warp", 2: "Warp", 4: "Trace", 5: "Cycle", 6: "Dither", 7: "Angle", 8: "Direction", 10: "Light", 11: "Lift", 12: "Angle", 14: "Smear", 15: "Dither", 16: "Dot size", 17: "Depth", 18: "Scatter", 19: "Thread" };
 const FABRIC_WARP = ["Thread", "Gap", "Yarn"];
 const AUDIO_ROWS = [
   ["gain", "Gain", 0.2, 4, 0.05, v => v.toFixed(2)],
@@ -2046,6 +2064,7 @@ let swatchLib = [], swView = "tiles", activeSwatch = null, stockSeen = [];
 try { swatchLib = (JSON.parse(localStorage.getItem("vibe.swatches") || "[]") || []).filter(s => s && Array.isArray(s.colors) && s.colors.length >= 2); } catch (e) { swatchLib = []; }
 // retired sets leave the library, and the extended gradients lose their tag (0.9.42)
 swatchLib = swatchLib.filter(x => x.id !== "sa-light" && x.id !== "sa-dark");
+swatchLib.forEach(x => { if (x.id === "core-earthrise" && x.stock && PRESETS[x.id]) { x.colors = [...PRESETS[x.id]]; x.weights = PRESET_WEIGHTS[x.id] ? [...PRESET_WEIGHTS[x.id]] : x.colors.map(() => 100); } });   // Earthrise changed in 0.9.97
 swatchLib.forEach(x => { if (typeof x.name === "string") x.name = x.name.replace(/\s*\u00b7\s*illustration only$/, ""); });
 try { stockSeen = JSON.parse(localStorage.getItem("vibe.swStock") || "[]") || []; } catch (e) { stockSeen = []; }
 function seedStock(ids) {
@@ -2215,7 +2234,9 @@ function syncControls() {
   const show = (key, on) => document.querySelectorAll('.row[data-key="' + key + '"]').forEach(r => { r.hidden = !on; });
   show("blobs", s === 0);
   ["dFocus", "dLens", "dRange", "dFlow", "dSweep", "dPar"].forEach(k => show(k, s === 22));
-  ["dMotion", "dTilt", "dAngle", "dZoom"].forEach(k => show(k, s === 22 && !!depthMesh));   // only a model can turn
+  ["dTilt", "dAngle"].forEach(k => show(k, s === 22 && !!depthMesh));
+  show("picZoom", s === 11);
+  $("motionRow").hidden = !(s === 22 && depthMesh); if (typeof segMotion === "function") segMotion();   // only a model can turn
   ["trails", "fbZoom", "fbSpin"].forEach(k => show(k, s !== 22));   // Depth never feeds back: ghosts of the last map pile up
   $("depthRow").hidden = s !== 22;
   $("depthInvert").checked = !!state.dInvert;
@@ -2247,7 +2268,6 @@ function syncControls() {
   label("screenSize", state.screen === 4 || state.screen === 5 || state.screen === 9 ? "Spacing" : state.screen === 6 ? "Spread" : state.screen === 7 ? "Block" : state.screen === 8 ? "Reach" : state.screen === 11 ? "Offset" : "Size");
   $("microRow").hidden = s !== 13;
   $("dotRow").hidden = s !== 7;
-  $("beadRow").hidden = s !== 18;
   $("fabricRow").hidden = s !== 19;
   $("asciiRow").hidden = s !== 13;
   $("microRow").hidden = s !== 13 || state.asciiKind === 1;   // Ember is ASCII only
@@ -2303,7 +2323,6 @@ const segTex = seg("texSeg", "tex", () => state.tex, v => { state.tex = +v; sync
 const segGlass = () => { $("glassSel").value = String(state.glass); };
 const segTile = () => { $("tileSel").value = String(state.geoTile); };
 const segDot = () => { $("dotSel").value = String(state.dotKind); };
-const segBead = () => { $("beadSel").value = String(state.beadBoard); };
 const segSort = () => { $("sortSel").value = String(state.sortMode); };
 $("sortSel").addEventListener("change", () => { state.sortMode = +$("sortSel").value; touch(); });
 segSort();
@@ -2313,8 +2332,6 @@ segFabric();
 const segAscii = () => { $("asciiSel").value = String(state.asciiKind); };
 $("asciiSel").addEventListener("change", () => { state.asciiKind = +$("asciiSel").value; syncControls(); touch(); });
 segAscii();
-$("beadSel").addEventListener("change", () => { state.beadBoard = +$("beadSel").value; touch(); });
-segBead();
 $("dotSel").addEventListener("change", () => { state.dotKind = +$("dotSel").value; touch(); });
 segDot();
 $("tileSel").addEventListener("change", () => { state.geoTile = +$("tileSel").value; touch(); });
@@ -2498,7 +2515,9 @@ float plasma(vec2 q, float T) {
 float field(vec2 uv, vec2 p, float T) {
   return u_hasImg > 0.5 ? imgLum(uv) : plasma(p * 2.5, T * 0.5);
 }
+uniform float u_pzoom;            // Lines: zoom into the picture without changing the line count
 float fld(vec2 uv, float T) {
+  if (u_style == 11) uv = (uv - 0.5) / max(1.0, u_pzoom) + 0.5;
   return field(uv, (uv - 0.5) * vec2(u_res.x / u_res.y, 1.0), T);
 }
 // family 1: move the coordinate before anything samples it. Applies to every
@@ -2818,7 +2837,17 @@ vec3 textureFx(vec3 col, vec2 uv, float T) {
 vec3 screenFx(vec3 col, vec2 uv0, float T) {
   float s = u_screenAmt;
   vec2 fc = gl_FragCoord.xy;
-  if (u_screen == 1) {
+  if (u_screen == 12) {
+    // print dots: a fine rotated dot screen of the picture's own darkness laid over it in ink, toner speckle in the shadows
+    float ca = u_res.x / u_res.y, ang = 0.42;
+    mat2 R = mat2(cos(ang), -sin(ang), sin(ang), cos(ang));
+    vec2 q = R * ((uv0 - 0.5) * vec2(ca, 1.0)) * 170.0 / u_screenSize;
+    float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
+    float rad = sqrt(1.0 - clamp(lum, 0.0, 1.0)) * 0.5;
+    float dotk = 1.0 - smoothstep(rad - 0.1, rad + 0.1, length(fract(q) - 0.5));
+    float toner = step(0.94, hash2(floor(uv0 * u_res * 0.5 / u_screenSize) + floor(T * 2.0))) * (1.0 - lum);
+    col = mix(col, col * 0.3, s * (dotk * 0.75 + toner * 0.5));
+  } else if (u_screen == 1) {
     // CRT: phosphor stripes, a 4px scanline, a soft vignette and a flicker
     float px = mod(fc.x, 3.0 * u_screenSize) / u_screenSize;
     vec3 m = px < 1.0 ? vec3(1.0, 0.55, 0.55) : px < 2.0 ? vec3(0.55, 1.0, 0.55) : vec3(0.55, 0.55, 1.0);
@@ -3161,82 +3190,26 @@ void main() {
     ink = texture2D(u_shapes, vec2((idx + cf.x) / u_shapeN, cf.y)).r;
     v = (1.0 - l) * u_palEnd;
   } else if (u_style == 18) {
-    // perler beads: a pegboard of fusible beads, one per peg, each coloured
-    // from the palette by the picture's darkness beneath it. A bead is a short
-    // tube of milky plastic cut square: a flat top with a hard dark edge at
-    // the rim and at the hole, seen from just off vertical so a sliver of the
-    // outer wall shows on the near side and the inner wall is a hard crescent
-    // down the hole with the peg at the bottom. The top is translucent, paler
-    // and brighter toward its edges where light comes through the wall, with
-    // a soft gloss toward the light (upper left) and a shadow on the board.
-    // Board sets the lattice, square or hexagonal, both growing from the
-    // centre. Scale sets the bead size, Warp the gloss.
+    // tiles: jittered-grid Voronoi cells, edge to edge, each filled flat with
+    // the picture beneath its seed, with grout between. Scale sets the tile
+    // size, Warp scatters them from a clean grid into shards; they drift.
     float ca = u_res.x / u_res.y;
-    float n = 28.0 / u_scale;                          // beads down the height
-    vec2 q = (uv - 0.5) * vec2(ca, 1.0) * n;           // centred: both boards build from the middle
-    vec2 c;
-    if (u_beadBoard == 1) {
-      const vec2 A = vec2(1.0, 1.73205);
-      vec2 c1 = floor(q / A + 0.5) * A;
-      vec2 c2 = floor((q - A * 0.5) / A + 0.5) * A + A * 0.5;
-      c = dot(q - c1, q - c1) < dot(q - c2, q - c2) ? c1 : c2;
-    } else c = floor(q + 0.5);
-    vec2 jit = (vec2(hash2(c * 1.7 + 3.1), hash2(c * 2.3 + 9.7)) - 0.5) * 0.04;   // hand-placed: never quite on the peg
-    vec2 cf = q - c - jit;
-    vec2 cuv = c / n / vec2(ca, 1.0) + 0.5;
-    float l = fld(cuv, T);
-    float r = length(cf);
-    // no two beads alike: each has its own outer size and hole, and they sit close enough that many touch
-    float ro = 0.475 + (hash2(c * 3.9 + 1.3) - 0.5) * 0.11, ri = 0.165 + (hash2(c * 5.3 + 7.1) - 0.5) * 0.07, px = n / u_res.y;   // one screen pixel, in cells
-    // the neighbour this point leans toward: where two beads meet, ironing melts them into one another
-    vec2 nb;
-    if (u_beadBoard == 1) {
-      const vec2 A2 = vec2(1.0, 1.73205);
-      vec2 d1 = floor(q / A2 + 0.5) * A2, d2 = floor((q - A2 * 0.5) / A2 + 0.5) * A2 + A2 * 0.5;
-      nb = dot(c - d1, c - d1) < 0.01 ? d2 : d1;
-    } else nb = c + (abs(cf.x) > abs(cf.y) ? vec2(sign(cf.x), 0.0) : vec2(0.0, sign(cf.y)));
-    vec2 njit = (vec2(hash2(nb * 1.7 + 3.1), hash2(nb * 2.3 + 9.7)) - 0.5) * 0.04;
-    float rn = length(q - nb - njit), ron = 0.475 + (hash2(nb * 3.9 + 1.3) - 0.5) * 0.11;
-    float da = r - ro, db = rn - ron, kf = 0.07;
-    float hm = clamp(0.5 + 0.5 * (db - da) / kf, 0.0, 1.0);
-    float sd = mix(db, da, hm) - kf * hm * (1.0 - hm);   // smooth union: a melted bridge where they meet
-    r = ro + sd;                                     // from here on the bead's edge is the fused outline
-    vec2 ld = vec2(-0.625, 0.78);                     // where the light is, on the board
-    vec2 view = vec2(0.18, -0.26);                    // the eye sits a little below and right of straight above
-    vec2 dirc = r > 0.001 ? cf / r : vec2(0.0);
-    float toLight = dot(dirc, ld), toView = dot(dirc, view) / 0.32;
-    // a bead is one colour: the palette stop nearest this darkness, never a blend between stops
-    int si = int(clamp(floor((1.0 - l) * u_stopN), 0.0, u_stopN - 1.0));
-    vec3 plastic = u_stops[0];
-    for (int i = 1; i < 8; i++) if (i == si) plastic = u_stops[i];   // constant-index pick
-    if (u_bands >= 2.0) plastic = pal((1.0 - l) * u_palEnd);   // Bands set: posterise the ramp instead
-    vec3 milk = mix(plastic, vec3(1.0), 0.14);        // the plastic is milky, not solid
-    // the top face: translucent, paler toward the rim and the hole where the wall glows, a soft gloss toward the light
-    float glow = smoothstep(ro - 0.14, ro, r) * 0.14 + smoothstep(ri + 0.1, ri, r) * 0.1;
-    float gloss = pow(max(0.0, 1.0 - length(cf - ld * 0.17) / 0.45), 3.0) * (0.03 + 0.16 * u_warp);   // the cut face is matte: only a faint sheen
-    vec3 face = milk * (0.88 + 0.12 * clamp(dot(cf / ro, ld), -1.0, 1.0)) + plastic * glow + vec3(gloss);
-    // blade marks: fine parallel scores across the cut face, at each bead's own angle
-    float ha = hash2(c * 7.7 + 2.9) * 3.14159, hf = min(70.0, 2.2 / px);
-    float hatch = abs(sin(dot(cf, vec2(cos(ha), sin(ha))) * hf + hash2(c * 4.1) * 6.28));
-    face *= 1.0 - 0.07 * smoothstep(0.75, 1.0, hatch) * smoothstep(1.6, 3.5, 6.28 / hf / px);   // faded out before the lines would alias
-    // hard edges: a dark line at the rim and at the hole, one pixel and a half wide
-    float rimLine = 1.0 - smoothstep(0.0, 1.5 * px, abs(r - ro));
-    float holeLine = 1.0 - smoothstep(0.0, 1.5 * px, abs(r - ri));
-    face *= 1.0 - 0.55 * max(rimLine, holeLine);
-    face += vec3(1.0) * rimLine * max(0.0, toLight) * 0.5;   // the lit edge catches a bright line
-    // the outer wall: a sliver on the near side, outside the rim
-    float wallOut = smoothstep(ro, ro + px, r) * (1.0 - smoothstep(ro + 0.05 * max(0.0, toView), ro + 0.05 * max(0.0, toView) + px, r)) * step(0.05, toView);
-    vec3 wallOutC = plastic * (0.5 + 0.2 * max(0.0, toLight));
-    // the inner wall: a hard crescent inside the hole on the far side, the peg below it
-    float crescent = (1.0 - smoothstep(ri - 0.06 * max(0.0, -toView) - px, ri - 0.06 * max(0.0, -toView), r)) * 0.0 + smoothstep(ri - 0.07 * max(0.0, -toView) - px, ri - 0.07 * max(0.0, -toView), r) * (1.0 - smoothstep(ri - px, ri, r)) * step(0.05, -toView);
-    vec3 wallInC = plastic * (0.35 + 0.35 * max(0.0, -toLight));
-    vec3 board = vec3(0.05, 0.05, 0.055) + vec3(0.07) * (1.0 - smoothstep(0.06, 0.1, r));   // the peg
-    float shadow = 1.0 - smoothstep(ro - 0.02, ro + 0.13, length(cf + ld * 0.12));
-    board *= 1.0 - 0.6 * shadow;
-    float top = (1.0 - smoothstep(ro - px, ro, r)) * smoothstep(ri, ri + px, r);
-    colv = mix(board, wallInC, crescent);
-    colv = mix(colv, wallOutC, wallOut);
-    colv = mix(colv, face, top);
+    float n = 14.0 / u_scale;
+    vec2 g = uv * vec2(ca, 1.0) * n;
+    vec2 gi = floor(g);
+    float d1 = 9.0, d2 = 9.0;
+    vec2 seed = gi + 0.5;
+    for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+      vec2 c = gi + vec2(float(x), float(y));
+      vec2 j = vec2(hash2(c), hash2(c + 7.1)) - 0.5;
+      vec2 sd = c + 0.5 + j * u_warp * 0.9 + u_warp * 0.1 * vec2(sin(T + c.y * 1.7), cos(T * 1.3 + c.x * 1.1));
+      float d = length(sd - g);
+      if (d < d1) { d2 = d1; d1 = d; seed = sd; } else if (d < d2) d2 = d;
+    }
+    vec2 suv = seed / (n * vec2(ca, 1.0));
+    v = field(suv, (suv - 0.5) * vec2(ca, 1.0), T) * u_palEnd;
+    float grout = smoothstep(0.0, 0.06, d2 - d1);
+    colv = pal(v) * mix(0.12, 1.0, grout);
   } else if (u_style == 19) {
     // textile: the picture worked in thread. Fabric picks the construction;
     // every kind colours its thread from the palette by the picture's
@@ -4443,6 +4416,7 @@ function depthRoutes() {
   saveRoutes();
 }
 $("depthLoad").addEventListener("click", () => $("depthFile").click());
+var segMotion = seg("motionSeg", "motion", () => state.dMotion | 0, v => { state.dMotion = +v; touch(); });
 $("depthLoad").title += ". " + DEPTH_WHERE;            // where maps come from, on hover rather than under the button
 $("depthFile").addEventListener("change", e => { const f = e.target.files[0]; if (f) useDepth(f); e.target.value = ""; });
 $("depthClear").addEventListener("click", clearDepth);
@@ -4905,7 +4879,7 @@ function renderMeshDepth() {
   const mm = modsFor(state.routes);                                       // Bloat domes each face, Swell pushes the whole shape out
   let bloat = Math.min(0.6, mm("bloat") * 0.35), swell = Math.min(0.6, mm("swell") * 0.35);
   if (!(depthMesh.sub > 1)) { swell = Math.min(0.6, swell + bloat); bloat = 0; }   // too dense to dome: Bloat swells instead
-  const D = 2.7 / Math.max(0.6, Math.min(1.6, state.dZoom || 1)), tilt = (state.dTilt ?? 16) * Math.PI / 180;
+  const D = 2.7, tilt = (state.dTilt ?? 16) * Math.PI / 180;
   const mo = state.dMotion | 0, ang = (state.dAngle || 0) * Math.PI / 180;   // Angle: which way the model faces, before its motion
   let model;
   if (mo === 1) model = m4mul(m4rotX(tilt), m4rotY(Math.sin(T * 0.5) * 0.9));                       // Swing: rocks about 50 degrees each way
@@ -5761,7 +5735,7 @@ const GOOGLE_FONTS = ["Space Grotesk", "Anton", "Anybody", "Archivo", "Archivo B
   "Bricolage Grotesque", "Bungee", "DM Sans", "DM Serif Display", "Epilogue", "Figtree", "Fredoka", "IBM Plex Mono", "Inter", "Lexend", "Lobster",
   "Major Mono Display", "Manrope", "Monoton", "Montserrat", "Nunito", "Orbitron", "Oswald", "Outfit", "Pacifico", "Permanent Marker",
   "Playfair Display", "Plus Jakarta Sans", "Press Start 2P", "Raleway", "Red Hat Display", "Righteous", "Roboto Flex", "Rubik", "Rubik Mono One",
-  "Sora", "Source Sans 3", "Space Mono", "Syne", "Unbounded", "Work Sans", "Zen Dots"];
+  "Sora", "Source Sans 3", "Space Mono", "Special Gothic", "Special Gothic Expanded One", "Syne", "Unbounded", "Work Sans", "Zen Dots"];
 const gfLoaded = new Set();
 // load a Google font once, with its whole weight axis when it has one
 function loadGoogleFont(name) {
@@ -6061,7 +6035,7 @@ const LOOK_KEYS = ["style", "scale", "speed", "warp", "blobs", "trails", "fbZoom
                    "dist", "distort", "screen", "screenAmt", "tex", "texAmt", "distSize", "screenSize", "texSize",
                    "glass", "glassAngle", "glassSeam", "glassSeamW", "gsAngle", "gsRand", "echoSpread", "echoDecay", "echoAngle", "echoDrift", "slitAngle", "sortMode",
                    "geo", "geoN", "geoSpin", "geoGap", "geoTile", "lineW", "fracSeed", "fracKind", "dotKind", "beadBoard", "fabric", "asciiKind",
-                   "dFocus", "dLens", "dRange", "dFlow", "dSweep", "dPar", "dInvert", "dMotion", "dTilt", "dAngle", "dZoom"];
+                   "dFocus", "dLens", "dRange", "dFlow", "dSweep", "dPar", "dInvert", "dMotion", "dTilt", "dAngle", "dZoom", "picZoom"];
 const DEFAULT_LOOK = Object.fromEntries(LOOK_KEYS.map(k => [k, state[k]]));
 // Groups (the library's categories), in display order. presets/library.json
 // may ship its own list; renames, additions and deletions made here are kept
@@ -6174,6 +6148,7 @@ function setLook(L, m, w, h, pEnd, time = T, stops = state.colors) {
   gl.uniform1f(U("u_time"), time);
   gl.uniform1i(U("u_style"), L.style);
   gl.uniform1i(U("u_geo"), L.geo);
+  gl.uniform1f(U("u_pzoom"), L.picZoom || 1);
   gl.uniform1f(U("u_zoom"), Math.max(-0.4, Math.min(2, m("zoom") * 0.6)));
   gl.uniform1f(U("u_fseed"), L.fracSeed);
   gl.uniform1i(U("u_fkind"), L.fracKind);
@@ -6442,6 +6417,7 @@ function migrateLook(L) {
   if (o.style in GONE_STYLES) o.style = GONE_STYLES[o.style];
   if (o.style === 20) { o.style = 19; o.fabric = 1; }                   // Weave became a Textile fabric
   if (o.style === 21) { o.style = 13; o.asciiKind = 1; }               // Ember became an ASCII glyph style
+  if (o.tex === 2) { if (!o.screen) { o.screen = 12; o.screenAmt = o.texAmt != null ? o.texAmt : 0.6; o.screenSize = o.texSize || 1; } o.tex = 0; }   // Print dots moved to Screen
   if (o.dist === 4) { o.geo = (o.distort || 0) > 0.5 ? 2 : 1; o.dist = 0; }
   else if (o.dist === 5) { o.geo = 3; o.geoN = 1 + Math.floor((o.distort || 0) * 3.99); o.dist = 0; }
   return o;
@@ -6459,7 +6435,7 @@ function applyPreset(P) {
   syncActiveSwatch();
   state.routes = P.routes.map(r => ({ src: r.src, dst: r.dst, amt: +r.amt })).slice(0, ROUTE_MAX);
   saveRoutes(); renderRoutes();
-  syncSliders(); segStyle(); segFrac(); segGeo(); segDist(); segScreen(); segTex(); segGlass(); segTile(); segDot(); segBead(); segFabric(); segAscii(); segSort(); syncControls(); renderRoutes();
+  syncSliders(); segStyle(); segFrac(); segGeo(); segDist(); segScreen(); segTex(); segGlass(); segTile(); segDot(); segFabric(); if (typeof segMotion === "function") segMotion(); segAscii(); segSort(); syncControls(); renderRoutes();
   activeId = P.id; lastPresetId = P.id;               // after the rebuilds, which clear activeId
   renderActive();
 }
@@ -7087,10 +7063,10 @@ const SEAT_LAYOUTS = { theatre: "Theatre", chevron: "Chevron", curved: "Curved",
 const P = {
   frame: { x0: 0, w: 240, h: 108, pitch: 30, rail: 48, show: true, kind: "pipe", thick: 2 },   // kind: pipe, scaffold or truss; thick: its structure's depth, a standard section
   items: [],
-  bg: { wall: "plain", backdrop: "drape", solid: "#0061FF", overhang: 12, light: "dim", photoFt: 20, ceiling: 0, stageH: 0, stageW: 0, stageD: 0, apron: 72, backClear: 48, bdW: 0, bdH: 0, bdX: 0 },   // bdW/bdH 0 = the grid plus the overhang; bdX = centre off the grid centre   // inches; 0 = none (stageW 0 = as wide as the grid); apron is derived (papronSync), backClear is the deck behind the deepest screen
+  bg: { wall: "plain", backdrop: "drape", solid: "#0061FF", overhang: 12, light: "dim", stageCol: "#17181d", photoFt: 20, ceiling: 0, stageH: 0, stageW: 0, stageD: 0, apron: 72, backClear: 48, bdW: 0, bdH: 0, bdX: 0 },   // bdW/bdH 0 = the grid plus the overhang; bdX = centre off the grid centre   // inches; 0 = none (stageW 0 = as wide as the grid); apron is derived (papronSync), backClear is the deck behind the deepest screen
   plan: { ...PLAN_DEF },                           // the plan view: seating and the AV island, see PLAN_DEF
   room: { ...ROOM_DEF },
-  vis: { devices: true, bg: true, stage: true, house: true },   // the grid's own flag is frame.show
+  vis: { devices: true, bg: true, stage: true, house: true, seats: true },   // the grid's own flag is frame.show
   scene: "stage",                                  // Output mode: "stage" (deck, room, seating) or "install" (walk-past: no stage, no seating)
   groups: [gmk()],
   maps: [],                                        // mapping presets: named group setups, see gmapSave
@@ -7103,7 +7079,9 @@ const PLAYS = { displays: "Separate displays", led: "LED panels" };
 function poutputs() {
   let own = 0, feeds = 0;
   for (const g of P.groups) { const n = gscreens(g).length; if (g.mapping === "unified" || g.mapping === "scatter") own += n; else feeds += Math.ceil(n / 3); }
-  feeds += Math.ceil(pislands().filter(i => i.kind === "tv").length / 3);   // delay TVs play the full frame, three to a splitter feed
+  const tvs = pislands().filter(i => i.kind === "tv");                     // delay TVs follow their screen group: own outputs for Unified and Scatter, splitters otherwise
+  own += tvs.filter(o => { const m = gof(o).mapping; return m === "unified" || m === "scatter"; }).length;
+  feeds += Math.ceil(tvs.filter(o => { const m = gof(o).mapping; return m !== "unified" && m !== "scatter"; }).length / 3);
   return { own, feeds, outputs: own + feeds, machines: Math.ceil((own + feeds) / 3) };
 }
 // sizes in the operator's unit: inches, feet and inches, centimetres, or pixels at the pixel pitch
@@ -7127,7 +7105,7 @@ const pui = { snapX: true, snapSize: true, labels: false, units: "in", grid: 0 }
 try { pui.grid = Math.max(0, +localStorage.getItem("vibe.pileGrid") || 0); } catch (e) { /* default */ }
 // a measuring grid under the drawing, anchored on the mounting grid's left edge and the floor (elevation) or the screens' front line (plan)
 function pdrawUnder(c) {
-  const sp = pui.grid; if (!(sp > 0) || sp * psc < 5 * pdpr) return;
+  const sp = pui.grid; if (pui.clean || !(sp > 0) || sp * psc < 5 * pdpr) return;
   const R = proom(), xa = R ? R.cx : P.frame.x0;      // a room puts a major line on its centre line (and, in plan, its centre)
   const ya = R && pview === "plan" ? (R.back + R.front) / 2 : 0, k0 = Math.ceil((-pox / psc - xa) / sp), k1 = Math.floor(((pW - pox) / psc - xa) / sp);
   const j0 = Math.ceil(((pfloor - pH) / psc - ya) / sp), j1 = Math.floor((pfloor / psc - ya) / sp);
@@ -7181,6 +7159,7 @@ function pdims(it) {
   if (it.type === "cab") return { w: it.w, h: it.h };
   if (it.type === "person") return { w: it.ht * 0.36, h: it.ht };
   if (it.type === "door" || it.type === "rig") return { w: it.w, h: it.h };
+  if (it.type === "svg") return { w: Math.abs(it.w * Math.cos(prad(it))) + Math.abs(it.l * Math.sin(prad(it))), h: it.ht || 36 };   // seen from the front: its turned footprint, its height
   if (planEl(it)) return { w: it.w, h: 0 };    // a plan symbol: footprint only, nothing in the elevation
   let gw = it.diag * 16 / PK, gh = it.diag * 9 / PK;
   if (it.cw > 0 && it.ch > 0) { gw = it.cw; gh = it.ch; }      // a custom panel: its own glass width and height
@@ -7207,21 +7186,34 @@ const pscreens = () => P.items.filter(i => i.type === "screen");
 // drawing order: deeper (upstage) first, then the layout's own order, so a screen a few feet behind another is overlapped by it
 const pdepth = it => it.depth || 0;
 // plan elements: footprints that live in the plan only, anywhere in the room (SVG symbols, and islands)
-const ISLANDS = { av: ["AV island", 144, 96], cam: ["Camera island", 96, 96], tv: ["Delay TV", 66, 24] };   // name, width, depth in inches
+const ISLANDS = { av: ["AV island", 144, 96], cam: ["Camera island", 96, 96], tv: ["Delay TV", 66, 24], conf: ["Confidence monitor", 30, 20] };   // name, width, depth in inches
 const planEl = it => it.type === "svg" || it.type === "island";
 // a rig stands on the deck while it is over it (across and, in the plan, front to back), else on the room floor
-const ponDeck = it => !(pstageH() > 0) || (Math.abs(it.x - pstageCX()) + it.w / 2 <= pstageW() / 2 + 1 && pdepth(it) >= pdeckFront() - 1 && pdepth(it) <= pdeckBack() + 1);
-const planBox = it => it.type === "cab" || it.type === "camera";   // drawn in the elevation and, by their footprint, in the plan
-const pfootL = it => it.type === "cab" ? Math.max(12, Math.round(it.w * 0.9)) : 10;   // how deep a cabinet or camera is, front to back
+const ponDeck = it => !(pstageH() > 0) || (Math.abs(it.x - pstageCX()) + pdims(it).w / 2 <= pstageW() / 2 + 1 && pdepth(it) >= pdeckFront() - 1 && pdepth(it) <= pdeckBack() + 1);
+const planBox = it => it.type === "cab" || it.type === "camera" || it.type === "person";
+// what stands on the stage while it is over it, else on the room floor
+const pstands = it => it.type === "cab" || it.type === "camera" || it.type === "person" || it.type === "svg";
+// a plan footprint can turn: rot in degrees, counterclockwise from above
+const prad = o => (o.rot || 0) * Math.PI / 180;
+const pfootOf = o => planEl(o) ? { w: o.w, l: o.l } : { w: pdims(o).w, l: pfootL(o) };
+function plocal(o, w, L) { const a = prad(o), dx = w.x - o.x, dy = w.y - (pdepth(o) + L / 2); return { x: dx * Math.cos(a) + dy * Math.sin(a), y: -dx * Math.sin(a) + dy * Math.cos(a) }; }
+function pfromLocal(o, lx, ly, L) { const a = prad(o); return { x: o.x + lx * Math.cos(a) - ly * Math.sin(a), y: pdepth(o) + L / 2 + lx * Math.sin(a) + ly * Math.cos(a) }; }
+// Snap to grid: onto the underlay's lines, from the same anchors it is drawn from
+function psnapG(v, axis) {
+  if (!pui.gridSnap || !(pui.grid > 0)) return v;
+  const R = proom(), a = axis === "x" ? (R ? R.cx : P.frame.x0) : pview === "plan" && R ? (R.back + R.front) / 2 : 0;
+  return a + Math.round((v - a) / pui.grid) * pui.grid;
+}   // drawn in the elevation and, by their footprint, in the plan
+const pfootL = it => it.type === "cab" ? Math.max(12, Math.round(it.w * 0.9)) : it.type === "person" ? 12 : 10;   // how deep a cabinet or camera is, front to back
 // in front of the screens: a cabinet or camera downstage of every screen draws over them in the elevation
-const pinFront = it => planBox(it) && pdepth(it) < Math.min(0, ...pscreens().map(pdepth));
+const pinFront = it => (planBox(it) || it.type === "rig" || it.type === "svg") && pdepth(it) < Math.min(0, ...pscreens().map(pdepth));   // downstage of every screen: drawn over them
 const pislands = () => P.items.filter(i => i.type === "island");                  // from the grid's plane: upstage positive, downstage negative
 const pdrawOrder = () => P.items.map((it, i) => [it, i]).sort((a, b) => pdepth(b[0]) - pdepth(a[0]) || (b[0].type === "rig") - (a[0].type === "rig") || a[1] - b[1]).map(x => x[0]);   // deeper first, rigs behind
 const PLAN_T = 24;                                    // a screen's structure in plan: two feet from the glass face to its back
 const APRON_MIN = 72;                                 // a person can always walk in front of the screens: six feet of deck
 const pmaxBack = () => Math.max(PLAN_T, ...pscreens().map(s => pdepth(s) + PLAN_T));   // the back of the deepest screen's structure
 const pstageOn = () => P.vis.stage !== false && P.scene !== "install";   // Installation has no stage         // the Stage card's eye: closed, there is no stage at all
-const phouseOn = () => P.scene !== "install" && P.plan.layout !== "none";   // seating chosen, in Stage mode: the house (seating, island, count, sightlines)
+const phouseOn = () => P.scene !== "install" && P.plan.layout !== "none" && P.vis.seats !== false;   // seating chosen, in Stage mode: the house (seating, island, count, sightlines)
 const pstageH = () => pstageOn() ? P.bg.stageH : 0;
 const pminDepth = () => pscreens().length ? Math.min(...pscreens().map(pdepth)) : 0;   // the frontmost screen's glass
 const pdeckBack = () => pmaxBack() + (pstageOn() ? (P.bg.backClear > 0 ? P.bg.backClear : 48) : 0);   // the stage's back edge: the service gap behind the deepest screen
@@ -7290,11 +7282,11 @@ function pserialize() {
     v: 2, scene: P.scene, frame: P.frame, bg: P.bg, vis: P.vis,
     groups: P.groups.map(g => ({ id: g.id, name: g.name, mapping: g.mapping, direct: !!g.direct, source: g.source, presets: g.presets })),   // source ids are per session
     maps: P.maps, pitch: P.pitch, play: P.play, plan: P.plan, room: P.room,
-    items: P.items.map(it => it.type === "camera" ? { type: "camera", x: pr1(it.x), y: pr1(it.y), depth: it.depth ? Math.round(it.depth) : undefined } : it.type === "person" ? { type: "person", x: pr1(it.x), y: 0, ht: it.ht, col: it.col || PERSON_COL } : it.type === "door" ? { type: "door", x: pr1(it.x), y: 0, w: pr1(it.w), h: pr1(it.h), dbl: !!it.dbl, exit: !!it.exit, win: it.win ? true : undefined, sill: it.win ? it.sill : undefined, wall: it.wall && it.wall !== "back" ? it.wall : undefined, along: it.wall && it.wall !== "back" ? pr1(it.along || 0) : undefined }
+    items: P.items.map(it => it.type === "camera" ? { type: "camera", x: pr1(it.x), y: pr1(it.y), depth: it.depth ? Math.round(it.depth) : undefined, rot: it.rot || undefined } : it.type === "person" ? { type: "person", x: pr1(it.x), y: pr1(it.y || 0), ht: it.ht, col: it.col || PERSON_COL, depth: it.depth ? Math.round(it.depth) : undefined, rot: it.rot || undefined } : it.type === "door" ? { type: "door", x: pr1(it.x), y: 0, w: pr1(it.w), h: pr1(it.h), dbl: !!it.dbl, exit: !!it.exit, win: it.win ? true : undefined, sill: it.win ? it.sill : undefined, wall: it.wall && it.wall !== "back" ? it.wall : undefined, along: it.wall && it.wall !== "back" ? pr1(it.along || 0) : undefined }
       : it.type === "rig" ? { type: "rig", kind: it.kind, x: pr1(it.x), y: pr1(it.y || 0), w: pr1(it.w), h: pr1(it.h), pitch: it.pitch, rail: it.rail, thick: rigThick(it), depth: it.depth ? Math.round(it.depth) : undefined }
-      : it.type === "svg" ? { type: "svg", media: it.media, name: it.name, x: pr1(it.x), y: 0, depth: Math.round(it.depth || 0), w: pr1(it.w), l: pr1(it.l) }
-      : it.type === "island" ? { type: "island", kind: it.kind, name: it.name, x: pr1(it.x), y: 0, depth: Math.round(it.depth || 0), w: pr1(it.w), l: pr1(it.l) } : it.type === "cab"
-      ? { type: "cab", x: pr1(it.x), y: pr1(it.y), w: pr1(it.w), h: pr1(it.h), wood: !!it.wood, depth: it.depth ? Math.round(it.depth) : undefined }
+      : it.type === "svg" ? { type: "svg", media: it.media, name: it.name, x: pr1(it.x), y: pr1(it.y || 0), depth: Math.round(it.depth || 0), w: pr1(it.w), l: pr1(it.l), rot: it.rot || undefined, ht: it.ht, col: it.col }
+      : it.type === "island" ? { type: "island", kind: it.kind, name: it.name, x: pr1(it.x), y: 0, depth: Math.round(it.depth || 0), w: pr1(it.w), l: pr1(it.l), rot: it.rot || undefined, diag: it.diag || undefined, g: it.kind === "tv" ? it.g : undefined } : it.type === "cab"
+      ? { type: "cab", x: pr1(it.x), y: pr1(it.y), w: pr1(it.w), h: pr1(it.h), wood: !!it.wood, depth: it.depth ? Math.round(it.depth) : undefined, rot: it.rot || undefined }
       : { type: "screen", diag: it.diag, portrait: !!it.portrait, x: pr1(it.x), y: pr1(it.y), dead: !!it.dead, g: it.g, cw: it.cw || undefined, ch: it.ch || undefined, depth: it.depth ? Math.round(it.depth) : undefined }),
   });
 }
@@ -7304,7 +7296,10 @@ function papply(d, keepSources) {
   if (!RIGS[P.frame.kind]) P.frame.kind = "pipe";
   P.frame.thick = P.frame.thick > 0 ? rigSnap(P.frame.kind, +P.frame.thick) : RIG_DEPTH_DEF[P.frame.kind];
   if (d.bg) Object.assign(P.bg, d.bg);
-  P.vis = { devices: true, bg: true, stage: true, house: true }; if (d.vis) Object.assign(P.vis, d.vis);
+  P.vis = { devices: true, bg: true, stage: true, house: true, seats: true }; if (d.vis) Object.assign(P.vis, d.vis);
+  P.bg.light = "dim";                                // the event-dim look is the only one now
+  P.bg.stageX = 0;                                   // no stage offset: the stage centres on the grid
+  P.room.cx = null;                                  // no room offset: the room centres on the grid (plan and elevation agree on the centre)
   P.scene = d.scene === "install" ? "install" : "stage";
   if (P.bg.wall !== "photo") P.bg.wall = "plain";
   chaosFreeAll();
@@ -7359,6 +7354,10 @@ function psettle() {
   for (const it of P.items) if (it.type === "door") it.y = -pstageH() + (it.win ? it.sill || 0 : 0);   // a door on the room floor, a window at its sill
   P.frame.thick = rigSnap(P.frame.kind, rigThick(P.frame));                      // a rig's structure is always a standard section
   for (const it of P.items) if (it.type === "rig") { it.thick = rigSnap(it.kind, rigThick(it)); it.y = ponDeck(it) ? 0 : -pstageH(); }
+  for (const it of P.items) if (pstands(it)) {         // on the stage while over it, else on the room floor; anything flown above keeps its height
+    const base = ponDeck(it) ? 0 : -pstageH();
+    if (it.type === "svg" || it.type === "person") it.y = base; else if (base === 0 ? it.y < 0 : it.y <= 0) it.y = base;
+  }
   papronSync(); if (typeof pclampAll === "function") pclampAll(); }
 function psave() { try { localStorage.setItem(PSTORE, pserialize()); } catch (e) { /* storage blocked */ } }
 function pcommit() {
@@ -7540,7 +7539,7 @@ function drawRoom() {
   }
   if (pstageH() > 0) {                              // the deck: a dark slab the build stands on, with a lit front edge
     const sw = pstageW() * psc, sx = PX(pstageCX()) - sw / 2;
-    c.fillStyle = "#17181D"; c.fillRect(sx, pfloor, sw, yRoom - pfloor);
+    c.fillStyle = P.bg.stageCol || "#17181D"; c.fillRect(sx, pfloor, sw, yRoom - pfloor);
     c.fillStyle = "rgba(255,255,255,0.14)"; c.fillRect(sx, pfloor, sw, 2 * pdpr);
     c.fillStyle = "rgba(0,0,0,0.35)"; c.fillRect(sx, yRoom - 3 * pdpr, sw, 3 * pdpr);
   }
@@ -7630,8 +7629,14 @@ function pdrawElevItem(c, it, dim) {
       drawDoor(c, it, x, y, w, h);
     } else if (it.type === "rig") {
       const pf = pfloor; pfloor -= (it.y || 0) * psc; drawRig(c, dim, prigF(it)); pfloor = pf;   // on the floor, off the stage: drawn that much lower
+    } else if (it.type === "svg") {                       // an SVG symbol, extruded: a solid block of its colour, lit on top
+      c.fillStyle = it.col || "#8a8f9c"; c.fillRect(x, y, w, h);
+      c.fillStyle = "rgba(255,255,255,0.18)"; c.fillRect(x, y, w, Math.max(pdpr, 2 * psc));
+      c.fillStyle = "rgba(0,0,0,0.25)"; c.fillRect(x, y + h - Math.max(pdpr, 1.5 * psc), w, Math.max(pdpr, 1.5 * psc));
+      const im = svgImgFor(it);
+      if (im && h > 10 * pdpr) { const s2 = Math.min(w, h) * 0.6; c.globalAlpha = 0.5; c.drawImage(im, x + (w - s2) / 2, y + (h - s2) / 2, s2, s2); c.globalAlpha = 1; }
     } else if (planEl(it)) {
-      // a plan symbol or island: see drawPlan
+      // a plan island: see drawPlan
     } else if (it.type === "camera") {                 // a small box with a lens
       prr(c, x, y, w, h, 1.5 * pdpr); c.fillStyle = "#1A1A20"; c.fill();
       c.strokeStyle = "rgba(255,255,255,0.14)"; c.lineWidth = pdpr; c.stroke();
@@ -7951,7 +7956,7 @@ function drawPileScreens() {
   if (P.vis.devices && pview === "plan") for (const o of pislands()) if (o.kind === "tv") {   // a delay TV plays the full frame: a live preview laid just in front of its face
     const w = Math.max(24 * pdpr, o.w * psc), h = w * 9 / 16, sar = 16 / 9;
     let sw = 1, sh = 1; if (sar < tAR) sw = sar / tAR; else sh = tAR / sar;
-    gl.bindTexture(gl.TEXTURE_2D, fin.tex);
+    const og = gof(o); gl.bindTexture(gl.TEXTURE_2D, og.gr ? og.gr.Y.tex : fin.tex);   // its group's own source, if it has one
     gl.uniform4f(UP("u_rect"), PX(o.x), PY(pdepth(o)) + h / 2 + 6 * pdpr, w, h);
     gl.uniform4f(UP("u_src"), (1 - sw) / 2, (1 - sh) / 2, sw, sh);
     gl.uniform1f(UP("u_dim"), 0); gl.uniform1f(UP("u_dead"), 0);
@@ -8002,8 +8007,12 @@ function drawPileScreens() {
 function phandles() {
   if (!psel) return [];
   if (pview === "plan") {                            // in the plan the deck, the AV island and the symbols have edge handles
-    if (psel.kind === "item" && planEl(psel.it) && !(psel.more && psel.more.length)) {
-      const o = psel.it, d = pdepth(o); return [{ k: "l", x: o.x - o.w / 2, y: d + o.l / 2 }, { k: "r", x: o.x + o.w / 2, y: d + o.l / 2 }, { k: "t", x: o.x, y: d + o.l }, { k: "b", x: o.x, y: d }];
+    if (psel.kind === "item" && (planEl(psel.it) || planBox(psel.it)) && !(psel.more && psel.more.length)) {   // edges to size it, a corner knob to turn it
+      const o = psel.it, q = pfootOf(o), at = (k, lx, ly) => ({ k, ...pfromLocal(o, lx, ly, q.l) }), off = 14 * pdpr / psc;
+      const hs = [at("rot", q.w / 2 + off, q.l / 2 + off)];
+      if (planEl(o)) hs.push(at("l", -q.w / 2, 0), at("r", q.w / 2, 0), at("t", 0, q.l / 2), at("b", 0, -q.l / 2));
+      else if (o.type === "cab") hs.push(at("l", -q.w / 2, 0), at("r", q.w / 2, 0));
+      return hs;
     }
     if (psel.kind === "av" && P.plan.avD > 0) { const a = pavRect(); return [{ k: "l", x: a.x0, y: a.cd }, { k: "r", x: a.x1, y: a.cd }, { k: "t", x: a.cx, y: a.d1 }, { k: "b", x: a.cx, y: a.d0 }]; }
     if (psel.kind !== "stage" || !pstageOn()) return [];
@@ -8030,6 +8039,7 @@ function phandles() {
           { k: "tl", x: f.x0, y: f.h }, { k: "tr", x: f.x0 + f.w, y: f.h }];
 }
 function plabel(txt, x, y, font) {
+  if (pui.clean) return;                              // Tab: the composition without its labels
   const c = pfx;
   c.font = font;
   const tw = c.measureText(txt).width + 14 * pdpr;
@@ -8059,6 +8069,11 @@ function drawPileFg() {
   protBtn = null;
   const lf = "600 " + 11 * pdpr + 'px "Space Grotesk", sans-serif';
   if (P.vis.devices) for (const it of pdrawOrder()) if (pinFront(it)) pdrawElevItem(c, it, P.bg.light === "dim");   // downstage of the screens: over them
+  if (P.vis.devices) for (const o of pislands()) if (o.kind === "conf") {
+    const base = ponDeck(o) ? 0 : -pstageH(), x0 = PX(o.x - o.w / 2), x1 = PX(o.x + o.w / 2), yb = PY(base), yt = PY(base + 16), k = (x1 - x0) * 0.1;
+    c.fillStyle = "#15161B"; c.beginPath(); c.moveTo(x0, yb); c.lineTo(x1, yb); c.lineTo(x1 - k, yt); c.lineTo(x0 + k, yt); c.closePath(); c.fill();
+    c.strokeStyle = pselHas(o) ? "#7FDFFD" : "rgba(255,255,255,0.18)"; c.lineWidth = pdpr; c.stroke();
+  }
   if (P.vis.devices) for (const it of P.items) if (it.type === "person") {   // people stand in front of the screens
     const d = pdims(it), isSel = pselHas(it), isHov = phover === it;
     const x = PX(it.x - d.w / 2), y = PY(it.y + d.h), w = d.w * psc, h = d.h * psc;
@@ -8070,6 +8085,7 @@ function drawPileFg() {
     personPath(c, x, y, w, h);
     c.fillStyle = it.col || PERSON_COL; c.fill();
   }
+  if (pui.clean) return;                              // Tab: no outlines, labels or measurements
   if (P.vis.devices) for (const it of pdrawOrder()) {
     const d = pdims(it), isSel = pselHas(it), isHov = phover === it;
     if (isSel || isHov) {
@@ -8172,8 +8188,8 @@ function drawPileFg() {
 // added back at the back, a row at a time, so the count holds; rounds lose and gain whole tables
 let pseatCache = null;
 function pseating() {
-  const isl = phouseOn() ? pislands() : [];
-  const key = JSON.stringify([P.plan, pdeckFront(), pstageCX(), isl.map(o => [o.x, o.depth, o.w, o.l])]);
+  const isl = phouseOn() ? pislands().filter(o => o.kind !== "conf") : [];
+  const key = JSON.stringify([P.plan, pdeckFront(), pstageCX(), isl.map(o => [o.x, o.depth, o.w, o.l, o.rot || 0])]);
   if (pseatCache && pseatCache.key === key) return pseatCache.S;
   const S = pseatingAround(isl);
   pseatCache = { key, S };
@@ -8182,7 +8198,7 @@ function pseating() {
 function pseatingAround(isl) {
   const base = pseatingRaw(P.plan.rows);
   if (!isl.length) return { ...base, extra: 0, moved: 0 };
-  const CL = 18, under = (x, d, r = 0) => isl.some(o => x >= o.x - o.w / 2 - CL - r && x <= o.x + o.w / 2 + CL + r && d >= pdepth(o) - CL - r && d <= pdepth(o) + o.l + CL + r);
+  const CL = 18, under = (x, d, r = 0) => isl.some(o => { const lp = plocal(o, { x, y: d }, o.l); return Math.abs(lp.x) <= o.w / 2 + CL + r && Math.abs(lp.y) <= o.l / 2 + CL + r; });
   const cut = S => {
     if (S.tables.length && !S.tables[0].rect) {        // rounds: a table under an island goes with its chairs
       const keepT = S.tables.filter(t => !under(t.x, t.d, t.r + 12));
@@ -8343,7 +8359,7 @@ function pplanAt(w) {
   if (!P.vis.devices) return null;
   const syms = P.items.filter(it => planEl(it) || planBox(it));   // symbols, islands, cabinets and cameras sit on top in the plan
   const fp = it => planBox(it) ? { w: pdims(it).w, l: pfootL(it) } : { w: it.w, l: it.l };
-  const sym = syms.find(o => { const q = fp(o); return Math.abs(w.x - o.x) <= Math.max(q.w, 8) / 2 && w.y >= pdepth(o) - 4 && w.y <= pdepth(o) + q.l + 4; });
+  const sym = syms.slice().reverse().find(o => { const q = fp(o), lp = plocal(o, w, q.l); return Math.abs(lp.x) <= Math.max(q.w, 8) / 2 && Math.abs(lp.y) <= q.l / 2 + 4; });
   if (sym) return sym;
   const scr = pscreens().sort((a, b) => pdepth(a) - pdepth(b));
   const hit = scr.find(s => Math.abs(w.x - s.x) <= pdims(s).w / 2 && w.y >= pdepth(s) && w.y <= pdepth(s) + PLAN_T);
@@ -8429,7 +8445,8 @@ function drawPlan() {
   }
   if (pstageOn()) {                                   // the stage: a solid slab with a lit front edge, and the backdrop line at the back
     const x = PX(cx - hw), y = PY(back), w = 2 * hw * psc, h = (back - front) * psc, stSel = psel && psel.kind === "stage";
-    const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, "#1C1E25"); g.addColorStop(1, "#262932");
+    c.fillStyle = P.bg.stageCol || "#1F2128"; c.fillRect(x, y, w, h);
+    const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, "rgba(0,0,0,0.12)"); g.addColorStop(1, "rgba(255,255,255,0.05)");
     c.fillStyle = g; c.fillRect(x, y, w, h);
     c.strokeStyle = stSel ? "#7FDFFD" : "rgba(236,238,244,0.55)"; c.lineWidth = 1.5 * pdpr; c.strokeRect(x, y, w, h);
     c.strokeStyle = "#ECEEF4"; c.lineWidth = 2.5 * pdpr; c.beginPath(); c.moveTo(x, y + h); c.lineTo(x + w, y + h); c.stroke();
@@ -8461,33 +8478,57 @@ function drawPlan() {
     if (isSel || isHov) { f.strokeStyle = isSel ? "#7FDFFD" : "rgba(127,223,253,0.55)"; f.lineWidth = 2 * pdpr; f.strokeRect(x - 2 * pdpr, y - 2 * pdpr, w + 4 * pdpr, h + 4 * pdpr); }
     if (pui.labels || isSel || isHov) plabel((RIGS[r.kind] || RIGS.pipe)[0] + " \u00b7 " + fmtLen(r.w) + " \u00b7 " + rigSizeName(rt) + " deep", x + w / 2, y - 12 * pdpr, lf);
   }
-  if (P.vis.devices) for (const o of P.items) if (o.type === "svg") {      // plan symbols: the SVG fitted inside its footprint
+  const prot = (ctx, o, L) => { const a = prad(o); if (!a) return; const cx = PX(o.x), cy = PY(pdepth(o) + L / 2); ctx.translate(cx, cy); ctx.rotate(-a); ctx.translate(-cx, -cy); };
+  const outline = (o, isSel, isHov) => {
+    if (!(isSel || isHov) || pui.clean) return;
+    const q = pfootOf(o); f.save(); prot(f, o, q.l);
+    f.strokeStyle = isSel ? "#7FDFFD" : "rgba(127,223,253,0.55)"; f.lineWidth = 2 * pdpr; f.strokeRect(PX(o.x - q.w / 2), PY(pdepth(o) + q.l), q.w * psc, q.l * psc);
+    f.restore();
+  };
+  if (P.vis.devices) for (const o of P.items) if (o.type === "svg") {      // plan symbols: the SVG fitted inside its footprint, over its colour
     const x = PX(o.x - o.w / 2), w = o.w * psc, y = PY(pdepth(o) + o.l), h = o.l * psc, isSel = pselHas(o), isHov = phover === o, im = svgImgFor(o);
-    c.fillStyle = "rgba(236,238,244,0.06)"; c.fillRect(x, y, w, h);
+    c.save(); prot(c, o, o.l);
+    c.fillStyle = o.col || "rgba(236,238,244,0.06)"; c.globalAlpha = o.col ? 0.4 : 1; c.fillRect(x, y, w, h); c.globalAlpha = 1;
     if (im) { const ia = im.naturalWidth > 0 && im.naturalHeight > 0 ? im.naturalWidth / im.naturalHeight : w / h, ra = w / h; let dw = w, dh = h; if (ia > ra) dh = w / ia; else dw = h * ia; c.drawImage(im, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh); }
     else { c.strokeStyle = "rgba(236,238,244,0.35)"; c.lineWidth = pdpr; c.strokeRect(x, y, w, h); }
-    if (isSel || isHov) { f.strokeStyle = isSel ? "#7FDFFD" : "rgba(127,223,253,0.55)"; f.lineWidth = 2 * pdpr; f.strokeRect(x, y, w, h); }
-    if (pui.labels || isSel || isHov) plabel((o.name || "Symbol") + " \u00b7 " + fmtLen(o.w) + " \u00d7 " + fmtLen(o.l), x + w / 2, y - 12 * pdpr, lf);
+    c.restore(); outline(o, isSel, isHov);
+    if (pui.labels || isSel || isHov) plabel((o.name || "Symbol") + " \u00b7 " + fmtLen(o.w) + " \u00d7 " + fmtLen(o.l), PX(o.x), y - 12 * pdpr, lf);
   }
-  if (P.vis.devices) for (const o of P.items) if (planBox(o)) {   // speaker cabinets and cameras by their footprint
+  if (P.vis.devices) for (const o of P.items) if (planBox(o)) {   // speakers, cameras and people by their footprint
     const d = pdims(o), L = pfootL(o), x = PX(o.x - d.w / 2), w = Math.max(3 * pdpr, d.w * psc), y = PY(pdepth(o) + L), h = Math.max(3 * pdpr, L * psc), isSel = pselHas(o), isHov = phover === o;
-    c.fillStyle = o.type === "cab" ? (o.wood ? "#4A3220" : "#2A2A30") : "#3A3F4C"; c.fillRect(x, y, w, h);
-    c.strokeStyle = "rgba(236,238,244,0.45)"; c.lineWidth = pdpr; c.strokeRect(x, y, w, h);
-    if (o.type === "cab") { c.fillStyle = "rgba(236,238,244,0.55)"; c.fillRect(x, y + h - 2 * pdpr, w, 2 * pdpr); }   // the grille faces downstage
-    if (isSel || isHov) { f.strokeStyle = isSel ? "#7FDFFD" : "rgba(127,223,253,0.55)"; f.lineWidth = 2 * pdpr; f.strokeRect(x, y, w, h); }
-    if (pui.labels || isSel || isHov) plabel((o.type === "cab" ? "Speaker" : "Camera") + " \u00b7 " + fmtLen(Math.abs(pdepth(o))) + (pdepth(o) >= 0 ? " upstage" : " downstage"), x + w / 2, y - 12 * pdpr, lf);
+    c.save(); prot(c, o, L);
+    if (o.type === "person") { c.fillStyle = o.col || PERSON_COL; c.beginPath(); c.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, 7); c.fill(); }
+    else {
+      c.fillStyle = o.type === "cab" ? (o.wood ? "#4A3220" : "#2A2A30") : "#3A3F4C"; c.fillRect(x, y, w, h);
+      c.strokeStyle = "rgba(236,238,244,0.45)"; c.lineWidth = pdpr; c.strokeRect(x, y, w, h);
+      c.fillStyle = "rgba(236,238,244,0.55)"; c.fillRect(x, y + h - 2 * pdpr, w, 2 * pdpr);   // the grille or lens faces downstage
+    }
+    c.restore(); outline(o, isSel, isHov);
+    if (pui.labels || isSel || isHov) plabel(({ cab: "Speaker", camera: "Camera", person: "Person" })[o.type] + " \u00b7 " + fmtLen(Math.abs(pdepth(o))) + (pdepth(o) >= 0 ? " upstage" : " downstage"), x + w / 2, y - 12 * pdpr, lf);
   }
-  if (P.vis.devices) for (const o of pislands()) {        // islands: AV and camera positions, delay TVs off the stage
+  if (P.vis.devices) for (const o of pislands()) {        // islands: AV and camera positions, delay TVs and confidence monitors
     const x = PX(o.x - o.w / 2), w = o.w * psc, y = PY(pdepth(o) + o.l), h = o.l * psc, isSel = pselHas(o), isHov = phover === o;
-    const col = o.kind === "av" ? "61,132,255" : o.kind === "cam" ? "176,230,75" : "236,238,244";
-    c.fillStyle = "rgba(" + col + "," + (o.kind === "tv" ? 0.12 : 0.16) + ")"; c.fillRect(x, y, w, h);
-    c.strokeStyle = "rgba(" + col + ",0.75)"; c.lineWidth = 1.5 * pdpr; c.strokeRect(x, y, w, h);
-    if (o.kind === "tv") { c.strokeStyle = "#ECEEF4"; c.lineWidth = 3 * pdpr; c.beginPath(); c.moveTo(x, y + h); c.lineTo(x + w, y + h); c.stroke(); }   // the screen faces downstage, towards the back rows
-    if (isSel || isHov) { f.strokeStyle = isSel ? "#7FDFFD" : "rgba(127,223,253,0.55)"; f.lineWidth = 2 * pdpr; f.strokeRect(x, y, w, h); }
-    plabel((o.name || ISLANDS[o.kind][0]) + (pui.labels || isSel || isHov ? " \u00b7 " + fmtLen(o.w) + " \u00d7 " + fmtLen(o.l) : ""), x + w / 2, y + h / 2, lf);
+    const col = o.kind === "av" ? "61,132,255" : o.kind === "cam" ? "176,230,75" : o.kind === "conf" ? "255,179,122" : "236,238,244";
+    c.save(); prot(c, o, o.l);
+    c.fillStyle = "rgba(" + col + "," + (o.kind === "tv" || o.kind === "conf" ? 0.12 : 0.16) + ")"; c.fillRect(x, y, w, h);
+    c.strokeStyle = o.kind === "tv" && P.groups.length > 1 ? gcol(gof(o)) : "rgba(" + col + ",0.75)"; c.lineWidth = 1.5 * pdpr; c.strokeRect(x, y, w, h);
+    if (o.kind === "tv" || o.kind === "conf") {          // the screen's face: a delay TV faces the back rows, a confidence monitor the presenter
+      c.strokeStyle = "#ECEEF4"; c.lineWidth = 3 * pdpr; c.beginPath();
+      const fy = o.kind === "tv" ? y + h : y; c.moveTo(x, fy); c.lineTo(x + w, fy); c.stroke();
+    }
+    c.restore(); outline(o, isSel, isHov);
+    plabel((o.name || ISLANDS[o.kind][0]) + (pui.labels || isSel || isHov ? " \u00b7 " + fmtLen(o.w) + " \u00d7 " + fmtLen(o.l) : ""), PX(o.x), PY(pdepth(o) + o.l / 2), lf);
+  }
+  if (P.vis.devices && !pui.clean) {                       // camera islands: what they can see, to the ends of the build
+    const B = pbounds(), d0 = pminDepth();
+    for (const o of pislands()) if (o.kind === "cam") {
+      const cx = PX(o.x), cy = PY(pdepth(o) + o.l);
+      f.save(); f.setLineDash([5 * pdpr, 5 * pdpr]); f.strokeStyle = "rgba(176,230,75,0.65)"; f.lineWidth = pdpr; f.beginPath();
+      f.moveTo(cx, cy); f.lineTo(PX(B.minX), PY(d0)); f.moveTo(cx, cy); f.lineTo(PX(B.maxX), PY(d0)); f.stroke(); f.restore();
+    }
   }
   // walk-through gaps: from the back of each screen's structure to the face of the nearest screen behind it that it overlaps
-  const byDepth = P.scene === "install" ? [] : scr.slice().sort((a, b) => pdepth(a) - pdepth(b));   // Installation leaves them out
+  const byDepth = P.scene === "install" || pui.clean ? [] : scr.slice().sort((a, b) => pdepth(a) - pdepth(b));   // Installation leaves them out
   for (const S of byDepth) {
     const dS = pdepth(S), ds = pdims(S), l1 = S.x - ds.w / 2, r1 = S.x + ds.w / 2;
     let best = null;
@@ -8526,7 +8567,7 @@ function drawPlan() {
   if (seatSel) { const hw2 = (Math.max(S.maxW, P.plan.rowW) / 2 + 24) * psc; c.setLineDash([6 * pdpr, 5 * pdpr]); c.strokeStyle = "#7FDFFD"; c.lineWidth = 1.5 * pdpr; c.strokeRect(PX(cx) - hw2, rowY - 18 * psc, 2 * hw2, (E.row - S.backD) * psc + 18 * psc); c.setLineDash([]); }
   const over = pseatOverflow();
   plabel(SEAT_LAYOUTS[P.plan.layout] + " \u00b7 " + S.count + " seats" + (S.moved ? " \u00b7 " + S.moved + " moved back from under islands" + (S.extra ? " (+" + S.extra + (S.extra === 1 ? " row)" : " rows)") : "") : "") + " \u00b7 first row " + fmtLen(P.plan.rowD) + (pstageOn() ? " from the stage" : " from the screens") + (P.plan.taper ? " \u00b7 taper " + P.plan.taper + "\u2033 a row" : "") + (over ? " \u00b7 runs " + fmtLen(over) + " past the front wall" : ""), (rl + rr) / 2, PY(S.backD) + 16 * pdpr, font);
-  {                                                   // the attendee count, large, following the seating as it changes
+  if (!pui.clean) {                                   // the attendee count, large, following the seating as it changes
     const n = S.count, want = P.plan.attendees, big = "700 " + 26 * pdpr + 'px "Space Grotesk", sans-serif';
     const txt = want > 0 ? n + " seats for " + want + (n >= want ? " \u00b7 " + (n - want) + " spare" : " \u00b7 " + (want - n) + " short") : n + " seats";
     f.font = big; const tw = f.measureText(txt).width + 28 * pdpr, bx = pW - 24 * pdpr - tw, by = 40 * pdpr;   // top right, clear of the drawing
@@ -8565,7 +8606,7 @@ function drawPlan() {
   // the 45-degree viewing cone off the front screen (the widest of the frontmost)
   const fronts = byDepth.filter(s => pdepth(s) === pdepth(byDepth[0]));
   const fs = fronts.length ? fronts.reduce((a, b) => pdims(b).gw > pdims(a).gw ? b : a) : null;
-  if (fs) {
+  if (fs && !pui.clean) {
     const d = pdims(fs), dp = pdepth(fs), L = fs.x - d.gw / 2, R = fs.x + d.gw / 2, reach = dp - E.bottom;
     f.beginPath(); f.moveTo(PX(L), PY(dp)); f.lineTo(PX(R), PY(dp)); f.lineTo(PX(R + reach), PY(dp - reach)); f.lineTo(PX(L - reach), PY(dp - reach)); f.closePath();
     f.fillStyle = "rgba(127,223,253,0.05)"; f.fill();
@@ -8574,7 +8615,7 @@ function drawPlan() {
   }
   // sightline rays from seven seats along the front row past the ends of the front screens
   const seatY = E.row, ends = psightEnds(byDepth), farD = Math.max(E.top - 36, back !== null ? back : 0);
-  if (phouseOn()) for (let k = -3; k <= 3; k++) {
+  if (phouseOn() && !pui.clean) for (let k = -3; k <= 3; k++) {
     const sx = cx + k * (P.plan.rowW / 2) / 3;
     for (const e of ends) {
       const r = pcast(byDepth, seatY, sx, e), hit = r && r !== "out" ? r : null, dy = e.dS - seatY, dx = e.ex - sx;
@@ -8585,9 +8626,10 @@ function drawPlan() {
       f.fillStyle = col; f.beginPath(); f.arc(PX(endX), PY(endD), 3 * pdpr, 0, 7); f.fill();
     }
   }
-  for (const h of phandles()) {
+  if (!pui.clean) for (const h of phandles()) {
     const sz = 9 * pdpr;
     f.fillStyle = "#fff"; f.strokeStyle = "#0061FF"; f.lineWidth = 2 * pdpr;
+    if (h.k === "rot") { f.beginPath(); f.arc(PX(h.x), PY(h.y), sz / 2 + pdpr, 0, 7); f.fill(); f.stroke(); continue; }   // the turn knob is round
     f.fillRect(PX(h.x) - sz / 2, PY(h.y) - sz / 2, sz, sz); f.strokeRect(PX(h.x) - sz / 2, PY(h.y) - sz / 2, sz, sz);
   }
   if (pdrag && pdrag.held) plabel("Held at the room wall", pW / 2, pH - Math.max(ins.b, 120 * pdpr) - 40 * pdpr, font);
@@ -8626,7 +8668,7 @@ const pinCeiling = py => P.bg.ceiling > 0 && Math.abs(py - PY(pceilY())) <= 8 * 
 const pdragCeiling = w => { P.bg.ceiling = Math.max(pstageH() + 12, Math.min(960, Math.round(pstageH() + w.y))); psyncBg(); };
 
 /* ---- pointer editing ---- */
-const PCURS = { tl: "nwse-resize", br: "nwse-resize", tr: "nesw-resize", bl: "nesw-resize", l: "ew-resize", r: "ew-resize", t: "ns-resize", b: "ns-resize" };
+const PCURS = { rot: "grab", tl: "nwse-resize", br: "nwse-resize", tr: "nesw-resize", bl: "nesw-resize", l: "ew-resize", r: "ew-resize", t: "ns-resize", b: "ns-resize" };
 function pev(e) { const rc = pileFg.getBoundingClientRect(); return { px: (e.clientX - rc.left) * pdpr, py: (e.clientY - rc.top) * pdpr }; }
 const pworld = (px, py) => ({ x: (px - pox) / psc, y: (pfloor - py) / psc });
 function pitemAt(w) {
@@ -8634,7 +8676,7 @@ function pitemAt(w) {
   const hit = it => { const d = pdims(it); return Math.abs(w.x - it.x) <= d.w / 2 && w.y >= it.y && w.y <= it.y + d.h; };
   const ord = pdrawOrder();                         // the last drawn is in front
   for (let i = ord.length - 1; i >= 0; i--) if (ord[i].type === "person" && hit(ord[i])) return ord[i];   // people stand in front of everything
-  for (let i = ord.length - 1; i >= 0; i--) if (ord[i].type !== "person" && ord[i].type !== "rig" && !planEl(ord[i]) && !pwallSide(ord[i]) && hit(ord[i])) return ord[i];
+  for (let i = ord.length - 1; i >= 0; i--) if (ord[i].type !== "person" && ord[i].type !== "rig" && !(planEl(ord[i]) && ord[i].type !== "svg") && !pwallSide(ord[i]) && hit(ord[i])) return ord[i];
   for (let i = ord.length - 1; i >= 0; i--) if (ord[i].type === "rig" && hit(ord[i])) return ord[i];   // a rig is behind whatever hangs on it
   return null;
 }
@@ -8680,8 +8722,13 @@ pileFg.addEventListener("pointerdown", e => {
   const { px, py } = pev(e), w = pworld(px, py), h = phandleAt(px, py);
   if (pview === "plan") {                            // in the plan: screens move sideways and in depth, the deck's edges resize it, the island and the seating drag
     const it = pplanAt(w), wd = h ? null : pwallAt(w);
+    if (gpaint !== null && it && it.type === "island" && it.kind === "tv") { it.g = gpaint; psel = { kind: "item", it, more: [] }; pdrag = null; pcommit(); return; }
     if (wd && !it) { if (!pselHas(wd)) psel = { kind: "item", it: wd, more: [] }; pdrag = { type: "plan-wall", it: wd }; }
-    else if (h && psel && psel.kind === "item" && planEl(psel.it)) { const o = psel.it; pdrag = { type: "plan-sym-edge", k: h.k, it: o, x0: o.x - o.w / 2, x1: o.x + o.w / 2, d0: pdepth(o), d1: pdepth(o) + o.l }; }
+    else if (h && psel && psel.kind === "item" && (planEl(psel.it) || planBox(psel.it))) {
+      const o = psel.it, q = pfootOf(o);
+      pdrag = h.k === "rot" ? { type: "plan-rot", it: o, a0: Math.atan2(w.y - (pdepth(o) + q.l / 2), w.x - o.x) * 180 / Math.PI, r0: o.rot || 0 }
+        : { type: "plan-sym-edge", k: h.k, it: o, x0: o.x - q.w / 2, x1: o.x + q.w / 2, d0: pdepth(o), d1: pdepth(o) + q.l };
+    }
     else if (h && psel && psel.kind === "av") pdrag = { type: "plan-av-edge", k: h.k, r0: pavRect() };
     else if (h) pdrag = { type: "plan-stage-edge", k: h.k, w0: pstageW(), x0: P.bg.stageX || 0, d0: pstageD(), front0: pdeckFront(), bc0: P.bg.backClear || 48 };
     else if (it && e.shiftKey) { if (!pselToggle(it)) { psyncSel(); return; } pdrag = { type: "plan-move", it, w0: w, x0: it.x, d0: pdepth(it), others: pothers(it) }; }
@@ -8739,7 +8786,11 @@ pileFg.addEventListener("pointerdown", e => {
 });
 pileFg.addEventListener("contextmenu", e => e.preventDefault());   // Control-drag on a handle resizes about the centre; no menu
 pileFg.addEventListener("pointermove", e => {
-  const { px, py } = pev(e), w = pworld(px, py), sym = e.ctrlKey || e.altKey;   // design-tool modifier: resize about the centre
+  const { px, py } = pev(e), sym = e.ctrlKey || e.altKey;   // design-tool modifier: resize about the centre
+  let w = pworld(px, py);
+  if (pdrag && pdrag.w0 && e.shiftKey && (pdrag.type === "move" || pdrag.type === "plan-move")) {   // Shift held while dragging: along one axis only
+    if (Math.abs(w.x - pdrag.w0.x) >= Math.abs(w.y - pdrag.w0.y)) w = { x: w.x, y: pdrag.w0.y }; else w = { x: pdrag.w0.x, y: w.y };
+  }
   if (!pdrag) {
     if (pview === "plan") {
       const hh = phandleAt(px, py); phover = hh ? null : pplanAt(w);
@@ -8765,7 +8816,7 @@ pileFg.addEventListener("pointermove", e => {
   if (pdrag.type === "plan-move") {
     const it = pdrag.it, moving = pselItems();
     const far = planEl(it) || planBox(it) ? 3600 : 600;                                     // plan elements go anywhere in the room, out to 300 ft
-    let nx = pdrag.x0 + (w.x - pdrag.w0.x), nd = Math.max(-far, Math.min(far, pdrag.d0 + (w.y - pdrag.w0.y)));   // depth from the grid plane, either way
+    let nx = psnapG(pdrag.x0 + (w.x - pdrag.w0.x), "x"), nd = Math.max(-far, Math.min(far, psnapG(pdrag.d0 + (w.y - pdrag.w0.y), "y")));   // depth from the grid plane, either way
     const tol = Math.min(10 * pdpr / psc, 6), others = pscreens().filter(s => !moving.includes(s));   // ten pixels, but never more than six inches: zoomed out, a snap must not swallow a move
     let best = Infinity;                                                      // first the depth plane of another screen
     for (const o of others) { const dd = pdepth(o) - nd; if (Math.abs(dd) < tol && Math.abs(dd) < Math.abs(best)) best = dd; }
@@ -8789,8 +8840,17 @@ pileFg.addEventListener("pointermove", e => {
     P.plan.avX = Math.round(psnapCentre(want) - pstageCX());
     P.plan.avD = Math.max(0, Math.round(pdrag.d0 - (w.y - pdrag.w0.y)));                // dragging downstage (down the canvas) puts it further behind the row
     pileFg.style.cursor = "grabbing";
+  } else if (pdrag.type === "plan-rot") {                                    // turn about its centre, in 15 degree steps (Alt: freely)
+    const o = pdrag.it, q = pfootOf(o);
+    let a = pdrag.r0 + Math.atan2(w.y - (pdepth(o) + q.l / 2), w.x - o.x) * 180 / Math.PI - pdrag.a0;
+    if (!e.altKey) a = Math.round(a / 15) * 15;
+    o.rot = ((Math.round(a) % 360) + 360) % 360; pileFg.style.cursor = "grabbing";
   } else if (pdrag.type === "plan-wall") {
     pmoveWall(pdrag.it, w); pileFg.style.cursor = "grabbing";
+  } else if (pdrag.type === "plan-sym-edge" && (pdrag.it.rot || pdrag.it.type === "cab")) {   // turned (or a cabinet): sized about its centre, in its own frame
+    const k = pdrag.k, o = pdrag.it, q = pfootOf(o), lp = plocal(o, w, q.l);
+    if (k === "l" || k === "r") o.w = Math.max(6, Math.round(2 * Math.abs(lp.x)));
+    else { const cd = pdepth(o) + o.l / 2; o.l = Math.max(6, Math.round(2 * Math.abs(lp.y))); o.depth = Math.round(cd - o.l / 2); }
   } else if (pdrag.type === "plan-sym-edge") {
     const k = pdrag.k, o = pdrag.it, cx = (pdrag.x0 + pdrag.x1) / 2, cd = (pdrag.d0 + pdrag.d1) / 2;
     let { x0, x1, d0, d1 } = pdrag;
@@ -8820,12 +8880,15 @@ pileFg.addEventListener("pointermove", e => {
     papronSync(); pclampStage(); roomDirty = true; psyncBg();
   } else if (pdrag.type === "move") {
     const it = pdrag.it;
-    let nx = pdrag.x0 + (w.x - pdrag.w0.x), ny = Math.max(0, pdrag.y0 + (w.y - pdrag.w0.y));
+    let nx = psnapG(pdrag.x0 + (w.x - pdrag.w0.x), "x");
+    const base = pstands(it) ? (ponDeck({ ...it, x: nx }) ? 0 : -pstageH()) : 0;   // the stage while over it, else the room floor
+    let ny = Math.max(base, psnapG(pdrag.y0 + (w.y - pdrag.w0.y), "y"));
     if (pui.snapX && it.type === "screen") {
       const sx = f.x0 + Math.round((nx - f.x0) / (g.sp / 2)) * g.sp / 2;
       if (Math.abs(sx - nx) * psc < 14 * pdpr) nx = sx;
     }
-    if (ny * psc < 10 * pdpr) ny = 0;
+    if ((ny - base) * psc < 10 * pdpr) ny = base;
+    if (it.type === "svg" || it.type === "person") ny = base;
     if (it.type === "door") ny = -pstageH() + (it.win ? it.sill || 0 : 0);   // a door is part of the room: it stays on the room floor (a window at its sill)
     if (it.type === "rig") ny = ponDeck({ ...it, x: nx }) ? 0 : -pstageH();     // a rig drops to the floor off the stage
     const centred = psnapCentre(nx) !== nx; if (centred) nx = psnapCentre(nx);   // across the room's centre line: settle on it
@@ -8897,8 +8960,19 @@ pileFg.addEventListener("pointermove", e => {
   pdrag.held = pclampAll();                           // whatever moved stays inside the room; the view says so while it is being held
   psyncSel(false);
 });
+// a selection on the canvas brings the panel back with that item's box in view
+function pfocusSel() {
+  if (!psel || pdrag) return;
+  if (document.body.classList.contains("hide-ui")) togglePanel(false);
+  document.body.classList.remove("panel-away"); $("panel").classList.remove("away");
+  const tab = document.querySelector('.rail button[data-tab="out"]'); if (tab && !tab.classList.contains("active")) tab.click();
+  const box = $("pSel"); if (!box || box.hidden) return;
+  const fs = box.closest("fieldset"); if (fs) fs.classList.remove("collapsed");
+  box.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
 function pendDrag() {
   if (!pdrag) return;
+  setTimeout(pfocusSel, 0);
   const moved = pdrag.moved, d = pdrag; pdrag = null;
   if (!moved && d.copy) { const gone = d.copies || [d.it]; P.items = P.items.filter(i => !gone.includes(i)); psel = null; psyncSel(); return; }   // a click, not a drag: no copy
   if (d.type === "pan") { pileFg.style.cursor = "default"; psyncSel(); return; }    // view state, not a layout change
@@ -8920,7 +8994,7 @@ function psyncGrid() {
   set("gW", Math.round(f.w)); set("gH", Math.round(f.h)); set("gP", f.pitch); set("gR", f.rail);
   $("gWft").textContent = ftHint(f.w); $("gHft").textContent = ftHint(f.h); $("gPn").textContent = (g.n + 1) + " up";
   const R = RIGS[f.kind] || RIGS.pipe;
-  $("gPLab").textContent = R[1] + " in"; $("gRLab").textContent = R[2] + " in";
+  $("gPLab").textContent = R[1]; $("gRLab").textContent = R[2];   // the unit sits in the box
   const gd = $("gD"), want = (RIG_DEPTHS[f.kind] || RIG_DEPTHS.pipe).map(v => '<option value="' + v + '">' + rigSizeName(v) + "</option>").join("");
   if (gd.innerHTML !== want) gd.innerHTML = want;
   gd.value = String(rigThick(f));
@@ -9081,11 +9155,26 @@ function psyncSel(full = true) {
       + '<div class="row"><label for="selName">Name</label><input type="text" id="selName" maxlength="24" spellcheck="false" value="' + gesc(it.name || "") + '"></div>'
       + '<div class="row"><label for="selW">Width (in)</label><input type="number" class="num wide" id="selW" min="6" max="600" value="' + Math.round(it.w) + '"></div>'
       + '<div class="row"><label for="selL">Depth (in)</label><input type="number" class="num wide" id="selL" min="6" max="600" value="' + Math.round(it.l) + '"></div>'
-      + '<p class="note" style="margin:6px 0 0">' + (it.type === "island" ? (it.kind === "tv" ? "A screen off the stage, for the back of the house; its face is the bright edge. " : "") + "Drag it anywhere in the room; drag its edges to size it." + (phouseOn() ? " Seats under it move to the back rows." : "") : "A plan symbol: drag it in the plan, drag its edges to size it.") + '</p>'
+      + '<p class="note" style="margin:6px 0 0">' + (it.type === "island" ? (it.kind === "tv" ? "A TV off the stage, for the back of the house, playing its screen group; its face is the bright edge. " : it.kind === "conf" ? "Faces the presenter; its face is the bright edge. " : "") + "Drag it anywhere in the room; drag its edges to size it, the round knob to turn it." + (phouseOn() ? " Seats under it move to the back rows." : "") : "A plan symbol: drag it in the plan, drag its edges to size it.") + '</p>'
       + '<div class="btnrow"><button class="pill" id="selDup">Duplicate</button><button class="pill" id="selDel">Remove</button></div>';
     $("selName").onchange = e => { it.name = e.target.value.trim().slice(0, 24); pcommit(); psyncSel(true); };
     $("selW").onchange = e => { it.w = Math.max(6, Math.min(600, Math.round(+e.target.value) || it.w)); pcommit(); };
     $("selL").onchange = e => { it.l = Math.max(6, Math.min(600, Math.round(+e.target.value) || it.l)); pcommit(); };
+    const extra = html => { const t = document.createElement("div"); t.innerHTML = html; box.querySelector(".btnrow").before(...t.children); };
+    if (it.type === "island" && it.kind === "tv") {
+      extra('<div class="row"><label for="selTv">TV size</label><select id="selTv">' + PSIZES.map(z => '<option value="' + z + '">' + z + '\u2033</option>').join("") + '</select></div>'
+        + '<div class="row"><label for="selTvG">Screen group</label><select id="selTvG">' + P.groups.map(g => '<option value="' + g.id + '">' + gesc(gname(g)) + '</option>').join("") + '</select></div>');
+      $("selTv").value = String(it.diag || 65); $("selTvG").value = String(gof(it).id);
+      $("selTv").onchange = e => { it.diag = +e.target.value; it.w = Math.round(it.diag * 16 / PK + 2 * BEZEL); pcommit(); psyncSel(true); };
+      $("selTvG").onchange = e => { it.g = +e.target.value; pcommit(); };
+    }
+    if (it.type === "svg") {
+      extra('<div class="row"><label for="selHt">Height (in)</label><input type="number" class="num wide" id="selHt" min="1" max="240" value="' + Math.round(it.ht || 36) + '"></div>'
+        + '<div class="row"><label for="selCol">Colour</label><input type="color" id="selCol" value="' + (it.col || "#8a8f9c") + '"></div>');
+      $("selHt").onchange = e => { it.ht = Math.max(1, Math.min(240, Math.round(+e.target.value) || 36)); pcommit(); };
+      $("selCol").oninput = e => { it.col = e.target.value; };
+      $("selCol").onchange = () => pcommit();
+    }
   } else if (it.type === "door" && it.win) {
     box.innerHTML = '<div class="t"></div>'
       + '<div class="row"><label for="selW">Width (in)</label><input type="number" class="num wide" id="selW" min="12" max="600" value="' + Math.round(it.w) + '"></div>'
@@ -9144,16 +9233,16 @@ function pdup() {
 }
 function psyncBg() {
   $("photoOpts").hidden = P.bg.wall !== "photo";
-  $("bdSel").value = P.bg.backdrop;
+  $("bdSel").value = P.bg.wall === "photo" ? "photo" : P.bg.backdrop;
   $("solidRow").hidden = P.bg.backdrop !== "solid";
   $("bdImgRow").hidden = P.bg.backdrop !== "image";
-  $("ohRow").hidden = P.bg.backdrop === "none"; $("bdSelRow").hidden = P.bg.backdrop === "none";
+  $("ohRow").hidden = P.bg.backdrop === "none";
   $("solidCol").value = P.bg.solid; $("overhang").value = P.bg.overhang; $("photoFt").value = P.bg.photoFt;
   $("ceilFt").value = P.bg.ceiling > 0 ? +(P.bg.ceiling / 12).toFixed(2) : "";
   $("stageHFt").value = P.bg.stageH > 0 ? +(P.bg.stageH / 12).toFixed(2) : "";
   $("stageWFt").value = P.bg.stageW > 0 ? +(P.bg.stageW / 12).toFixed(2) : "";
   $("stageDFt").value = P.bg.stageD > 0 ? +(P.bg.stageD / 12).toFixed(2) : "";
-  $("stageXFt").value = +((P.bg.stageX || 0) / 12).toFixed(2);
+  $("stageCol").value = P.bg.stageCol || "#17181d";
   $("rowDFt").value = +(P.plan.rowD / 12).toFixed(2); $("rowWFt").value = +(P.plan.rowW / 12).toFixed(2);
   $("seatLayout").value = P.plan.layout; $("seatRows").value = P.plan.rows; $("seatPitch").value = P.plan.pitch; $("seatW").value = P.plan.seat; $("seatAisles").value = P.plan.aisles; $("seatAisleW").value = P.plan.aisleW;
   const rounds = P.plan.layout === "banquet" || P.plan.layout === "cabaret";
@@ -9161,9 +9250,8 @@ function psyncBg() {
   $("seatTaper").value = P.plan.taper || 0; $("seatAttendees").value = P.plan.attendees > 0 ? P.plan.attendees : "";
   $("seatCount").textContent = pseating().count + " seats";
   $("roomWFt").value = P.room.w > 0 ? +(P.room.w / 12).toFixed(2) : ""; $("roomDFt").value = P.room.d > 0 ? +(P.room.d / 12).toFixed(2) : "";
-  $("roomBackFt").value = P.room.w > 0 && P.room.d > 0 && P.room.backD > 0 ? +((P.room.backD - pdeckBack()) / 12).toFixed(2) : "";   // meaningful once there is a room $("roomXFt").value = +(((P.room.cx === null ? pgridCX() : P.room.cx) - pgridCX()) / 12).toFixed(2);
   document.querySelectorAll("#viewSeg button").forEach(b => b.classList.toggle("active", b.dataset.view === pview));
-  $("stageCard").hidden = $("seatBlock").hidden = P.scene === "install";
+  $("stageCard").hidden = $("seatCard").hidden = P.scene === "install";
   $("seatDetail").hidden = P.plan.layout === "none";
   syncWall(); syncLight();
 }
@@ -9202,22 +9290,23 @@ PSIZES.filter(s => s <= 75).forEach(s => {
   b.className = "chip add"; b.textContent = "Panel"; b.title = "A 24\u00d724 inch panel; set its own width and height once it is selected, or drag a corner";
   b.addEventListener("click", paddPanel);
   $("addSizes").append(b);
+  const t = document.createElement("button");
+  t.className = "chip add"; t.id = "addTv"; t.textContent = "Delay TV"; t.title = "A TV on a stand off the stage, for the back of the house; it plays its screen group\u2019s picture";
+  $("addSizes").append(t);
 }
 $("addCab").addEventListener("click", paddCab);
 $("addCamera").addEventListener("click", paddCamera);
 $("addPerson").addEventListener("click", paddPerson);
-$("bdSelect").addEventListener("click", () => { if (pview !== "elev") { pview = "elev"; try { localStorage.setItem("vibe.pileView", "elev"); } catch (err) { /* storage blocked */ } pzoomReset(); } pbdExplicit(); psel = { kind: "backdrop" }; prefresh(); });
 $("addDoor").addEventListener("click", () => paddDoor(false));
 $("svgFile").addEventListener("change", e => {                       // each SVG becomes a plan symbol, its file kept in this browser
   const files = [...e.target.files].filter(f => /svg/i.test(f.type) || /\.svg$/i.test(f.name)); e.target.value = "";
   files.forEach((file, i) => {
     const id = "svg-" + Date.now().toString(36) + "-" + i, name = file.name.replace(/\.svg$/i, "").slice(0, 24);
     mediaPut({ id, name, type: file.type || "image/svg+xml", blob: file, added: Date.now(), svg: true }).catch(() => {});
-    P.items.push(pmk({ type: "svg", media: id, name, x: pstageCX() + (i - (files.length - 1) / 2) * 60, y: 0, depth: pminDepth() - 108, w: 48, l: 48 }));
+    P.items.push(pmk({ type: "svg", media: id, name, x: pstageCX() + (i - (files.length - 1) / 2) * 60, y: 0, depth: pminDepth() - 108, w: 48, l: 48, ht: 36, col: "#8a8f9c" }));
   });
   if (!files.length) return;
-  psel = { kind: "item", it: P.items[P.items.length - 1], more: [] };
-  if (pview !== "plan") { pview = "plan"; try { localStorage.setItem("vibe.pileView", "plan"); } catch (err) { /* storage blocked */ } pzoomReset(); }
+  psel = { kind: "item", it: P.items[P.items.length - 1], more: [] };   // it stands in both views now, so the view stays as it is
   pcommit(); ptoast(files.length + (files.length === 1 ? " symbol" : " symbols") + " added to the plan. Drag to place; drag the edges to size.");
 });
 $("addDoor2").addEventListener("click", () => paddDoor(true));
@@ -9229,11 +9318,17 @@ function paddIsland(kind) {
   const back = phouseOn() ? pseating().backD - 48 : pdeckFront() - 180;
   let d = back - l - n * (l + 36);
   if (R) d = Math.max(R.front + 24, d);
+  if (kind === "conf") {                               // on the stage's front edge, facing the presenter
+    const it = pmk({ type: "island", kind, name: n ? name + " " + (n + 1) : name, x: pstageCX() + (n % 2 ? 1 : -1) * 48 * Math.ceil((n + 1) / 2) * (n ? 1 : 0), y: 0, depth: Math.round(pdeckFront() + 4), w, l });
+    P.items.push(it); psel = { kind: "item", it, more: [] }; pcommit(); return;
+  }
   const it = pmk({ type: "island", kind, name: n ? name + " " + (n + 1) : name, x: (R ? R.cx : pstageCX()) + (kind === "tv" ? (n % 2 ? 1 : -1) * 120 * Math.ceil((n + 1) / 2) : 0), y: 0, depth: Math.round(d), w, l });
+  if (kind === "tv") { it.diag = 65; it.w = Math.round(65 * 16 / PK + 2 * BEZEL); it.g = gpaint !== null ? gpaint : P.groups[0].id; }   // a real TV size, in a screen group
   P.items.push(it); psel = { kind: "item", it, more: [] };
   if (pview !== "plan") { pview = "plan"; try { localStorage.setItem("vibe.pileView", "plan"); } catch (err) { /* storage blocked */ } pzoomReset(); }
   pcommit();
 }
+$("addConf").addEventListener("click", () => paddIsland("conf"));
 $("addAv").addEventListener("click", () => paddIsland("av"));
 $("addCamIsl").addEventListener("click", () => paddIsland("cam"));
 $("addTv").addEventListener("click", () => paddIsland("tv"));
@@ -9246,6 +9341,9 @@ seg("playSeg", "play", () => P.play, v => { P.play = v; pcommit(); });
 $("snapX").addEventListener("change", e => { pui.snapX = e.target.checked; });
 $("gridUnder").value = String(pui.grid);
 if ($("gridUnder").value !== String(pui.grid)) { pui.grid = 0; $("gridUnder").value = "0"; }
+try { pui.gridSnap = localStorage.getItem("vibe.pileGridSnap") === "1"; } catch (x) { /* default */ }
+$("gridSnap").checked = !!pui.gridSnap;
+$("gridSnap").addEventListener("change", e => { pui.gridSnap = e.target.checked; try { localStorage.setItem("vibe.pileGridSnap", pui.gridSnap ? "1" : "0"); } catch (x) { /* no storage */ } });
 $("gridUnder").addEventListener("change", e => { pui.grid = +e.target.value || 0; try { localStorage.setItem("vibe.pileGrid", String(pui.grid)); } catch (x) { /* no storage */ } });
 
 /* length fields take a unit as typed: "200 cm" in a feet field becomes 6.56,
@@ -9260,6 +9358,10 @@ function parseLen(str, fieldIn) {
   while ((m = re.exec(t))) { const k = m[2] ? LEN_IN[m[2]] : prevFt ? 1 : fieldIn; total += +m[1] * k; prevFt = k === 12; }
   return (t.startsWith("-") ? -total : total) / fieldIn;
 }
+document.querySelectorAll("#pileUI .row > input.num, #settingsDlg .row > input.num").forEach(el => {   // the unit sits inside the box
+  const nx = el.nextElementSibling; if (!nx || !nx.classList.contains("unit")) return;
+  const w = document.createElement("span"); w.className = "numu"; el.before(w); w.append(el, nx);
+});
 document.querySelectorAll("#pileUI input.num").forEach(el => {
   const nx = el.nextElementSibling, lab = el.closest("label")?.querySelector("span");
   const u = nx && nx.classList.contains("unit") ? nx.textContent.trim() : lab && /\bin$/.test(lab.textContent.trim()) ? "in" : "";
@@ -9311,8 +9413,8 @@ document.querySelectorAll(".eye").forEach(b => {
   b.addEventListener("keydown", e => e.stopPropagation());
 });
 
-const syncWall = seg("wallSeg", "wall", () => P.bg.wall, v => { P.bg.wall = v; pcommit(); });
-const syncLight = seg("lightSeg", "light", () => P.bg.light, v => { P.bg.light = v; pcommit(); });
+const syncWall = () => {};   // the wall photo is a Backdrop choice now
+const syncLight = () => {};  // always event-dim
 
 /* ---- groups panel ---- */
 const gesc = t => String(t).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
@@ -9462,7 +9564,10 @@ $("gAdd").addEventListener("click", () => {
   P.groups.push(g); gpaint = g.id; pcommit();
   ptoast("New group. Click screens on the stage to move them into " + gname(g) + ". Esc to stop.");
 });
-$("bdSel").addEventListener("change", e => { P.bg.backdrop = e.target.value; pcommit(); });
+$("bdSel").addEventListener("change", e => {          // Wall photo is a backdrop choice: the photo stands behind, with no fabric
+  if (e.target.value === "photo") { P.bg.wall = "photo"; P.bg.backdrop = "none"; } else { P.bg.wall = "plain"; P.bg.backdrop = e.target.value; }
+  roomDirty = true; pcommit();
+});
 $("solidCol").addEventListener("input", e => { P.bg.solid = e.target.value; roomDirty = true; });
 $("solidCol").addEventListener("change", () => pcommit());
 $("overhang").addEventListener("change", e => { P.bg.overhang = Math.max(0, Math.min(96, +e.target.value || 0)); pcommit(); });
@@ -9470,14 +9575,13 @@ $("ceilFt").addEventListener("change", e => { P.bg.ceiling = Math.round(Math.max
 $("stageHFt").addEventListener("change", e => { P.bg.stageH = Math.round(Math.max(0, Math.min(20, +e.target.value || 0)) * 12); roomDirty = true; pcommit(); });
 $("stageWFt").addEventListener("change", e => { P.bg.stageW = Math.round(Math.max(0, Math.min(200, +e.target.value || 0)) * 12); pcommit(); });
 $("stageDFt").addEventListener("change", e => { P.bg.stageD = Math.round(Math.max(0, Math.min(100, +e.target.value || 0)) * 12); pcommit(); });
-$("stageXFt").addEventListener("change", e => { P.bg.stageX = Math.round(Math.max(-50, Math.min(50, +e.target.value || 0)) * 12); roomDirty = true; pcommit(); });
+$("stageCol").addEventListener("input", e => { P.bg.stageCol = e.target.value; roomDirty = true; });
+$("stageCol").addEventListener("change", () => pcommit());
 $("rowDFt").addEventListener("change", e => { P.plan.rowD = Math.round(Math.max(0, Math.min(200, +e.target.value || 0)) * 12); pcommit(); });
 $("rowWFt").addEventListener("change", e => { P.plan.rowW = Math.round(Math.max(2, Math.min(400, +e.target.value || 2)) * 12); pcommit(); });
-const proomInit = () => { if (P.room.w > 0 && P.room.d > 0) { if (!(P.room.backD > 0)) P.room.backD = pdeckBack(); if (P.room.cx === null) P.room.cx = pgridCX(); } };   // a new room: back wall on the stage's back edge, centred on the grid as it stands
+const proomInit = () => { if (P.room.w > 0 && P.room.d > 0 && !(P.room.backD > 0)) P.room.backD = pdeckBack() + 48; };   // a new room: its back wall four feet behind the stage, centred on the grid   // a new room: back wall on the stage's back edge, centred on the grid as it stands
 $("roomWFt").addEventListener("change", e => { P.room.w = Math.round(Math.max(0, Math.min(600, +e.target.value || 0)) * 12); proomInit(); pcommit(); });
 $("roomDFt").addEventListener("change", e => { P.room.d = Math.round(Math.max(0, Math.min(600, +e.target.value || 0)) * 12); proomInit(); pcommit(); });
-$("roomBackFt").addEventListener("change", e => { P.room.backD = pdeckBack() + Math.round(Math.max(0, Math.min(200, +e.target.value || 0)) * 12); pcommit(); });
-$("roomXFt").addEventListener("change", e => { P.room.cx = pgridCX() + Math.round(Math.max(-300, Math.min(300, +e.target.value || 0)) * 12); pcommit(); });
 $("seatLayout").addEventListener("change", e => {
   P.plan.layout = SEAT_LAYOUTS[e.target.value] || e.target.value === "none" ? e.target.value : "none";
   if (P.plan.layout === "chevron" && P.plan.aisles < 1) P.plan.aisles = 1;                       // a chevron needs a centre aisle to angle about
@@ -9533,7 +9637,7 @@ $("copySpec").addEventListener("click", () => {
     "Speaker cabinets (props): " + P.items.filter(i => i.type === "cab").length,
     "Cameras: " + cams.length + (cams.length ? ", " + cams.map(cm => "x " + Math.round(cm.x - f.x0) + " / " + Math.round(cm.y) + "\" up").join("; ") : ""),
     ...(P.items.some(i => i.type === "rig") ? ["Further rigs (centre x from grid left edge): " + P.items.filter(i => i.type === "rig").map(r => (RIGS[r.kind] || RIGS.pipe)[0].toLowerCase() + " " + fmtLen(r.w) + " x " + fmtLen(r.h) + ", " + rigSizeName(rigThick(r)) + " deep, at " + fmtLen(r.x - f.x0) + (pdepth(r) ? ", " + fmtLen(Math.abs(r.depth)) + (r.depth > 0 ? " upstage" : " downstage") : "")).join("; ")] : []),
-    ...(pislands().length ? ["Islands and delay screens: " + pislands().map(o => (o.name || ISLANDS[o.kind][0]) + " " + fmtLen(o.w) + " x " + fmtLen(o.l) + " at x " + fmtLen(o.x - f.x0) + ", " + fmtLen(Math.abs(o.depth || 0)) + ((o.depth || 0) >= 0 ? " upstage" : " downstage")).join("; ") + (phouseOn() && pseating().moved ? "; " + pseating().moved + " seats moved from under them to the back rows" : "") + (pislands().some(i => i.kind === "tv") ? "; delay TVs play the full frame (Mirror), three to a splitter feed, counted in the outputs" : "")] : []),
+    ...(pislands().length ? ["Islands and delay screens: " + pislands().map(o => (o.name || ISLANDS[o.kind][0]) + " " + fmtLen(o.w) + " x " + fmtLen(o.l) + " at x " + fmtLen(o.x - f.x0) + ", " + fmtLen(Math.abs(o.depth || 0)) + ((o.depth || 0) >= 0 ? " upstage" : " downstage")).join("; ") + (phouseOn() && pseating().moved ? "; " + pseating().moved + " seats moved from under them to the back rows" : "") + (pislands().some(i => i.kind === "tv") ? "; delay TVs play their screen group\u2019s picture and count in the outputs" : "")] : []),
     ...(P.items.some(i => i.type === "svg") ? ["Plan symbols: " + P.items.filter(i => i.type === "svg").map(o => (o.name || "symbol") + " " + fmtLen(o.w) + " x " + fmtLen(o.l) + " at x " + fmtLen(o.x - f.x0) + ", " + fmtLen(Math.abs(o.depth || 0)) + ((o.depth || 0) >= 0 ? " upstage" : " downstage")).join("; ")] : []),
     ...(doors.length ? ["Doors (back wall: centre x from grid left edge; side walls: centre from the back wall; on the room floor): " + doors.slice().sort((a, b) => a.x - b.x).map(d => (d.dbl ? "double " : "") + Math.round(d.w) + "\" x " + Math.round(d.h) + "\" " + (pwallSide(d) && proom() ? "in the " + d.wall + " wall, " + fmtLen(proom().back - (d.along || 0)) + " from the back wall" : "at " + fmtLen(d.x - f.x0)) + (d.exit ? ", exit sign" : "")).join("; ")] : []),
     ...(wins.length ? ["Windows: " + wins.map(o => Math.round(o.w) + "\" x " + Math.round(o.h) + "\", sill " + Math.round(o.sill || 0) + "\", at x " + fmtLen(o.x - f.x0)).join("; ")] : []),
@@ -9576,6 +9680,9 @@ const syncPreview = seg("previewSeg", "preview", () => preview === "pile" ? P.sc
 addEventListener("keydown", e => {
   if (preview !== "pile" || e.target.matches("input, select, textarea")) return;
   if (e.target !== document.body && e.target !== pileFg) return;   // leave shape tiles and other widgets their own keys
+  if (e.key === "Tab" && !e.metaKey && !e.ctrlKey && !e.altKey) {     // Tab: hide every label, grid and guide to see the composition; Tab again brings them back
+    e.preventDefault(); pui.clean = !pui.clean; ptoast(pui.clean ? "Clean view. Press Tab to bring the labels and guides back." : "Labels and guides are back."); return;
+  }
   const k = e.key.toLowerCase();
   if ((e.metaKey || e.ctrlKey) && k === "z") { e.preventDefault(); if (!e.repeat) pundo(); return; }   // one step per press, not per key repeat
   if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -9934,7 +10041,7 @@ $("recBtn").addEventListener("click", () => {
 
 /* keep every bar slider's fill in step with its value */
 (function barLoop() {
-  document.querySelectorAll("input[type=range]:not(.vfader)").forEach(el => {
+  document.querySelectorAll("input[type=range]").forEach(el => {
     if (el._bv === el.value && el._bmn === el.min && el._bmx === el.max) return;
     el._bv = el.value; el._bmn = el.min; el._bmx = el.max;
     const mn = +el.min || 0, mx = +el.max || 100;
